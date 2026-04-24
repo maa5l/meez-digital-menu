@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const CTA = () => {
   return (
@@ -16,10 +17,12 @@ const CTA = () => {
             <p className="text-lg md:text-xl text-primary-foreground/80 mb-10 leading-relaxed">
               ابدأ تجربتك المجانية اليوم — 14 يومًا كاملة بدون أي قيود وبدون بطاقة ائتمان.
             </p>
-            <Button variant="hero" size="xl" className="group">
-              ابدأ الآن مجانًا
-              <ArrowLeft className="group-hover:-translate-x-1 transition-transform" />
-            </Button>
+            <Link to="/auth">
+              <Button variant="hero" size="xl" className="group">
+                ابدأ الآن مجانًا
+                <ArrowLeft className="group-hover:-translate-x-1 transition-transform" />
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
