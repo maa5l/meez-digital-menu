@@ -3,10 +3,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { LayoutGrid, Columns2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const Settings = () => {
   const [layout, setLayout] = useState<"grid" | "split">("grid");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("qaemah-template") as "grid" | "split" | null;
+    if (saved) setLayout(saved);
+  }, []);
+
+  const choose = (k: "grid" | "split") => {
+    setLayout(k);
+    localStorage.setItem("qaemah-template", k);
+  };
 
   return (
     <DashboardLayout title="الإعدادات" subtitle="خصص منشأتك وطريقة عرض المنيو">
@@ -36,24 +46,24 @@ const Settings = () => {
 
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => setLayout("grid")}
+              onClick={() => choose("grid")}
               className={`p-5 rounded-2xl border-2 transition-all text-right ${
                 layout === "grid" ? "border-accent bg-accent/5 shadow-gold" : "border-border hover:border-accent/40"
               }`}
             >
               <LayoutGrid className={`w-7 h-7 mb-3 ${layout === "grid" ? "text-accent" : "text-muted-foreground"}`} />
-              <div className="font-display font-bold text-primary">بطاقات Grid</div>
-              <div className="text-xs text-muted-foreground mt-1">منتجات كبطاقات بصور</div>
+              <div className="font-display font-bold text-primary">القالب ١ — البطاقات</div>
+              <div className="text-xs text-muted-foreground mt-1">شبكة بطاقات نظيفة بصور كبيرة</div>
             </button>
             <button
-              onClick={() => setLayout("split")}
+              onClick={() => choose("split")}
               className={`p-5 rounded-2xl border-2 transition-all text-right ${
                 layout === "split" ? "border-accent bg-accent/5 shadow-gold" : "border-border hover:border-accent/40"
               }`}
             >
               <Columns2 className={`w-7 h-7 mb-3 ${layout === "split" ? "text-accent" : "text-muted-foreground"}`} />
-              <div className="font-display font-bold text-primary">عرض Split</div>
-              <div className="text-xs text-muted-foreground mt-1">قائمة + تفاصيل بجانبها</div>
+              <div className="font-display font-bold text-primary">القالب ٢ — التفاصيل</div>
+              <div className="text-xs text-muted-foreground mt-1">بانر مشروب الموسم + قائمة وتفاصيل</div>
             </button>
           </div>
 
