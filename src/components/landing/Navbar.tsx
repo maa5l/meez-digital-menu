@@ -1,0 +1,31 @@
+import { Button } from "@/components/ui/button";
+import { UtensilsCrossed } from "lucide-react";
+
+const Navbar = () => {
+  return (
+    <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-background/70 border-b border-border/50">
+      <nav className="container flex items-center justify-between h-16 md:h-20">
+        <a href="#" className="flex items-center gap-2 group">
+          <div className="w-10 h-10 rounded-xl bg-gradient-gold flex items-center justify-center shadow-gold group-hover:scale-105 transition-transform">
+            <UtensilsCrossed className="w-5 h-5 text-primary" />
+          </div>
+          <span className="font-display font-black text-2xl text-primary">قائمة</span>
+        </a>
+
+        <div className="hidden md:flex items-center gap-8 font-medium text-foreground/80">
+          <a href="#features" className="hover:text-accent transition-colors">المميزات</a>
+          <a href="#how" className="hover:text-accent transition-colors">كيف يعمل</a>
+          <a href="#pricing" className="hover:text-accent transition-colors">الأسعار</a>
+          <a href="#faq" className="hover:text-accent transition-colors">الأسئلة</a>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" className="hidden sm:inline-flex">تسجيل الدخول</Button>
+          <Button variant="hero">ابدأ مجانًا</Button>
+        </div>
+      </nav>
+    </header>
+  );
+};
+
+export default Navbar;
