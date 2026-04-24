@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const perks = [
   "عدد غير محدود من المنتجات والتصنيفات",
@@ -58,9 +59,11 @@ const Pricing = () => {
                 ))}
               </ul>
 
-              <Button variant="hero" size="xl" className="w-full">
-                ابدأ تجربتك المجانية ١٤ يوم
-              </Button>
+              <Link to="/auth">
+                <Button variant="hero" size="xl" className="w-full">
+                  ابدأ تجربتك المجانية ١٤ يوم
+                </Button>
+              </Link>
               <p className="text-center text-sm text-primary-foreground/60 mt-4">
                 بدون بطاقة ائتمان · ألغِ متى تشاء
               </p>

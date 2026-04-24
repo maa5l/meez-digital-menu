@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { UtensilsCrossed } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Navbar = () => {
   return (
@@ -20,8 +21,8 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" className="hidden sm:inline-flex">تسجيل الدخول</Button>
-          <Button variant="hero">ابدأ مجانًا</Button>
+          <Link to="/auth"><Button variant="ghost" className="hidden sm:inline-flex">تسجيل الدخول</Button></Link>
+          <Link to="/auth"><Button variant="hero">ابدأ مجانًا</Button></Link>
         </div>
       </nav>
     </header>

@@ -5,6 +5,15 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import Auth from "./pages/Auth.tsx";
+import DeviceCode from "./pages/DeviceCode.tsx";
+import MenuDisplay from "./pages/MenuDisplay.tsx";
+import Overview from "./pages/dashboard/Overview.tsx";
+import Categories from "./pages/dashboard/Categories.tsx";
+import Products from "./pages/dashboard/Products.tsx";
+import Devices from "./pages/dashboard/Devices.tsx";
+import Subscription from "./pages/dashboard/Subscription.tsx";
+import Settings from "./pages/dashboard/Settings.tsx";
 
 const queryClient = new QueryClient();
 
@@ -16,6 +25,15 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/display" element={<DeviceCode />} />
+          <Route path="/menu" element={<MenuDisplay />} />
+          <Route path="/dashboard" element={<Overview />} />
+          <Route path="/dashboard/categories" element={<Categories />} />
+          <Route path="/dashboard/products" element={<Products />} />
+          <Route path="/dashboard/devices" element={<Devices />} />
+          <Route path="/dashboard/subscription" element={<Subscription />} />
+          <Route path="/dashboard/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

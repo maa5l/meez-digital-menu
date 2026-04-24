@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
 import heroTablet from "@/assets/hero-tablet.jpg";
 
 const Hero = () => {
@@ -29,13 +30,17 @@ const Hero = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-              <Button variant="hero" size="xl" className="group">
-                ابدأ تجربتك المجانية
-                <ArrowLeft className="group-hover:-translate-x-1 transition-transform" />
-              </Button>
-              <Button variant="heroOutline" size="xl">
-                شاهد كيف يعمل
-              </Button>
+              <Link to="/auth">
+                <Button variant="hero" size="xl" className="group w-full sm:w-auto">
+                  ابدأ تجربتك المجانية
+                  <ArrowLeft className="group-hover:-translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+              <Link to="/menu">
+                <Button variant="heroOutline" size="xl" className="w-full sm:w-auto">
+                  شاهد المنيو الحي
+                </Button>
+              </Link>
             </div>
 
             <div className="mt-8 flex items-center gap-6 justify-center lg:justify-start text-sm text-muted-foreground">
