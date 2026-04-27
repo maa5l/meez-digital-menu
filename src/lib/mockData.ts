@@ -12,6 +12,17 @@ export type Product = {
   price: number;
   calories: number;
   image?: string;
+  cropInfo?: CropInfo;
+};
+
+/** معلومات المحاصيل — تظهر للمنتجات من نوع البن المختص */
+export type CropInfo = {
+  beanName: string;      // اسم البن
+  country: string;       // البلد
+  process: string;       // نوع المعالجة
+  variety: string;       // السلالة
+  altitude: string;      // الارتفاع
+  notes: string;         // الإيحاءات
 };
 
 export type Device = {
