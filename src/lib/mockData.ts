@@ -79,6 +79,23 @@ export const products: Product[] = [
     image: "https://images.unsplash.com/photo-1494314671902-399b18174975?w=600&q=80",
   },
   {
+    id: "p13",
+    categoryId: "c1",
+    name: "في60 إثيوبي",
+    description: "تخمير V60 بنكهات فاكهية مشرقة وحموضة لطيفة، مثالية لمحبي البن المختص.",
+    price: 26,
+    calories: 5,
+    image: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?w=600&q=80",
+    cropInfo: {
+      beanName: "يرقاتشيف",
+      country: "إثيوبيا",
+      process: "مغسولة",
+      variety: "هيرلوم",
+      altitude: "٢٠٠٠ م",
+      notes: "ياسمين، ليمون، شاي أسود",
+    },
+  },
+  {
     id: "p5",
     categoryId: "c2",
     name: "آيس لاتيه",
