@@ -8,53 +8,53 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Qae'mah brand — warm hospitality (deep espresso + gold) */
-    --background: 36 38% 97%;
-    --foreground: 25 35% 12%;
+    /* Qae'mah brand — sky blue + warm cream */
+    --background: 67 35% 96%;       /* #F7F8F0 */
+    --foreground: 215 35% 14%;
 
     --card: 0 0% 100%;
-    --card-foreground: 25 35% 12%;
+    --card-foreground: 215 35% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 25 35% 12%;
+    --popover-foreground: 215 35% 14%;
 
-    /* Deep espresso brown */
-    --primary: 25 45% 14%;
-    --primary-foreground: 40 50% 96%;
+    /* Deep navy as primary text/buttons */
+    --primary: 215 40% 16%;
+    --primary-foreground: 67 35% 96%;
 
-    /* Warm cream */
-    --secondary: 36 38% 92%;
-    --secondary-foreground: 25 45% 14%;
+    /* Soft cream surface */
+    --secondary: 67 30% 92%;
+    --secondary-foreground: 215 40% 16%;
 
-    --muted: 36 25% 90%;
-    --muted-foreground: 25 15% 40%;
+    --muted: 67 20% 90%;
+    --muted-foreground: 215 15% 38%;
 
-    /* Signature gold */
-    --accent: 38 65% 52%;
-    --accent-foreground: 25 45% 14%;
+    /* Signature sky blue #9CD5FF */
+    --accent: 207 100% 81%;
+    --accent-foreground: 215 40% 16%;
 
     --destructive: 0 75% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 20% 86%;
-    --input: 30 20% 86%;
-    --ring: 38 65% 52%;
+    --border: 67 18% 86%;
+    --input: 67 18% 86%;
+    --ring: 207 100% 81%;
 
     --radius: 1rem;
 
-    /* Custom tokens */
-    --gold: 38 65% 52%;
-    --gold-glow: 42 80% 65%;
-    --espresso: 25 45% 14%;
-    --cream: 36 38% 97%;
+    /* Custom brand tokens */
+    --sky: 207 100% 81%;            /* #9CD5FF */
+    --sky-glow: 200 100% 88%;
+    --cream: 67 35% 96%;            /* #F7F8F0 */
+    --ink: 215 40% 16%;
 
-    --gradient-hero: linear-gradient(135deg, hsl(25 45% 14%) 0%, hsl(20 50% 18%) 50%, hsl(25 55% 10%) 100%);
-    --gradient-gold: linear-gradient(135deg, hsl(38 65% 52%) 0%, hsl(42 80% 65%) 100%);
-    --gradient-cream: linear-gradient(180deg, hsl(36 38% 97%) 0%, hsl(36 38% 92%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(215 40% 16%) 0%, hsl(215 50% 22%) 50%, hsl(215 55% 12%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(207 100% 81%) 0%, hsl(200 100% 88%) 100%);
+    --gradient-cream: linear-gradient(180deg, hsl(67 35% 96%) 0%, hsl(67 30% 92%) 100%);
 
-    --shadow-warm: 0 20px 60px -20px hsl(25 45% 14% / 0.25);
-    --shadow-gold: 0 10px 40px -10px hsl(38 65% 52% / 0.45);
-    --shadow-soft: 0 4px 20px -4px hsl(25 45% 14% / 0.08);
+    --shadow-warm: 0 20px 60px -20px hsl(215 40% 16% / 0.22);
+    --shadow-gold: 0 10px 40px -10px hsl(207 100% 65% / 0.45);
+    --shadow-soft: 0 4px 20px -4px hsl(215 40% 16% / 0.08);
 
     --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 

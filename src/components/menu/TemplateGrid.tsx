@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { categories, products, type Product } from "@/lib/mockData";
 import { Flame, Leaf, X } from "lucide-react";
+import walkingBurn from "@/assets/walking-burn.png";
 
 /**
  * Template 1 — "Qae'mah Grid"
@@ -13,7 +14,10 @@ const TemplateGrid = () => {
   const visible = products.filter((p) => p.categoryId === activeCat);
 
   return (
-    <div className="h-full bg-[#fafafa] flex flex-col" dir="rtl">
+    <div className="h-full bg-[#F7F8F0] flex flex-col" dir="rtl">
+      {/* Calorie burn info bar (top, small clear text) */}
+      <BurnInfoBar />
+
       {/* Header: centered logo + categories on the right */}
       <div className="px-8 pt-6 pb-4 shrink-0">
         <h1 className="text-center font-display font-black text-4xl text-[#1a1a1a] tracking-tight mb-6">
@@ -30,7 +34,7 @@ const TemplateGrid = () => {
                 className={`px-7 py-2.5 rounded-full font-bold text-base transition-all ${
                   active
                     ? "bg-[#1a1a1a] text-white shadow-md"
-                    : "bg-[#d9d9d9] text-[#4a4a4a] hover:bg-[#c9c9c9]"
+                    : "bg-[#9CD5FF]/40 text-[#1a3a55] hover:bg-[#9CD5FF]/60"
                 }`}
               >
                 {c.name}
@@ -99,6 +103,16 @@ const TemplateGrid = () => {
   );
 };
 
+/* ---------- Burn-info bar ---------- */
+const BurnInfoBar = () => (
+  <div className="bg-[#9CD5FF]/30 border-b border-[#9CD5FF]/60 px-6 py-1.5 flex items-center justify-center gap-2 text-[11px] md:text-xs text-[#1a3a55]">
+    <img src={walkingBurn} alt="" className="w-4 h-4 object-contain" />
+    <span className="font-bold">
+      تفاصيل حرق السعرات: المشي ٣٠ دقيقة يحرق ~١٥٠ سعرة • الجري ١٠ دقائق يحرق ~١٠٠ سعرة
+    </span>
+  </div>
+);
+
 /* ---------- helpers ---------- */
 const toArabicNum = (n: number) =>
   n.toString().replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[+d]);
@@ -117,7 +131,7 @@ const DetailModal = ({ product, onClose }: { product: Product; onClose: () => vo
     dir="rtl"
   >
     <div
-      className="bg-white w-full max-w-2xl rounded-[2rem] overflow-hidden shadow-2xl"
+      className="bg-white w-full max-w-2xl rounded-[2rem] overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
       onClick={(e) => e.stopPropagation()}
     >
       {product.image && (
@@ -144,9 +158,38 @@ const DetailModal = ({ product, onClose }: { product: Product; onClose: () => vo
             {toArabicNum(product.calories)}
           </div>
         </div>
+
+        {product.cropInfo && <CropInfoBlock info={product.cropInfo} />}
       </div>
     </div>
   </div>
 );
+
+const CropInfoBlock = ({ info }: { info: NonNullable<Product["cropInfo"]> }) => {
+  const rows: [string, string][] = [
+    ["اسم البن", info.beanName],
+    ["البلد", info.country],
+    ["نوع المعالجة", info.process],
+    ["السلالة", info.variety],
+    ["الارتفاع", info.altitude],
+    ["الإيحاءات", info.notes],
+  ];
+  return (
+    <div className="mt-6 bg-[#F7F8F0] border border-[#9CD5FF]/50 rounded-2xl p-5">
+      <h4 className="font-display font-black text-lg text-[#1a3a55] mb-3 flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-[#9CD5FF]" />
+        معلومات المحاصيل
+      </h4>
+      <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+        {rows.map(([k, v]) => (
+          <div key={k} className="flex justify-between border-b border-dashed border-[#9CD5FF]/40 py-1.5">
+            <span className="text-[#5a5a5a]">{k}</span>
+            <span className="font-bold text-[#1a1a1a]">{v}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export default TemplateGrid;

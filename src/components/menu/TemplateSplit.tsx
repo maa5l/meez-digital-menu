@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { categories, products, type Product } from "@/lib/mockData";
 import { Flame, Leaf } from "lucide-react";
+import walkingBurn from "@/assets/walking-burn.png";
+import menuHeroCoffee from "@/assets/menu-hero-coffee.png";
 
 /**
  * Template 2 — "Qae'mah Hero + Split"
@@ -13,10 +15,16 @@ const TemplateSplit = () => {
   const visible = products.filter((p) => p.categoryId === activeCat);
   const [selected, setSelected] = useState<Product>(visible[0] || products[0]);
 
-  const featured = products[0]; // Seasonal pick
-
   return (
-    <div className="h-full bg-[#fafafa] flex flex-col overflow-hidden" dir="rtl">
+    <div className="h-full bg-[#F7F8F0] flex flex-col overflow-hidden" dir="rtl">
+      {/* Calorie burn info bar */}
+      <div className="bg-[#9CD5FF]/30 border-b border-[#9CD5FF]/60 px-6 py-1.5 flex items-center justify-center gap-2 text-[11px] md:text-xs text-[#1a3a55] shrink-0">
+        <img src={walkingBurn} alt="" className="w-4 h-4 object-contain" />
+        <span className="font-bold">
+          تفاصيل حرق السعرات: المشي ٣٠ دقيقة يحرق ~١٥٠ سعرة • الجري ١٠ دقائق يحرق ~١٠٠ سعرة
+        </span>
+      </div>
+
       {/* Hero banner */}
       <div className="relative bg-[#0a0a0a] px-8 py-4 shrink-0">
         <h1 className="text-center font-display font-black text-3xl text-white tracking-tight">
@@ -24,28 +32,29 @@ const TemplateSplit = () => {
         </h1>
 
         <div className="grid grid-cols-2 items-center mt-2">
-          {/* Featured image (left in RTL = visually left) */}
+          {/* Featured product image — coffee bag */}
           <div className="flex justify-center">
-            {featured.image && (
-              <img
-                src={featured.image}
-                alt={featured.name}
-                className="h-32 md:h-40 object-contain drop-shadow-2xl"
-              />
-            )}
+            <img
+              src={menuHeroCoffee}
+              alt="بن مختص"
+              className="h-32 md:h-44 object-contain drop-shadow-2xl"
+            />
           </div>
 
           {/* Title (right in RTL) */}
           <div className="text-right">
-            <h2 className="font-display font-black text-3xl md:text-5xl text-[#c9a878] leading-tight">
-              مشروب الموسم
+            <h2 className="font-display font-black text-3xl md:text-5xl text-[#9CD5FF] leading-tight">
+              بن الموسم
             </h2>
+            <p className="text-white/70 text-sm md:text-base mt-2">
+              مختارات حصرية من أجود المحاصيل
+            </p>
           </div>
         </div>
       </div>
 
       {/* Categories */}
-      <div className="px-8 py-4 shrink-0 bg-[#fafafa]">
+      <div className="px-8 py-4 shrink-0 bg-[#F7F8F0]">
         <div className="flex flex-wrap gap-3 justify-end">
           {categories.map((c) => {
             const active = activeCat === c.id;
@@ -60,7 +69,7 @@ const TemplateSplit = () => {
                 className={`px-7 py-2 rounded-full font-bold text-base transition-all ${
                   active
                     ? "bg-[#1a1a1a] text-white shadow-md"
-                    : "bg-[#d9d9d9] text-[#4a4a4a] hover:bg-[#c9c9c9]"
+                    : "bg-[#9CD5FF]/40 text-[#1a3a55] hover:bg-[#9CD5FF]/60"
                 }`}
               >
                 {c.name}
@@ -81,7 +90,7 @@ const TemplateSplit = () => {
                 key={p.id}
                 onClick={() => setSelected(p)}
                 className={`w-full bg-[#ededed] rounded-[1.75rem] p-3 flex items-center gap-4 text-right transition-all ${
-                  active ? "ring-2 ring-[#c9a878] shadow-md" : "hover:shadow-sm"
+                  active ? "ring-2 ring-[#9CD5FF] shadow-md" : "hover:shadow-sm"
                 }`}
               >
                 <div className="w-20 h-20 bg-white rounded-2xl overflow-hidden shrink-0 flex items-center justify-center">
@@ -111,7 +120,7 @@ const TemplateSplit = () => {
         {/* Detail */}
         <div className="bg-[#ededed] rounded-[2rem] p-5 flex flex-col overflow-hidden">
           {/* Big image area */}
-          <div className="flex-1 bg-white rounded-[1.5rem] flex items-center justify-center overflow-hidden mb-4">
+          <div className="flex-[1.2] bg-white rounded-[1.5rem] flex items-center justify-center overflow-hidden mb-4 min-h-[150px]">
             {selected.image && (
               <img
                 src={selected.image}
@@ -122,7 +131,7 @@ const TemplateSplit = () => {
           </div>
 
           {/* Footer info */}
-          <div className="px-2">
+          <div className="px-2 overflow-y-auto">
             <div className="flex items-start justify-between gap-3 mb-2">
               <Leaf className="w-5 h-5 text-[#3a3a3a] opacity-60 mt-2 shrink-0" />
               <h2 className="font-display font-black text-2xl md:text-3xl text-[#1a1a1a]">
@@ -142,6 +151,30 @@ const TemplateSplit = () => {
                 {toArabicNum(selected.calories)}
               </div>
             </div>
+
+            {selected.cropInfo && (
+              <div className="mt-4 bg-[#F7F8F0] border border-[#9CD5FF]/60 rounded-2xl p-4">
+                <h4 className="font-display font-black text-base text-[#1a3a55] mb-2 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#9CD5FF]" />
+                  معلومات المحاصيل
+                </h4>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                  {([
+                    ["اسم البن", selected.cropInfo.beanName],
+                    ["البلد", selected.cropInfo.country],
+                    ["المعالجة", selected.cropInfo.process],
+                    ["السلالة", selected.cropInfo.variety],
+                    ["الارتفاع", selected.cropInfo.altitude],
+                    ["الإيحاءات", selected.cropInfo.notes],
+                  ] as [string, string][]).map(([k, v]) => (
+                    <div key={k} className="flex justify-between border-b border-dashed border-[#9CD5FF]/40 py-1">
+                      <span className="text-[#5a5a5a]">{k}</span>
+                      <span className="font-bold text-[#1a1a1a]">{v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

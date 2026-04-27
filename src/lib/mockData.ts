@@ -12,6 +12,17 @@ export type Product = {
   price: number;
   calories: number;
   image?: string;
+  cropInfo?: CropInfo;
+};
+
+/** معلومات المحاصيل — تظهر للمنتجات من نوع البن المختص */
+export type CropInfo = {
+  beanName: string;      // اسم البن
+  country: string;       // البلد
+  process: string;       // نوع المعالجة
+  variety: string;       // السلالة
+  altitude: string;      // الارتفاع
+  notes: string;         // الإيحاءات
 };
 
 export type Device = {
@@ -39,6 +50,14 @@ export const products: Product[] = [
     price: 12,
     calories: 5,
     image: "https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=600&q=80",
+    cropInfo: {
+      beanName: "سيدامو",
+      country: "إثيوبيا",
+      process: "طبيعية",
+      variety: "هيرلوم",
+      altitude: "١٩٠٠ م",
+      notes: "شوكولاتة داكنة، توت، كراميل",
+    },
   },
   {
     id: "p2",
@@ -48,6 +67,14 @@ export const products: Product[] = [
     price: 18,
     calories: 120,
     image: "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=600&q=80",
+    cropInfo: {
+      beanName: "هوامبيلا",
+      country: "كولومبيا",
+      process: "مغسولة",
+      variety: "كاتورا",
+      altitude: "١٧٥٠ م",
+      notes: "كراميل، بندق، تفاح أحمر",
+    },
   },
   {
     id: "p3",
@@ -66,6 +93,23 @@ export const products: Product[] = [
     price: 15,
     calories: 10,
     image: "https://images.unsplash.com/photo-1494314671902-399b18174975?w=600&q=80",
+  },
+  {
+    id: "p13",
+    categoryId: "c1",
+    name: "في60 إثيوبي",
+    description: "تخمير V60 بنكهات فاكهية مشرقة وحموضة لطيفة، مثالية لمحبي البن المختص.",
+    price: 26,
+    calories: 5,
+    image: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?w=600&q=80",
+    cropInfo: {
+      beanName: "يرقاتشيف",
+      country: "إثيوبيا",
+      process: "مغسولة",
+      variety: "هيرلوم",
+      altitude: "٢٠٠٠ م",
+      notes: "ياسمين، ليمون، شاي أسود",
+    },
   },
   {
     id: "p5",
