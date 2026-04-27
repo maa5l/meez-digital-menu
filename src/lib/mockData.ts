@@ -50,6 +50,14 @@ export const products: Product[] = [
     price: 12,
     calories: 5,
     image: "https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=600&q=80",
+    cropInfo: {
+      beanName: "سيدامو",
+      country: "إثيوبيا",
+      process: "طبيعية",
+      variety: "هيرلوم",
+      altitude: "١٩٠٠ م",
+      notes: "شوكولاتة داكنة، توت، كراميل",
+    },
   },
   {
     id: "p2",
@@ -59,6 +67,14 @@ export const products: Product[] = [
     price: 18,
     calories: 120,
     image: "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=600&q=80",
+    cropInfo: {
+      beanName: "هوامبيلا",
+      country: "كولومبيا",
+      process: "مغسولة",
+      variety: "كاتورا",
+      altitude: "١٧٥٠ م",
+      notes: "كراميل، بندق، تفاح أحمر",
+    },
   },
   {
     id: "p3",
