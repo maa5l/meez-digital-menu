@@ -2,25 +2,30 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LayoutGrid, Columns2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Switch } from "@/components/ui/switch";
+import { LayoutGrid, Columns2, Bike, Sparkles, ExternalLink } from "lucide-react";
+import { useMenuSettings } from "@/hooks/useMenuSettings";
+import { defaultMenuSettings } from "@/lib/mockData";
+import { toast } from "sonner";
 
 const Settings = () => {
-  const [layout, setLayout] = useState<"grid" | "split">("grid");
+  const [settings, update] = useMenuSettings();
 
-  useEffect(() => {
-    const saved = localStorage.getItem("qaemah-template") as "grid" | "split" | null;
-    if (saved) setLayout(saved);
-  }, []);
-
-  const choose = (k: "grid" | "split") => {
-    setLayout(k);
-    localStorage.setItem("qaemah-template", k);
+  const reset = () => {
+    update(defaultMenuSettings);
+    toast.success("تمت إعادة الإعدادات للوضع الافتراضي");
   };
 
   return (
-    <DashboardLayout title="الإعدادات" subtitle="خصص منشأتك وطريقة عرض المنيو">
+    <DashboardLayout
+      title="الإعدادات"
+      subtitle="خصّص منشأتك وألوان وقوالب منيو الكاشير"
+      action={
+        <Button variant="outline" onClick={reset}>إعادة الافتراضي</Button>
+      }
+    >
       <div className="grid lg:grid-cols-2 gap-6">
+        {/* === معلومات المنشأة === */}
         <div className="bg-card rounded-3xl border border-border p-6">
           <h3 className="font-display font-bold text-xl text-primary mb-4">معلومات المنشأة</h3>
           <div className="space-y-4">
@@ -40,41 +45,149 @@ const Settings = () => {
           </div>
         </div>
 
+        {/* === ألوان المنيو === */}
         <div className="bg-card rounded-3xl border border-border p-6">
-          <h3 className="font-display font-bold text-xl text-primary mb-2">نوع عرض المنيو</h3>
-          <p className="text-sm text-muted-foreground mb-4">سيُطبّق على كل الشاشات المرتبطة</p>
+          <h3 className="font-display font-bold text-xl text-primary mb-1">ألوان المنيو</h3>
+          <p className="text-sm text-muted-foreground mb-5">تنطبق على كل شاشات الفرع فوراً</p>
+
+          <div className="grid grid-cols-3 gap-4">
+            <ColorField label="لون الخلفية" value={settings.bgColor} onChange={(v) => update({ ...settings, bgColor: v })} />
+            <ColorField label="لون النص" value={settings.textColor} onChange={(v) => update({ ...settings, textColor: v })} />
+            <ColorField label="اللون المميّز" value={settings.accentColor} onChange={(v) => update({ ...settings, accentColor: v })} />
+          </div>
+
+          <div className="mt-6 flex items-center justify-between p-4 rounded-2xl bg-secondary">
+            <div>
+              <div className="font-bold text-primary text-sm">شريط حرق السعرات</div>
+              <div className="text-xs text-muted-foreground">يظهر في أعلى منيو المنتجات</div>
+            </div>
+            <Switch
+              checked={settings.showBurnBar}
+              onCheckedChange={(v) => update({ ...settings, showBurnBar: v })}
+            />
+          </div>
+
+          {/* Mini preview */}
+          <div
+            className="mt-4 rounded-2xl p-4 border"
+            style={{ background: settings.bgColor, color: settings.textColor, borderColor: `${settings.accentColor}80` }}
+          >
+            <div className="text-xs opacity-70 mb-2">معاينة سريعة</div>
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: settings.accentColor, color: "#1a1a1a" }}>
+                تصنيف
+              </span>
+              <span className="text-sm font-bold">عنوان نموذجي</span>
+            </div>
+          </div>
+        </div>
+
+        {/* === قالب المنتجات === */}
+        <div className="bg-card rounded-3xl border border-border p-6">
+          <h3 className="font-display font-bold text-xl text-primary mb-1">قالب منيو المنتجات</h3>
+          <p className="text-sm text-muted-foreground mb-4">اختر شكل عرض المنتجات على الجهاز</p>
 
           <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => choose("grid")}
-              className={`p-5 rounded-2xl border-2 transition-all text-right ${
-                layout === "grid" ? "border-accent bg-accent/5 shadow-gold" : "border-border hover:border-accent/40"
-              }`}
-            >
-              <LayoutGrid className={`w-7 h-7 mb-3 ${layout === "grid" ? "text-accent" : "text-muted-foreground"}`} />
-              <div className="font-display font-bold text-primary">القالب ١ — البطاقات</div>
-              <div className="text-xs text-muted-foreground mt-1">شبكة بطاقات نظيفة بصور كبيرة</div>
-            </button>
-            <button
-              onClick={() => choose("split")}
-              className={`p-5 rounded-2xl border-2 transition-all text-right ${
-                layout === "split" ? "border-accent bg-accent/5 shadow-gold" : "border-border hover:border-accent/40"
-              }`}
-            >
-              <Columns2 className={`w-7 h-7 mb-3 ${layout === "split" ? "text-accent" : "text-muted-foreground"}`} />
-              <div className="font-display font-bold text-primary">القالب ٢ — التفاصيل</div>
-              <div className="text-xs text-muted-foreground mt-1">بانر مشروب الموسم + قائمة وتفاصيل</div>
-            </button>
+            <TemplateCard
+              active={settings.productTemplate === "grid"}
+              icon={<LayoutGrid className="w-7 h-7" />}
+              title="البطاقات"
+              desc="شبكة بطاقات نظيفة بصور كبيرة"
+              onClick={() => update({ ...settings, productTemplate: "grid" })}
+            />
+            <TemplateCard
+              active={settings.productTemplate === "split"}
+              icon={<Columns2 className="w-7 h-7" />}
+              title="التفاصيل"
+              desc="بانر مشروب الموسم + قائمة وتفاصيل"
+              onClick={() => update({ ...settings, productTemplate: "split" })}
+            />
           </div>
 
-          <div className="mt-6 p-4 rounded-xl bg-secondary text-sm">
-            <div className="font-bold text-primary mb-1">المعاينة</div>
-            <p className="text-muted-foreground text-xs">افتح <a href="/menu" className="text-accent font-semibold hover:underline">/menu</a> لرؤية المنيو على الجهاز.</p>
+          <a
+            href="/menu"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 flex items-center justify-center gap-2 text-sm font-bold text-accent-foreground bg-accent/30 hover:bg-accent/50 rounded-xl py-3 transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            معاينة منيو المنتجات على الجهاز
+          </a>
+        </div>
+
+        {/* === قالب المحاصيل === */}
+        <div className="bg-card rounded-3xl border border-border p-6">
+          <h3 className="font-display font-bold text-xl text-primary mb-1">قالب منيو محاصيل البن</h3>
+          <p className="text-sm text-muted-foreground mb-4">شاشة مخصصة للكاشير لمعرفة محاصيل القهوة</p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <TemplateCard
+              active={settings.cropsTemplate === "molo"}
+              icon={<Bike className="w-7 h-7" />}
+              title="ميني‍مال — Molo"
+              desc="نص ثنائي اللغة بفاصل عمودي وأيقونة دراجة"
+              onClick={() => update({ ...settings, cropsTemplate: "molo" })}
+            />
+            <TemplateCard
+              active={settings.cropsTemplate === "pureshelf"}
+              icon={<Sparkles className="w-7 h-7" />}
+              title="إيلوستريشن — Pure Shelf"
+              desc="رسومات بحرية مرحة وصورة كيس البن"
+              onClick={() => update({ ...settings, cropsTemplate: "pureshelf" })}
+            />
           </div>
+
+          <a
+            href="/menu?type=crops"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 flex items-center justify-center gap-2 text-sm font-bold text-accent-foreground bg-accent/30 hover:bg-accent/50 rounded-xl py-3 transition-colors"
+          >
+            <ExternalLink className="w-4 h-4" />
+            معاينة منيو المحاصيل على الجهاز
+          </a>
         </div>
       </div>
     </DashboardLayout>
   );
 };
+
+const TemplateCard = ({
+  active, icon, title, desc, onClick,
+}: { active: boolean; icon: React.ReactNode; title: string; desc: string; onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className={`p-5 rounded-2xl border-2 transition-all text-right ${
+      active ? "border-accent bg-accent/10 shadow-gold" : "border-border hover:border-accent/40"
+    }`}
+  >
+    <div className={`mb-3 ${active ? "text-accent-foreground" : "text-muted-foreground"}`}>{icon}</div>
+    <div className="font-display font-bold text-primary">{title}</div>
+    <div className="text-xs text-muted-foreground mt-1">{desc}</div>
+  </button>
+);
+
+const ColorField = ({
+  label, value, onChange,
+}: { label: string; value: string; onChange: (v: string) => void }) => (
+  <div>
+    <Label className="text-xs">{label}</Label>
+    <div className="mt-2 flex items-center gap-2 border border-border rounded-xl p-1.5">
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-10 h-10 rounded-lg cursor-pointer border-0 bg-transparent"
+        aria-label={label}
+      />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="flex-1 bg-transparent font-mono text-xs text-foreground outline-none uppercase"
+      />
+    </div>
+  </div>
+);
 
 export default Settings;
