@@ -14,6 +14,7 @@ import Products from "./pages/dashboard/Products.tsx";
 import Devices from "./pages/dashboard/Devices.tsx";
 import Subscription from "./pages/dashboard/Subscription.tsx";
 import Settings from "./pages/dashboard/Settings.tsx";
+import Crops from "./pages/dashboard/Crops.tsx";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/dashboard" element={<Overview />} />
           <Route path="/dashboard/categories" element={<Categories />} />
           <Route path="/dashboard/products" element={<Products />} />
+          <Route path="/dashboard/crops" element={<Crops />} />
           <Route path="/dashboard/devices" element={<Devices />} />
           <Route path="/dashboard/subscription" element={<Subscription />} />
           <Route path="/dashboard/settings" element={<Settings />} />

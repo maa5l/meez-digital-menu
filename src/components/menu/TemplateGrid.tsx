@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { categories, products, type Product } from "@/lib/mockData";
+import { categories, products, type Product, type MenuSettings, defaultMenuSettings } from "@/lib/mockData";
 import { Flame, Leaf, X } from "lucide-react";
 import walkingBurn from "@/assets/walking-burn.png";
 
@@ -8,19 +8,22 @@ import walkingBurn from "@/assets/walking-burn.png";
  * Matches the first uploaded mockup: title at top, category pills on the right,
  * white rounded product cards with image, name, price (riyal), calories.
  */
-const TemplateGrid = () => {
+const TemplateGrid = ({ settings = defaultMenuSettings }: { settings?: MenuSettings }) => {
   const [activeCat, setActiveCat] = useState(categories[0].id);
   const [modal, setModal] = useState<Product | null>(null);
   const visible = products.filter((p) => p.categoryId === activeCat);
 
   return (
-    <div className="h-full bg-[#F7F8F0] flex flex-col" dir="rtl">
-      {/* Calorie burn info bar (top, small clear text) */}
-      <BurnInfoBar />
+    <div
+      className="h-full flex flex-col"
+      dir="rtl"
+      style={{ background: settings.bgColor, color: settings.textColor }}
+    >
+      {settings.showBurnBar && <BurnInfoBar accent={settings.accentColor} textColor={settings.textColor} />}
 
       {/* Header: centered logo + categories on the right */}
       <div className="px-8 pt-6 pb-4 shrink-0">
-        <h1 className="text-center font-display font-black text-4xl text-[#1a1a1a] tracking-tight mb-6">
+        <h1 className="text-center font-display font-black text-4xl tracking-tight mb-6" style={{ color: settings.textColor }}>
           Qae&rsquo;mah
         </h1>
 
@@ -31,11 +34,11 @@ const TemplateGrid = () => {
               <button
                 key={c.id}
                 onClick={() => setActiveCat(c.id)}
-                className={`px-7 py-2.5 rounded-full font-bold text-base transition-all ${
-                  active
-                    ? "bg-[#1a1a1a] text-white shadow-md"
-                    : "bg-[#9CD5FF]/40 text-[#1a3a55] hover:bg-[#9CD5FF]/60"
-                }`}
+                className="px-7 py-2.5 rounded-full font-bold text-base transition-all"
+                style={{
+                  background: active ? "#1a1a1a" : `${settings.accentColor}66`,
+                  color: active ? "#fff" : settings.textColor,
+                }}
               >
                 {c.name}
               </button>
@@ -104,8 +107,11 @@ const TemplateGrid = () => {
 };
 
 /* ---------- Burn-info bar ---------- */
-const BurnInfoBar = () => (
-  <div className="bg-[#9CD5FF]/30 border-b border-[#9CD5FF]/60 px-6 py-1.5 flex items-center justify-center gap-2 text-[11px] md:text-xs text-[#1a3a55]">
+const BurnInfoBar = ({ accent, textColor }: { accent: string; textColor: string }) => (
+  <div
+    className="px-6 py-1.5 flex items-center justify-center gap-2 text-[11px] md:text-xs border-b"
+    style={{ background: `${accent}40`, borderColor: `${accent}80`, color: textColor }}
+  >
     <img src={walkingBurn} alt="" className="w-4 h-4 object-contain" />
     <span className="font-bold">
       تفاصيل حرق السعرات: المشي ٣٠ دقيقة يحرق ~١٥٠ سعرة • الجري ١٠ دقائق يحرق ~١٠٠ سعرة

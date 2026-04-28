@@ -200,3 +200,126 @@ export const subscription = {
   renewsOn: "15 مايو 2026",
   daysLeft: 21,
 };
+
+/* ============================================================
+ * Coffee Crops — مكتبة محاصيل البن (مستقلة عن المنتجات)
+ * تعرض على شاشة منفصلة (/menu?type=crops) للعملاء/الكاشير.
+ * ============================================================ */
+export type Crop = {
+  id: string;
+  beanName: string;       // اسم البن (عربي)
+  beanNameEn: string;     // English name
+  country: string;        // البلد
+  countryEn: string;
+  process: string;        // نوع المعالجة
+  processEn: string;
+  variety: string;        // السلالة
+  altitude: string;       // الارتفاع
+  notes: string;          // الإيحاءات
+  notesEn: string;
+  image?: string;         // صورة كيس البن (اختياري — لقالب Pure Shelf)
+};
+
+export const crops: Crop[] = [
+  {
+    id: "cr1",
+    beanName: "مولو — مزيج إثيوبي",
+    beanNameEn: "Molo – Ethiopian Blend",
+    country: "إثيوبيا",
+    countryEn: "Ethiopia",
+    process: "مجففة",
+    processEn: "Natural",
+    variety: "هيرلوم",
+    altitude: "١٨٠٠ - ٢٠٠٠ م",
+    notes: "التفاح، التوت، الشوكولاته، كراميل",
+    notesEn: "Apple, Berry, Chocolate, Caramel",
+  },
+  {
+    id: "cr2",
+    beanName: "يرقاتشيف",
+    beanNameEn: "Yirgacheffe",
+    country: "إثيوبيا",
+    countryEn: "Ethiopia",
+    process: "مجفف",
+    processEn: "Natural",
+    variety: "هيرلوم",
+    altitude: "٢٠٠٠ م",
+    notes: "أزهار - توتيات - شوكولاته",
+    notesEn: "Flowers - Berries - Chocolate",
+  },
+  {
+    id: "cr3",
+    beanName: "هوامبيلا",
+    beanNameEn: "Huambelo",
+    country: "كولومبيا",
+    countryEn: "Colombia",
+    process: "مغسولة",
+    processEn: "Washed",
+    variety: "كاتورا",
+    altitude: "١٧٥٠ م",
+    notes: "كراميل، بندق، تفاح أحمر",
+    notesEn: "Caramel, Hazelnut, Red Apple",
+  },
+  {
+    id: "cr4",
+    beanName: "سيدامو",
+    beanNameEn: "Sidamo",
+    country: "إثيوبيا",
+    countryEn: "Ethiopia",
+    process: "طبيعية",
+    processEn: "Natural",
+    variety: "هيرلوم",
+    altitude: "١٩٠٠ م",
+    notes: "شوكولاتة داكنة، توت، كراميل",
+    notesEn: "Dark Chocolate, Berry, Caramel",
+  },
+];
+
+/* ============================================================
+ * Menu Settings — تخصيص يختاره صاحب الحساب من الإعدادات
+ * يُحفظ في localStorage ويُقرأ من شاشات /menu
+ * ============================================================ */
+export type ProductTemplate = "grid" | "split";
+export type CropsTemplate = "molo" | "pureshelf";
+
+export type MenuSettings = {
+  productTemplate: ProductTemplate;
+  cropsTemplate: CropsTemplate;
+  bgColor: string;       // hex
+  textColor: string;     // hex
+  accentColor: string;   // hex
+  showBurnBar: boolean;
+};
+
+export const defaultMenuSettings: MenuSettings = {
+  productTemplate: "grid",
+  cropsTemplate: "molo",
+  bgColor: "#F7F8F0",
+  textColor: "#1a1a1a",
+  accentColor: "#9CD5FF",
+  showBurnBar: true,
+};
+
+const SETTINGS_KEY = "qaemah-menu-settings";
+
+export const loadMenuSettings = (): MenuSettings => {
+  if (typeof window === "undefined") return defaultMenuSettings;
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) {
+      // backward compat: قراءة قيمة قديمة
+      const oldTpl = localStorage.getItem("qaemah-template");
+      if (oldTpl === "grid" || oldTpl === "split") {
+        return { ...defaultMenuSettings, productTemplate: oldTpl };
+      }
+      return defaultMenuSettings;
+    }
+    return { ...defaultMenuSettings, ...JSON.parse(raw) };
+  } catch {
+    return defaultMenuSettings;
+  }
+};
+
+export const saveMenuSettings = (s: MenuSettings) => {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+};

@@ -1,12 +1,13 @@
 import { ReactNode } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderTree, UtensilsCrossed, MonitorSmartphone, CreditCard, LogOut, Settings } from "lucide-react";
+import { LayoutDashboard, FolderTree, UtensilsCrossed, MonitorSmartphone, CreditCard, LogOut, Settings, Coffee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
   { to: "/dashboard", label: "نظرة عامة", icon: LayoutDashboard, end: true },
   { to: "/dashboard/categories", label: "التصنيفات", icon: FolderTree },
   { to: "/dashboard/products", label: "المنتجات", icon: UtensilsCrossed },
+  { to: "/dashboard/crops", label: "محاصيل البن", icon: Coffee },
   { to: "/dashboard/devices", label: "الأجهزة", icon: MonitorSmartphone },
   { to: "/dashboard/subscription", label: "الاشتراك", icon: CreditCard },
   { to: "/dashboard/settings", label: "الإعدادات", icon: Settings },
