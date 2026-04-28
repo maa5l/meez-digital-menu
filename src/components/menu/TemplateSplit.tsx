@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { categories, products, type Product } from "@/lib/mockData";
+import { categories, products, type Product, type MenuSettings, defaultMenuSettings } from "@/lib/mockData";
 import { Flame, Leaf } from "lucide-react";
 import walkingBurn from "@/assets/walking-burn.png";
 import menuHeroCoffee from "@/assets/menu-hero-coffee.png";
@@ -10,20 +10,28 @@ import menuHeroCoffee from "@/assets/menu-hero-coffee.png";
  * + product image, category pills, list of products (left) and big detail
  * panel (right).
  */
-const TemplateSplit = () => {
+const TemplateSplit = ({ settings = defaultMenuSettings }: { settings?: MenuSettings }) => {
   const [activeCat, setActiveCat] = useState(categories[0].id);
   const visible = products.filter((p) => p.categoryId === activeCat);
   const [selected, setSelected] = useState<Product>(visible[0] || products[0]);
 
   return (
-    <div className="h-full bg-[#F7F8F0] flex flex-col overflow-hidden" dir="rtl">
-      {/* Calorie burn info bar */}
-      <div className="bg-[#9CD5FF]/30 border-b border-[#9CD5FF]/60 px-6 py-1.5 flex items-center justify-center gap-2 text-[11px] md:text-xs text-[#1a3a55] shrink-0">
-        <img src={walkingBurn} alt="" className="w-4 h-4 object-contain" />
-        <span className="font-bold">
-          تفاصيل حرق السعرات: المشي ٣٠ دقيقة يحرق ~١٥٠ سعرة • الجري ١٠ دقائق يحرق ~١٠٠ سعرة
-        </span>
-      </div>
+    <div
+      className="h-full flex flex-col overflow-hidden"
+      dir="rtl"
+      style={{ background: settings.bgColor, color: settings.textColor }}
+    >
+      {settings.showBurnBar && (
+        <div
+          className="px-6 py-1.5 flex items-center justify-center gap-2 text-[11px] md:text-xs shrink-0 border-b"
+          style={{ background: `${settings.accentColor}40`, borderColor: `${settings.accentColor}80`, color: settings.textColor }}
+        >
+          <img src={walkingBurn} alt="" className="w-4 h-4 object-contain" />
+          <span className="font-bold">
+            تفاصيل حرق السعرات: المشي ٣٠ دقيقة يحرق ~١٥٠ سعرة • الجري ١٠ دقائق يحرق ~١٠٠ سعرة
+          </span>
+        </div>
+      )}
 
       {/* Hero banner */}
       <div className="relative bg-[#0a0a0a] px-8 py-4 shrink-0">
@@ -43,7 +51,7 @@ const TemplateSplit = () => {
 
           {/* Title (right in RTL) */}
           <div className="text-right">
-            <h2 className="font-display font-black text-3xl md:text-5xl text-[#9CD5FF] leading-tight">
+            <h2 className="font-display font-black text-3xl md:text-5xl leading-tight" style={{ color: settings.accentColor }}>
               بن الموسم
             </h2>
             <p className="text-white/70 text-sm md:text-base mt-2">
@@ -54,7 +62,7 @@ const TemplateSplit = () => {
       </div>
 
       {/* Categories */}
-      <div className="px-8 py-4 shrink-0 bg-[#F7F8F0]">
+      <div className="px-8 py-4 shrink-0" style={{ background: settings.bgColor }}>
         <div className="flex flex-wrap gap-3 justify-end">
           {categories.map((c) => {
             const active = activeCat === c.id;
@@ -66,11 +74,11 @@ const TemplateSplit = () => {
                   const first = products.find((p) => p.categoryId === c.id);
                   if (first) setSelected(first);
                 }}
-                className={`px-7 py-2 rounded-full font-bold text-base transition-all ${
-                  active
-                    ? "bg-[#1a1a1a] text-white shadow-md"
-                    : "bg-[#9CD5FF]/40 text-[#1a3a55] hover:bg-[#9CD5FF]/60"
-                }`}
+                className="px-7 py-2 rounded-full font-bold text-base transition-all"
+                style={{
+                  background: active ? "#1a1a1a" : `${settings.accentColor}66`,
+                  color: active ? "#fff" : settings.textColor,
+                }}
               >
                 {c.name}
               </button>
