@@ -16,6 +16,12 @@ const MenuDisplay = () => {
   const [params] = useSearchParams();
   const [settings] = useMenuSettings();
   const type = params.get("type") === "crops" ? "crops" : "products";
+  // override القالب من الـ URL (للمعاينة السريعة بدون تغيير الإعدادات)
+  const tplOverride = params.get("tpl");
+  const cropsTpl =
+    tplOverride === "pureshelf" || tplOverride === "molo"
+      ? tplOverride
+      : settings.cropsTemplate;
 
   return (
     <div
@@ -24,7 +30,7 @@ const MenuDisplay = () => {
       style={{ background: settings.bgColor, color: settings.textColor }}
     >
       {type === "crops" ? (
-        settings.cropsTemplate === "molo" ? (
+        cropsTpl === "molo" ? (
           <CropsTemplateMolo settings={settings} />
         ) : (
           <CropsTemplatePureShelf settings={settings} />

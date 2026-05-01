@@ -138,7 +138,7 @@ const Settings = () => {
           </div>
 
           <a
-            href="/menu?type=crops"
+            href={`/menu?type=crops&tpl=${settings.cropsTemplate}`}
             target="_blank"
             rel="noreferrer"
             className="mt-4 flex items-center justify-center gap-2 text-sm font-bold text-accent-foreground bg-accent/30 hover:bg-accent/50 rounded-xl py-3 transition-colors"
