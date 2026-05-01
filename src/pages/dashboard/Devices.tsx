@@ -22,8 +22,6 @@ const Devices = () => {
   const [menuType, setMenuType] = useState<"products" | "crops">("products");
   const [activationCode, setActivationCode] = useState("");
 
-  const generateCode = () => "QM-" + Math.floor(1000 + Math.random() * 9000);
-
   const add = () => {
     if (!name.trim()) {
       toast.error("اسم الجهاز مطلوب");
