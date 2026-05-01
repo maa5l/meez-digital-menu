@@ -4,7 +4,7 @@ import { devices as initial, subscription } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Copy, Trash2, MonitorSmartphone, Wifi, WifiOff } from "lucide-react";
+import { Plus, Copy, Trash2, MonitorSmartphone, Wifi, WifiOff, Coffee, Sprout } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,17 +19,38 @@ const Devices = () => {
   const [list, setList] = useState(initial);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
+  const [menuType, setMenuType] = useState<"products" | "crops">("products");
+  const [activationCode, setActivationCode] = useState("");
 
   const generateCode = () => "QM-" + Math.floor(1000 + Math.random() * 9000);
 
   const add = () => {
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      toast.error("اسم الجهاز مطلوب");
+      return;
+    }
+    if (!activationCode.trim()) {
+      toast.error("أدخل رمز التفعيل المعروض على الجهاز");
+      return;
+    }
     if (list.length >= subscription.maxScreens) {
       toast.error("وصلت للحد الأقصى. رقّ اشتراكك لإضافة شاشات أخرى.");
       return;
     }
-    setList([...list, { id: `d${Date.now()}`, name, code: generateCode(), lastActive: "لم يتم التفعيل بعد", status: "inactive" }]);
+    setList([
+      ...list,
+      {
+        id: `d${Date.now()}`,
+        name: `${name} · ${menuType === "crops" ? "محاصيل" : "منتجات"}`,
+        code: activationCode.toUpperCase(),
+        lastActive: "تم التفعيل الآن",
+        status: "active",
+      },
+    ]);
     setName("");
+    setActivationCode("");
+    setMenuType("products");
+    toast.success("تم تفعيل الجهاز");
     setOpen(false);
   };
 
@@ -63,11 +84,50 @@ const Devices = () => {
               <div className="space-y-2">
                 <Label>اسم الجهاز</Label>
                 <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: طاولة 5" className="h-12 rounded-xl" />
-                <p className="text-xs text-muted-foreground">سيتم توليد رمز تفعيل تلقائيًا. أدخله في جهاز التابلت لربطه.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>نوع المنيو</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMenuType("products")}
+                    className={`p-4 rounded-xl border-2 text-right transition-all ${
+                      menuType === "products" ? "border-accent bg-accent/10" : "border-border hover:border-accent/40"
+                    }`}
+                  >
+                    <Coffee className="w-5 h-5 mb-2 text-accent" />
+                    <div className="font-bold text-sm text-primary">منيو المنتجات</div>
+                    <div className="text-xs text-muted-foreground">يعرض جميع المنتجات</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMenuType("crops")}
+                    className={`p-4 rounded-xl border-2 text-right transition-all ${
+                      menuType === "crops" ? "border-accent bg-accent/10" : "border-border hover:border-accent/40"
+                    }`}
+                  >
+                    <Sprout className="w-5 h-5 mb-2 text-accent" />
+                    <div className="font-bold text-sm text-primary">منيو المحاصيل</div>
+                    <div className="text-xs text-muted-foreground">محاصيل البن المختص</div>
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>رمز التفعيل</Label>
+                <Input
+                  value={activationCode}
+                  onChange={(e) => setActivationCode(e.target.value)}
+                  placeholder="QM-XXXX"
+                  className="h-12 rounded-xl font-mono text-center text-lg tracking-widest uppercase"
+                  dir="ltr"
+                />
+                <p className="text-xs text-muted-foreground">أدخل الرمز الظاهر على شاشة التابلت</p>
               </div>
             </div>
             <DialogFooter>
-              <Button variant="hero" onClick={add}>توليد الرمز</Button>
+              <Button variant="hero" onClick={add}>تفعيل الجهاز</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

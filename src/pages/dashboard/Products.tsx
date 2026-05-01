@@ -14,6 +14,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Plus, Search, Pencil, Trash2, ImageIcon, Sprout } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const Products = () => {
   const [list, setList] = useState(initial);
@@ -23,8 +24,10 @@ const Products = () => {
 
   // form state
   const [name, setName] = useState("");
+  const [nameEn, setNameEn] = useState("");
   const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "");
   const [description, setDescription] = useState("");
+  const [descriptionEn, setDescriptionEn] = useState("");
   const [price, setPrice] = useState("");
   const [calories, setCalories] = useState("");
   const [image, setImage] = useState("");
@@ -39,7 +42,8 @@ const Products = () => {
   });
 
   const reset = () => {
-    setName(""); setDescription(""); setPrice(""); setCalories(""); setImage("");
+    setName(""); setNameEn(""); setDescription(""); setDescriptionEn("");
+    setPrice(""); setCalories(""); setImage("");
     setHasCrop(false);
     setCrop({ beanName: "", country: "", process: "", variety: "", altitude: "", notes: "" });
   };
@@ -87,12 +91,36 @@ const Products = () => {
             </DialogHeader>
 
             <div className="space-y-4 py-2">
+              {/* Bilingual tabs */}
+              <Tabs defaultValue="ar" className="w-full">
+                <TabsList className="grid grid-cols-2 w-full">
+                  <TabsTrigger value="ar">عربي</TabsTrigger>
+                  <TabsTrigger value="en">English</TabsTrigger>
+                </TabsList>
+                <TabsContent value="ar" className="space-y-3 mt-3">
+                  <div className="space-y-2">
+                    <Label>اسم المنتج</Label>
+                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: في60 إثيوبي" className="h-11 rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>الوصف</Label>
+                    <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="وصف مختصر للمنتج..." className="rounded-xl min-h-[70px]" />
+                  </div>
+                </TabsContent>
+                <TabsContent value="en" className="space-y-3 mt-3">
+                  <div className="space-y-2">
+                    <Label>Product Name</Label>
+                    <Input value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="e.g. V60 Ethiopian" className="h-11 rounded-xl" dir="ltr" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description</Label>
+                    <Textarea value={descriptionEn} onChange={(e) => setDescriptionEn(e.target.value)} placeholder="Short product description..." className="rounded-xl min-h-[70px]" dir="ltr" />
+                  </div>
+                </TabsContent>
+              </Tabs>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2 col-span-2">
-                  <Label>اسم المنتج</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: في60 إثيوبي" className="h-11 rounded-xl" />
-                </div>
-                <div className="space-y-2">
                   <Label>التصنيف</Label>
                   <select
                     value={categoryId}
@@ -104,13 +132,23 @@ const Products = () => {
                     ))}
                   </select>
                 </div>
-                <div className="space-y-2">
-                  <Label>رابط الصورة</Label>
-                  <Input value={image} onChange={(e) => setImage(e.target.value)} placeholder="https://..." className="h-11 rounded-xl" />
-                </div>
                 <div className="space-y-2 col-span-2">
-                  <Label>الوصف</Label>
-                  <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="وصف مختصر للمنتج..." className="rounded-xl min-h-[70px]" />
+                  <Label>صورة المنتج</Label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        const r = new FileReader();
+                        r.onload = () => setImage(String(r.result));
+                        r.readAsDataURL(f);
+                      }}
+                      className="text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-secondary file:font-bold file:text-foreground hover:file:bg-secondary/70"
+                    />
+                    {image && <img src={image} alt="preview" className="h-12 w-12 rounded-lg object-cover border border-border" />}
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label>السعر (ر.س)</Label>
