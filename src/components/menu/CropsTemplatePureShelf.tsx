@@ -1,33 +1,34 @@
 import { useState } from "react";
 import { crops, type Crop, type MenuSettings } from "@/lib/mockData";
-import menuHeroCoffee from "@/assets/menu-hero-coffee.png";
 
 /**
- * Crops Template 2 — "Pure Shelf" style.
- * خلفية مرحة بألوان العلامة، صورة كيس البن على اليسار،
- * اسم البن الكبير على اليمين + بلد المنشأ والمعالجة + الإيحاءات.
+ * Crops Template — Minimal.
+ * قائمة جانبية + عرض نصّي مينمال للمحصول النشط، بدون رسومات.
  */
 const CropsTemplatePureShelf = ({ settings }: { settings: MenuSettings }) => {
   const [active, setActive] = useState<Crop>(crops[0]);
+  const bg = active.cardColor || settings.bgColor;
+  const fg = active.textColor || settings.textColor;
 
   return (
     <div
-      className="h-full flex flex-col"
+      className="h-full grid grid-cols-1 md:grid-cols-[280px_1fr]"
       dir="rtl"
       style={{ background: settings.bgColor, color: settings.textColor }}
     >
-      {/* Selector pills */}
-      <div className="px-6 pt-6 pb-3 shrink-0">
-        <div className="flex flex-wrap gap-2 justify-end">
+      {/* Sidebar list */}
+      <aside className="border-l p-6 overflow-y-auto" style={{ borderColor: `${settings.textColor}15` }}>
+        <h3 className="font-display font-black text-sm opacity-60 mb-4">محاصيل البن</h3>
+        <div className="space-y-1">
           {crops.map((c) => {
             const isActive = c.id === active.id;
             return (
               <button
                 key={c.id}
                 onClick={() => setActive(c)}
-                className="px-5 py-2 rounded-full text-sm font-bold transition-all"
+                className="w-full text-right px-4 py-3 rounded-xl font-bold transition-all text-sm"
                 style={{
-                  background: isActive ? "#1a1a1a" : `${settings.accentColor}50`,
+                  background: isActive ? settings.accentColor : "transparent",
                   color: isActive ? "#fff" : settings.textColor,
                 }}
               >
@@ -36,78 +37,41 @@ const CropsTemplatePureShelf = ({ settings }: { settings: MenuSettings }) => {
             );
           })}
         </div>
-      </div>
+      </aside>
 
-      {/* Main illustrated card */}
-      <div className="flex-1 px-6 pb-6 overflow-hidden">
-        <div
-          className="h-full rounded-[2.5rem] relative overflow-hidden"
-          style={{
-            background: `linear-gradient(135deg, ${settings.accentColor} 0%, ${settings.accentColor}cc 60%, #fde68a 100%)`,
-          }}
-        >
-          {/* Decorative star bursts */}
-          <Decor accent="#fde68a" />
-          <Decor accent="#fb923c" className="bottom-12 right-16 rotate-45" />
-          <Decor accent="#f87171" className="top-20 right-1/3" />
+      {/* Detail */}
+      <main className="flex flex-col justify-center p-10 md:p-16" style={{ background: bg, color: fg }}>
+        <div className="max-w-2xl">
+          <p className="text-sm uppercase tracking-[0.3em] opacity-60 mb-4">Specialty Coffee</p>
+          <h1 className="font-display font-black leading-none mb-2"
+              style={{ fontSize: "clamp(3rem, 7vw, 6rem)" }}>
+            {active.beanName}
+          </h1>
+          <p className="text-xl md:text-2xl opacity-70 mb-10">{active.beanNameEn}</p>
 
-          <div className="relative h-full grid grid-cols-2 items-center px-8 md:px-16">
-            {/* Bag image (left) */}
-            <div className="flex justify-center">
-              <img
-                src={menuHeroCoffee}
-                alt={active.beanName}
-                className="h-64 md:h-96 object-contain drop-shadow-2xl"
-              />
-            </div>
+          <div className="grid grid-cols-2 gap-x-12 gap-y-6 text-base md:text-lg mb-10">
+            <Row k="البلد · Country" v={`${active.country} • ${active.countryEn}`} />
+            <Row k="المعالجة · Process" v={`${active.process} • ${active.processEn}`} />
+            <Row k="السلالة · Variety" v={active.variety} />
+            <Row k="الارتفاع · Altitude" v={active.altitude} />
+          </div>
 
-            {/* Text (right) */}
-            <div className="text-right space-y-6">
-              <h1
-                className="font-display font-black leading-none"
-                style={{ fontSize: "clamp(2.5rem, 6vw, 5rem)", color: "#1a3a55" }}
-              >
-                {active.beanName}
-              </h1>
-
-              <div className="grid grid-cols-2 gap-x-6 gap-y-1 max-w-md mr-auto">
-                <div>
-                  <div className="font-bold text-lg" style={{ color: "#1a1a1a" }}>{active.countryEn}</div>
-                  <div className="text-xs opacity-70" style={{ color: "#1a1a1a" }}>{active.processEn}</div>
-                </div>
-                <div>
-                  <div className="font-bold text-lg" style={{ color: "#1a1a1a" }}>{active.country}</div>
-                  <div className="text-xs opacity-70" style={{ color: "#1a1a1a" }}>{active.process}</div>
-                </div>
-              </div>
-
-              <div className="border-t pt-4 max-w-md mr-auto" style={{ borderColor: "#1a1a1a40" }}>
-                <p className="font-bold text-base md:text-lg" style={{ color: "#1a1a1a" }}>
-                  {active.notes}
-                </p>
-                <p className="text-sm md:text-base opacity-80 mt-1" style={{ color: "#1a1a1a" }}>
-                  {active.notesEn}
-                </p>
-              </div>
-            </div>
+          <div className="border-t pt-6" style={{ borderColor: `${fg}30` }}>
+            <div className="text-xs uppercase tracking-widest opacity-60 mb-2">Tasting Notes</div>
+            <div className="font-bold text-xl md:text-2xl">{active.notes}</div>
+            <div className="text-base md:text-lg opacity-70 mt-1">{active.notesEn}</div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
 
-const Decor = ({ accent, className = "" }: { accent: string; className?: string }) => (
-  <svg
-    className={`absolute w-16 h-16 opacity-70 ${className || "top-10 left-12"}`}
-    viewBox="0 0 100 100"
-    fill="none"
-    stroke={accent}
-    strokeWidth="6"
-    strokeLinejoin="round"
-  >
-    <path d="M50 5 L60 40 L95 50 L60 60 L50 95 L40 60 L5 50 L40 40 Z" />
-  </svg>
+const Row = ({ k, v }: { k: string; v: string }) => (
+  <div>
+    <div className="text-xs uppercase tracking-wider opacity-60 mb-1">{k}</div>
+    <div className="font-bold">{v}</div>
+  </div>
 );
 
 export default CropsTemplatePureShelf;
