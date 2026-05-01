@@ -1,93 +1,76 @@
-import { useState } from "react";
-import { crops, type Crop, type MenuSettings } from "@/lib/mockData";
+import { crops, type MenuSettings } from "@/lib/mockData";
 import { Bike } from "lucide-react";
 
 /**
- * Crops Template 1 — "Molo" style.
- * كرت بخلفية لون موحّد هادئة، أيقونة دراجة فوق، عمودان (إنجليزي/عربي)
- * يفصل بينهما خط رأسي، والإيحاءات بالأسفل بسطر مزدوج.
+ * Crops Template — "Cards Carousel".
+ * بطاقات أفقية تتحرك بالعرض، كل بطاقة تظهر معلومات محصول كامل.
+ * تستخدم لون البطاقة وصورتها ولون خطها لو تم تعريفها من الإعدادات.
  */
 const CropsTemplateMolo = ({ settings }: { settings: MenuSettings }) => {
-  const [active, setActive] = useState<Crop>(crops[0]);
-
   return (
     <div
       className="h-full flex flex-col"
       dir="rtl"
       style={{ background: settings.bgColor, color: settings.textColor }}
     >
-      {/* Sidebar selector + main card */}
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6 p-6 overflow-hidden">
-        {/* List of crops */}
-        <div className="overflow-y-auto space-y-2 pr-1">
-          <h3 className="font-display font-black text-sm opacity-60 mb-3 px-2">
-            محاصيل البن
-          </h3>
+      <div className="px-8 pt-8 pb-4 shrink-0">
+        <h1 className="font-display font-black text-3xl md:text-4xl">محاصيل البن</h1>
+        <p className="text-sm opacity-70 mt-1">Coffee Crops</p>
+      </div>
+
+      <div className="flex-1 overflow-x-auto overflow-y-hidden px-8 pb-8">
+        <div className="flex gap-6 h-full snap-x snap-mandatory">
           {crops.map((c) => {
-            const isActive = c.id === active.id;
+            const bg = c.cardColor || `${settings.accentColor}25`;
+            const fg = c.textColor || settings.textColor;
             return (
-              <button
+              <article
                 key={c.id}
-                onClick={() => setActive(c)}
-                className="w-full text-right px-4 py-3 rounded-2xl font-bold transition-all"
-                style={{
-                  background: isActive ? settings.accentColor : "transparent",
-                  color: isActive ? "#1a1a1a" : settings.textColor,
-                  border: isActive ? "none" : `1px solid ${settings.textColor}20`,
-                }}
+                className="snap-center shrink-0 w-[78vw] md:w-[520px] h-full rounded-[2.5rem] p-8 md:p-10 flex flex-col justify-between relative overflow-hidden"
+                style={{ background: bg, color: fg }}
               >
-                {c.beanName}
-              </button>
+                {c.image && (
+                  <img
+                    src={c.image}
+                    alt={c.beanName}
+                    className="absolute inset-0 w-full h-full object-cover opacity-30"
+                  />
+                )}
+                <div className="relative">
+                  <Bike className="w-14 h-14 mb-6" strokeWidth={1.5} />
+                  <h2 className="font-display font-black text-3xl md:text-4xl leading-tight">
+                    {c.beanName}
+                  </h2>
+                  <p className="text-base md:text-lg opacity-80 mt-1">{c.beanNameEn}</p>
+                </div>
+
+                <div className="relative grid grid-cols-2 gap-x-6 gap-y-3 mt-8 text-sm md:text-base">
+                  <Cell label="البلد" value={c.country} />
+                  <Cell label="Country" value={c.countryEn} />
+                  <Cell label="المعالجة" value={c.process} />
+                  <Cell label="Process" value={c.processEn} />
+                  <Cell label="السلالة" value={c.variety} />
+                  <Cell label="الارتفاع" value={c.altitude} />
+                </div>
+
+                <div className="relative border-t pt-4 mt-6" style={{ borderColor: `${fg}30` }}>
+                  <div className="font-bold text-base md:text-lg">{c.notes}</div>
+                  <div className="text-sm opacity-70">{c.notesEn}</div>
+                </div>
+              </article>
             );
           })}
-        </div>
-
-        {/* Big card */}
-        <div
-          className="rounded-[2.5rem] flex flex-col items-center justify-center p-10 md:p-16"
-          style={{ background: `${settings.accentColor}40` }}
-        >
-          {/* Bike icon */}
-          <Bike
-            className="w-20 h-20 md:w-28 md:h-28 mb-10"
-            strokeWidth={1.4}
-            style={{ color: settings.textColor }}
-          />
-
-          {/* Two columns split by vertical line */}
-          <div
-            className="grid grid-cols-2 gap-12 w-full max-w-2xl"
-            style={{ color: settings.textColor }}
-          >
-            {/* English (left in RTL grid = appears left visually due to dir) */}
-            <div className="text-left space-y-2 pl-6 border-l" style={{ borderColor: `${settings.textColor}40` }}>
-              <p className="font-bold text-base md:text-lg">{active.beanNameEn}</p>
-              <p className="text-sm md:text-base">{active.variety}</p>
-              <p className="text-sm md:text-base">{active.processEn}</p>
-              <p className="text-sm md:text-base">{active.altitude.replace(/[٠-٩]/g, (d) => "0123456789"["٠١٢٣٤٥٦٧٨٩".indexOf(d)])}</p>
-            </div>
-
-            {/* Arabic */}
-            <div className="text-right space-y-2 pr-6">
-              <p className="font-bold text-base md:text-lg">{active.beanName}</p>
-              <p className="text-sm md:text-base">{active.variety}</p>
-              <p className="text-sm md:text-base">{active.process}</p>
-              <p className="text-sm md:text-base">{active.altitude}</p>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div
-            className="mt-12 text-center space-y-1.5 max-w-2xl"
-            style={{ color: settings.textColor }}
-          >
-            <p className="font-bold text-sm md:text-base">{active.notes}</p>
-            <p className="text-sm md:text-base opacity-80">{active.notesEn}</p>
-          </div>
         </div>
       </div>
     </div>
   );
 };
+
+const Cell = ({ label, value }: { label: string; value: string }) => (
+  <div>
+    <div className="text-xs opacity-60">{label}</div>
+    <div className="font-bold">{value}</div>
+  </div>
+);
 
 export default CropsTemplateMolo;
