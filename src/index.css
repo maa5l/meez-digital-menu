@@ -8,53 +8,54 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Qae'mah brand — sky blue + warm cream */
-    --background: 67 35% 96%;       /* #F7F8F0 */
-    --foreground: 215 35% 14%;
+    /* Qae'mah brand — warm stone + deep navy
+       #F1EFEC bg, #D4C9BE secondary, #123458 primary/accent, #030303 ink */
+    --background: 40 16% 93%;        /* #F1EFEC */
+    --foreground: 0 0% 1%;           /* #030303 */
 
     --card: 0 0% 100%;
-    --card-foreground: 215 35% 14%;
+    --card-foreground: 0 0% 1%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 215 35% 14%;
+    --popover-foreground: 0 0% 1%;
 
-    /* Deep navy as primary text/buttons */
-    --primary: 215 40% 16%;
-    --primary-foreground: 67 35% 96%;
+    /* Deep navy primary */
+    --primary: 213 66% 21%;          /* #123458 */
+    --primary-foreground: 40 16% 93%;
 
-    /* Soft cream surface */
-    --secondary: 67 30% 92%;
-    --secondary-foreground: 215 40% 16%;
+    /* Warm stone surface */
+    --secondary: 33 19% 79%;         /* #D4C9BE */
+    --secondary-foreground: 213 66% 21%;
 
-    --muted: 67 20% 90%;
-    --muted-foreground: 215 15% 38%;
+    --muted: 35 17% 86%;
+    --muted-foreground: 213 20% 32%;
 
-    /* Signature sky blue #9CD5FF */
-    --accent: 207 100% 81%;
-    --accent-foreground: 215 40% 16%;
+    /* Accent = same deep navy for high-contrast badges */
+    --accent: 213 66% 21%;           /* #123458 */
+    --accent-foreground: 40 16% 93%;
 
     --destructive: 0 75% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 67 18% 86%;
-    --input: 67 18% 86%;
-    --ring: 207 100% 81%;
+    --border: 33 15% 80%;
+    --input: 33 15% 80%;
+    --ring: 213 66% 21%;
 
     --radius: 1rem;
 
     /* Custom brand tokens */
-    --sky: 207 100% 81%;            /* #9CD5FF */
-    --sky-glow: 200 100% 88%;
-    --cream: 67 35% 96%;            /* #F7F8F0 */
-    --ink: 215 40% 16%;
+    --navy: 213 66% 21%;             /* #123458 */
+    --stone: 33 19% 79%;             /* #D4C9BE */
+    --cream: 40 16% 93%;             /* #F1EFEC */
+    --ink: 0 0% 1%;                  /* #030303 */
 
-    --gradient-hero: linear-gradient(135deg, hsl(215 40% 16%) 0%, hsl(215 50% 22%) 50%, hsl(215 55% 12%) 100%);
-    --gradient-gold: linear-gradient(135deg, hsl(207 100% 81%) 0%, hsl(200 100% 88%) 100%);
-    --gradient-cream: linear-gradient(180deg, hsl(67 35% 96%) 0%, hsl(67 30% 92%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(213 66% 21%) 0%, hsl(213 70% 16%) 50%, hsl(0 0% 4%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(213 66% 21%) 0%, hsl(213 60% 32%) 100%);
+    --gradient-cream: linear-gradient(180deg, hsl(40 16% 93%) 0%, hsl(33 19% 84%) 100%);
 
-    --shadow-warm: 0 20px 60px -20px hsl(215 40% 16% / 0.22);
-    --shadow-gold: 0 10px 40px -10px hsl(207 100% 65% / 0.45);
-    --shadow-soft: 0 4px 20px -4px hsl(215 40% 16% / 0.08);
+    --shadow-warm: 0 20px 60px -20px hsl(213 66% 21% / 0.22);
+    --shadow-gold: 0 10px 40px -10px hsl(213 66% 21% / 0.35);
+    --shadow-soft: 0 4px 20px -4px hsl(0 0% 1% / 0.08);
 
     --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 

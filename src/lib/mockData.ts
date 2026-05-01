@@ -218,6 +218,8 @@ export type Crop = {
   notes: string;          // الإيحاءات
   notesEn: string;
   image?: string;         // صورة كيس البن (اختياري — لقالب Pure Shelf)
+  cardColor?: string;     // لون خلفية البطاقة (اختياري)
+  textColor?: string;     // لون خط البطاقة (اختياري)
 };
 
 export const crops: Crop[] = [
@@ -294,9 +296,9 @@ export type MenuSettings = {
 export const defaultMenuSettings: MenuSettings = {
   productTemplate: "grid",
   cropsTemplate: "molo",
-  bgColor: "#F7F8F0",
-  textColor: "#1a1a1a",
-  accentColor: "#9CD5FF",
+  bgColor: "#F1EFEC",
+  textColor: "#030303",
+  accentColor: "#123458",
   showBurnBar: true,
 };
 
