@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { LayoutGrid, Columns2, Bike, Sparkles, ExternalLink } from "lucide-react";
+import { LayoutGrid, Columns2, GalleryHorizontal, Minus, ExternalLink } from "lucide-react";
 import { useMenuSettings } from "@/hooks/useMenuSettings";
 import { defaultMenuSettings } from "@/lib/mockData";
 import { toast } from "sonner";
@@ -123,16 +123,16 @@ const Settings = () => {
           <div className="grid grid-cols-2 gap-3">
             <TemplateCard
               active={settings.cropsTemplate === "molo"}
-              icon={<Bike className="w-7 h-7" />}
-              title="ميني‍مال — Molo"
-              desc="نص ثنائي اللغة بفاصل عمودي وأيقونة دراجة"
+              icon={<GalleryHorizontal className="w-7 h-7" />}
+              title="بطاقات بالعرض"
+              desc="كاروسيل بطاقات أفقية تتحرك للعرض"
               onClick={() => update({ ...settings, cropsTemplate: "molo" })}
             />
             <TemplateCard
               active={settings.cropsTemplate === "pureshelf"}
-              icon={<Sparkles className="w-7 h-7" />}
-              title="إيلوستريشن — Pure Shelf"
-              desc="رسومات بحرية مرحة وصورة كيس البن"
+              icon={<Minus className="w-7 h-7" />}
+              title="مينيمال"
+              desc="قائمة جانبية وعرض نصي مينمال نظيف"
               onClick={() => update({ ...settings, cropsTemplate: "pureshelf" })}
             />
           </div>

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 const empty: Omit<Crop, "id"> = {
   beanName: "", beanNameEn: "", country: "", countryEn: "",
   process: "", processEn: "", variety: "", altitude: "", notes: "", notesEn: "",
+  cardColor: "#D4C9BE", textColor: "#123458", image: "",
 };
 
 const Crops = () => {
@@ -67,6 +68,24 @@ const Crops = () => {
                 <Field label="الارتفاع" value={form.altitude} onChange={(v) => setForm({ ...form, altitude: v })} />
                 <Field label="الإيحاءات (عربي)" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
                 <Field label="Notes (English)" value={form.notesEn} onChange={(v) => setForm({ ...form, notesEn: v })} />
+                <ColorPick label="لون البطاقة" value={form.cardColor || "#D4C9BE"} onChange={(v) => setForm({ ...form, cardColor: v })} />
+                <ColorPick label="لون الخط" value={form.textColor || "#123458"} onChange={(v) => setForm({ ...form, textColor: v })} />
+                <div className="col-span-2 space-y-2">
+                  <Label className="text-xs">صورة البطاقة (اختياري)</Label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) return;
+                      const r = new FileReader();
+                      r.onload = () => setForm({ ...form, image: String(r.result) });
+                      r.readAsDataURL(f);
+                    }}
+                    className="text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-secondary file:font-bold file:text-foreground hover:file:bg-secondary/70"
+                  />
+                  {form.image && <img src={form.image} alt="" className="h-20 rounded-lg object-cover" />}
+                </div>
               </div>
               <Button variant="hero" onClick={add} className="w-full">إضافة المحصول</Button>
             </DialogContent>
@@ -111,6 +130,16 @@ const Field = ({ label, value, onChange }: { label: string; value: string; onCha
   <div className="space-y-2">
     <Label className="text-xs">{label}</Label>
     <Input value={value} onChange={(e) => onChange(e.target.value)} className="h-11 rounded-xl" />
+  </div>
+);
+
+const ColorPick = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
+  <div className="space-y-2">
+    <Label className="text-xs">{label}</Label>
+    <div className="flex items-center gap-2 border border-border rounded-xl p-1.5 h-11">
+      <input type="color" value={value} onChange={(e) => onChange(e.target.value)} className="w-9 h-8 rounded cursor-pointer border-0 bg-transparent" />
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} className="flex-1 bg-transparent font-mono text-xs outline-none uppercase" />
+    </div>
   </div>
 );
 
