@@ -19,8 +19,8 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 1%;
 
-    /* Deep navy primary */
-    --primary: 213 66% 21%;          /* #123458 */
+    /* Brand primary — softened navy (lighter than #123458) */
+    --primary: 213 55% 42%;          /* ~ #3068A8 */
     --primary-foreground: 40 16% 93%;
 
     /* Warm stone surface */
@@ -30,8 +30,8 @@ All colors MUST be HSL.
     --muted: 35 17% 86%;
     --muted-foreground: 213 20% 32%;
 
-    /* Accent = same deep navy for high-contrast badges */
-    --accent: 213 66% 21%;           /* #123458 */
+    /* Accent = same softened navy */
+    --accent: 213 55% 42%;
     --accent-foreground: 40 16% 93%;
 
     --destructive: 0 75% 50%;
@@ -39,22 +39,22 @@ All colors MUST be HSL.
 
     --border: 33 15% 80%;
     --input: 33 15% 80%;
-    --ring: 213 66% 21%;
+    --ring: 213 55% 42%;
 
     --radius: 1rem;
 
     /* Custom brand tokens */
-    --navy: 213 66% 21%;             /* #123458 */
+    --navy: 213 55% 42%;
     --stone: 33 19% 79%;             /* #D4C9BE */
     --cream: 40 16% 93%;             /* #F1EFEC */
     --ink: 0 0% 1%;                  /* #030303 */
 
-    --gradient-hero: linear-gradient(135deg, hsl(213 66% 21%) 0%, hsl(213 70% 16%) 50%, hsl(0 0% 4%) 100%);
-    --gradient-gold: linear-gradient(135deg, hsl(213 66% 21%) 0%, hsl(213 60% 32%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(213 55% 42%) 0%, hsl(213 60% 30%) 50%, hsl(213 70% 16%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(213 55% 42%) 0%, hsl(213 50% 55%) 100%);
     --gradient-cream: linear-gradient(180deg, hsl(40 16% 93%) 0%, hsl(33 19% 84%) 100%);
 
-    --shadow-warm: 0 20px 60px -20px hsl(213 66% 21% / 0.22);
-    --shadow-gold: 0 10px 40px -10px hsl(213 66% 21% / 0.35);
+    --shadow-warm: 0 20px 60px -20px hsl(213 55% 42% / 0.22);
+    --shadow-gold: 0 10px 40px -10px hsl(213 55% 42% / 0.35);
     --shadow-soft: 0 4px 20px -4px hsl(0 0% 1% / 0.08);
 
     --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
