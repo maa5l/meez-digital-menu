@@ -7,8 +7,14 @@ import { crops, type Crop, type MenuSettings } from "@/lib/mockData";
  */
 const CropsTemplatePureShelf = ({ settings }: { settings: MenuSettings }) => {
   const [active, setActive] = useState<Crop>(crops[0]);
-  const bg = active.cardColor || settings.bgColor;
   const fg = active.textColor || settings.textColor;
+  let bg: string = active.cardColor || settings.bgColor;
+  const showImage = active.bgType === "image" && active.image;
+  if (active.bgType === "gradient" && active.gradientColors?.length) {
+    bg = `linear-gradient(135deg, ${active.gradientColors.join(", ")})`;
+  } else if (active.bgType === "color" && active.cardColor) {
+    bg = active.cardColor;
+  }
 
   return (
     <div
@@ -40,8 +46,14 @@ const CropsTemplatePureShelf = ({ settings }: { settings: MenuSettings }) => {
       </aside>
 
       {/* Detail */}
-      <main className="flex flex-col justify-center p-10 md:p-16" style={{ background: bg, color: fg }}>
-        <div className="max-w-2xl">
+      <main className="relative flex flex-col justify-center p-10 md:p-16 overflow-hidden" style={{ background: bg, color: fg }}>
+        {showImage && (
+          <>
+            <img src={active.image} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-black/40" />
+          </>
+        )}
+        <div className="max-w-2xl relative">
           <p className="text-sm uppercase tracking-[0.3em] opacity-60 mb-4">Specialty Coffee</p>
           <h1 className="font-display font-black leading-none mb-2"
               style={{ fontSize: "clamp(3rem, 7vw, 6rem)" }}>
