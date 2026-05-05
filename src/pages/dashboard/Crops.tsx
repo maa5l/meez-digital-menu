@@ -43,7 +43,7 @@ const Crops = () => {
       action={
         <div className="flex gap-2">
           <a
-            href="/menu?type=crops"
+            href="/menu?type=crops&preview=1"
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-accent/30 hover:bg-accent/50 text-sm font-bold transition-colors"

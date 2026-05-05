@@ -45,6 +45,10 @@ const Devices = () => {
         status: "active",
       },
     ]);
+    // Activate the matching menu screen
+    try {
+      localStorage.setItem(`qaemah-activated-${activationCode.toUpperCase()}`, "1");
+    } catch {}
     setName("");
     setActivationCode("");
     setMenuType("products");
