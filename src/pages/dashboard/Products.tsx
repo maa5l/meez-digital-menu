@@ -254,3 +254,18 @@ const Products = () => {
 };
 
 export default Products;
+
+const FieldP = ({
+  label, value, onChange, type = "text", ltr,
+}: { label: string; value: string; onChange: (v: string) => void; type?: string; ltr?: boolean }) => (
+  <div className="space-y-2">
+    <Label className="text-xs">{label}</Label>
+    <Input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="h-11 rounded-xl"
+      dir={ltr ? "ltr" : undefined}
+    />
+  </div>
+);
