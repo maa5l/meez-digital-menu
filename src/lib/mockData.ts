@@ -217,9 +217,11 @@ export type Crop = {
   altitude: string;       // الارتفاع
   notes: string;          // الإيحاءات
   notesEn: string;
-  image?: string;         // صورة كيس البن (اختياري — لقالب Pure Shelf)
-  cardColor?: string;     // لون خلفية البطاقة (اختياري)
-  textColor?: string;     // لون خط البطاقة (اختياري)
+  image?: string;            // صورة بطاقة المحصول (إذا bgType=image)
+  cardColor?: string;        // لون خلفية البطاقة (إذا bgType=color)
+  textColor?: string;        // لون خط البطاقة
+  bgType?: "color" | "gradient" | "image";
+  gradientColors?: string[]; // 2–3 ألوان لتدرج البطاقة
 };
 
 export const crops: Crop[] = [
@@ -298,7 +300,7 @@ export const defaultMenuSettings: MenuSettings = {
   cropsTemplate: "molo",
   bgColor: "#F1EFEC",
   textColor: "#030303",
-  accentColor: "#123458",
+  accentColor: "#3068A8",
   showBurnBar: true,
 };
 

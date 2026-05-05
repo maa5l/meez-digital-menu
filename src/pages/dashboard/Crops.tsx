@@ -11,7 +11,8 @@ import { toast } from "sonner";
 const empty: Omit<Crop, "id"> = {
   beanName: "", beanNameEn: "", country: "", countryEn: "",
   process: "", processEn: "", variety: "", altitude: "", notes: "", notesEn: "",
-  cardColor: "#D4C9BE", textColor: "#123458", image: "",
+  cardColor: "#D4C9BE", textColor: "#3068A8", image: "",
+  bgType: "color", gradientColors: ["#D4C9BE", "#3068A8", "#030303"],
 };
 
 const Crops = () => {
@@ -42,7 +43,7 @@ const Crops = () => {
       action={
         <div className="flex gap-2">
           <a
-            href="/menu?type=crops"
+            href="/menu?type=crops&preview=1"
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-accent/30 hover:bg-accent/50 text-sm font-bold transition-colors"
@@ -68,23 +69,62 @@ const Crops = () => {
                 <Field label="الارتفاع" value={form.altitude} onChange={(v) => setForm({ ...form, altitude: v })} />
                 <Field label="الإيحاءات (عربي)" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
                 <Field label="Notes (English)" value={form.notesEn} onChange={(v) => setForm({ ...form, notesEn: v })} />
-                <ColorPick label="لون البطاقة" value={form.cardColor || "#D4C9BE"} onChange={(v) => setForm({ ...form, cardColor: v })} />
-                <ColorPick label="لون الخط" value={form.textColor || "#123458"} onChange={(v) => setForm({ ...form, textColor: v })} />
-                <div className="col-span-2 space-y-2">
-                  <Label className="text-xs">صورة البطاقة (اختياري)</Label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (!f) return;
-                      const r = new FileReader();
-                      r.onload = () => setForm({ ...form, image: String(r.result) });
-                      r.readAsDataURL(f);
-                    }}
-                    className="text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-secondary file:font-bold file:text-foreground hover:file:bg-secondary/70"
-                  />
-                  {form.image && <img src={form.image} alt="" className="h-20 rounded-lg object-cover" />}
+                <ColorPick label="لون الخط" value={form.textColor || "#3068A8"} onChange={(v) => setForm({ ...form, textColor: v })} />
+                <div className="col-span-2 space-y-2 border border-border rounded-2xl p-3 bg-secondary/30">
+                  <Label className="text-xs">خلفية البطاقة</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(["color", "gradient", "image"] as const).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setForm({ ...form, bgType: t })}
+                        className={`py-2 rounded-xl text-xs font-bold transition-all ${
+                          form.bgType === t ? "bg-accent text-accent-foreground" : "bg-card text-muted-foreground"
+                        }`}
+                      >
+                        {t === "color" ? "لون" : t === "gradient" ? "تدرّج" : "صورة"}
+                      </button>
+                    ))}
+                  </div>
+
+                  {form.bgType === "color" && (
+                    <ColorPick label="لون البطاقة" value={form.cardColor || "#D4C9BE"} onChange={(v) => setForm({ ...form, cardColor: v })} />
+                  )}
+
+                  {form.bgType === "gradient" && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {[0, 1, 2].map((i) => (
+                        <ColorPick
+                          key={i}
+                          label={`لون ${i + 1}`}
+                          value={form.gradientColors?.[i] || "#ffffff"}
+                          onChange={(v) => {
+                            const next = [...(form.gradientColors || ["#fff", "#fff", "#fff"])];
+                            next[i] = v;
+                            setForm({ ...form, gradientColors: next });
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  {form.bgType === "image" && (
+                    <div className="space-y-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (!f) return;
+                          const r = new FileReader();
+                          r.onload = () => setForm({ ...form, image: String(r.result) });
+                          r.readAsDataURL(f);
+                        }}
+                        className="text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-card file:font-bold file:text-foreground"
+                      />
+                      {form.image && <img src={form.image} alt="" className="h-20 rounded-lg object-cover" />}
+                    </div>
+                  )}
                 </div>
               </div>
               <Button variant="hero" onClick={add} className="w-full">إضافة المحصول</Button>

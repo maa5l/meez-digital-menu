@@ -21,21 +21,28 @@ const CropsTemplateMolo = ({ settings }: { settings: MenuSettings }) => {
       <div className="flex-1 overflow-x-auto overflow-y-hidden px-8 pb-8">
         <div className="flex gap-6 h-full snap-x snap-mandatory">
           {crops.map((c) => {
-            const bg = c.cardColor || `${settings.accentColor}25`;
             const fg = c.textColor || settings.textColor;
+            let bg: string = c.cardColor || `${settings.accentColor}25`;
+            const showImage = c.bgType === "image" && c.image;
+            if (c.bgType === "gradient" && c.gradientColors?.length) {
+              bg = `linear-gradient(135deg, ${c.gradientColors.join(", ")})`;
+            } else if (c.bgType === "color" && c.cardColor) {
+              bg = c.cardColor;
+            }
             return (
               <article
                 key={c.id}
                 className="snap-center shrink-0 w-[78vw] md:w-[520px] h-full rounded-[2.5rem] p-8 md:p-10 flex flex-col justify-between relative overflow-hidden"
                 style={{ background: bg, color: fg }}
               >
-                {c.image && (
+                {showImage && (
                   <img
                     src={c.image}
                     alt={c.beanName}
-                    className="absolute inset-0 w-full h-full object-cover opacity-30"
+                    className="absolute inset-0 w-full h-full object-cover"
                   />
                 )}
+                {showImage && <div className="absolute inset-0 bg-black/30" />}
                 <div className="relative">
                   <Bike className="w-14 h-14 mb-6" strokeWidth={1.5} />
                   <h2 className="font-display font-black text-3xl md:text-4xl leading-tight">

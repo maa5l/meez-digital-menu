@@ -45,43 +45,6 @@ const Settings = () => {
           </div>
         </div>
 
-        {/* === ألوان المنيو === */}
-        <div className="bg-card rounded-3xl border border-border p-6">
-          <h3 className="font-display font-bold text-xl text-primary mb-1">ألوان المنيو</h3>
-          <p className="text-sm text-muted-foreground mb-5">تنطبق على كل شاشات الفرع فوراً</p>
-
-          <div className="grid grid-cols-3 gap-4">
-            <ColorField label="لون الخلفية" value={settings.bgColor} onChange={(v) => update({ ...settings, bgColor: v })} />
-            <ColorField label="لون النص" value={settings.textColor} onChange={(v) => update({ ...settings, textColor: v })} />
-            <ColorField label="اللون المميّز" value={settings.accentColor} onChange={(v) => update({ ...settings, accentColor: v })} />
-          </div>
-
-          <div className="mt-6 flex items-center justify-between p-4 rounded-2xl bg-secondary">
-            <div>
-              <div className="font-bold text-primary text-sm">شريط حرق السعرات</div>
-              <div className="text-xs text-muted-foreground">يظهر في أعلى منيو المنتجات</div>
-            </div>
-            <Switch
-              checked={settings.showBurnBar}
-              onCheckedChange={(v) => update({ ...settings, showBurnBar: v })}
-            />
-          </div>
-
-          {/* Mini preview */}
-          <div
-            className="mt-4 rounded-2xl p-4 border"
-            style={{ background: settings.bgColor, color: settings.textColor, borderColor: `${settings.accentColor}80` }}
-          >
-            <div className="text-xs opacity-70 mb-2">معاينة سريعة</div>
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: settings.accentColor, color: "#1a1a1a" }}>
-                تصنيف
-              </span>
-              <span className="text-sm font-bold">عنوان نموذجي</span>
-            </div>
-          </div>
-        </div>
-
         {/* === قالب المنتجات === */}
         <div className="bg-card rounded-3xl border border-border p-6">
           <h3 className="font-display font-bold text-xl text-primary mb-1">قالب منيو المنتجات</h3>
@@ -104,8 +67,24 @@ const Settings = () => {
             />
           </div>
 
+          <div className="mt-5 pt-5 border-t border-border space-y-4">
+            <div className="text-xs font-bold text-muted-foreground">ألوان منيو المنتجات</div>
+            <div className="grid grid-cols-3 gap-3">
+              <ColorField label="الخلفية" value={settings.bgColor} onChange={(v) => update({ ...settings, bgColor: v })} />
+              <ColorField label="النص" value={settings.textColor} onChange={(v) => update({ ...settings, textColor: v })} />
+              <ColorField label="مميّز" value={settings.accentColor} onChange={(v) => update({ ...settings, accentColor: v })} />
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/60">
+              <div>
+                <div className="font-bold text-primary text-sm">شريط حرق السعرات</div>
+                <div className="text-xs text-muted-foreground">يظهر أعلى المنيو</div>
+              </div>
+              <Switch checked={settings.showBurnBar} onCheckedChange={(v) => update({ ...settings, showBurnBar: v })} />
+            </div>
+          </div>
+
           <a
-            href="/menu"
+            href="/menu?preview=1"
             target="_blank"
             rel="noreferrer"
             className="mt-4 flex items-center justify-center gap-2 text-sm font-bold text-accent-foreground bg-accent/30 hover:bg-accent/50 rounded-xl py-3 transition-colors"
@@ -137,8 +116,17 @@ const Settings = () => {
             />
           </div>
 
+          <div className="mt-5 pt-5 border-t border-border space-y-4">
+            <div className="text-xs font-bold text-muted-foreground">ألوان منيو المحاصيل</div>
+            <div className="grid grid-cols-3 gap-3">
+              <ColorField label="الخلفية" value={settings.bgColor} onChange={(v) => update({ ...settings, bgColor: v })} />
+              <ColorField label="النص" value={settings.textColor} onChange={(v) => update({ ...settings, textColor: v })} />
+              <ColorField label="مميّز" value={settings.accentColor} onChange={(v) => update({ ...settings, accentColor: v })} />
+            </div>
+          </div>
+
           <a
-            href={`/menu?type=crops&tpl=${settings.cropsTemplate}`}
+            href={`/menu?type=crops&tpl=${settings.cropsTemplate}&preview=1`}
             target="_blank"
             rel="noreferrer"
             className="mt-4 flex items-center justify-center gap-2 text-sm font-bold text-accent-foreground bg-accent/30 hover:bg-accent/50 rounded-xl py-3 transition-colors"
