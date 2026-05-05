@@ -1,6 +1,6 @@
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { categories, products, devices, subscription } from "@/lib/mockData";
-import { FolderTree, UtensilsCrossed, MonitorSmartphone, TrendingUp, Eye, ArrowUpRight } from "lucide-react";
+import { FolderTree, UtensilsCrossed, MonitorSmartphone, TrendingUp, ArrowUpRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
@@ -8,13 +8,12 @@ const stats = [
   { label: "التصنيفات", value: categories.length, icon: FolderTree, color: "bg-blue-500/10 text-blue-600" },
   { label: "المنتجات", value: products.length, icon: UtensilsCrossed, color: "bg-accent/15 text-accent" },
   { label: "الشاشات النشطة", value: devices.filter(d => d.status === "active").length, icon: MonitorSmartphone, color: "bg-green-500/10 text-green-600" },
-  { label: "المشاهدات اليوم", value: "1,284", icon: Eye, color: "bg-purple-500/10 text-purple-600" },
 ];
 
 const Overview = () => {
   return (
     <DashboardLayout title="نظرة عامة" subtitle="مرحبًا بك مجددًا — إليك ما يجري في منشأتك">
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {stats.map((s) => (
           <div key={s.label} className="bg-card rounded-2xl p-6 border border-border hover:shadow-soft transition-all">
             <div className={`w-12 h-12 rounded-xl ${s.color} flex items-center justify-center mb-4`}>
