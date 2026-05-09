@@ -39,11 +39,8 @@ const DeviceCode = () => {
 
       <div className="relative w-full max-w-lg">
         {/* Logo */}
-        <div className="flex flex-col items-center mb-10">
-          <div className="w-20 h-20 rounded-3xl bg-gradient-gold flex items-center justify-center shadow-gold mb-4 animate-float">
-            <UtensilsCrossed className="w-10 h-10 text-primary" />
-          </div>
-          <h1 className="font-display font-black text-5xl text-primary-foreground mb-2">قائمة</h1>
+        <div className="flex flex-col items-center mb-10 text-primary-foreground">
+          <Logo className="h-20 w-auto aspect-[1031/736] mb-4 animate-float" />
           <p className="text-primary-foreground/60">أدخل رمز الجهاز لفتح المنيو</p>
         </div>
 

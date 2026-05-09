@@ -21,11 +21,8 @@ const Auth = () => {
         <div className="absolute top-20 -right-32 w-96 h-96 rounded-full bg-accent/30 blur-3xl" />
         <div className="absolute bottom-0 -left-32 w-96 h-96 rounded-full bg-accent/20 blur-3xl" />
 
-        <Link to="/" className="relative flex items-center gap-2">
-          <div className="w-11 h-11 rounded-xl bg-gradient-gold flex items-center justify-center shadow-gold">
-            <UtensilsCrossed className="w-5 h-5 text-primary" />
-          </div>
-          <span className="font-display font-black text-2xl">قائمة</span>
+        <Link to="/" className="relative flex items-center gap-2 text-primary-foreground">
+          <Logo className="h-10 w-auto aspect-[1031/736]" />
         </Link>
 
         <div className="relative">
@@ -37,23 +34,20 @@ const Auth = () => {
             ارتقِ بتجربة ضيوفك إلى <span className="text-gradient-gold">مستوى جديد</span>
           </h2>
           <p className="text-primary-foreground/70 text-lg leading-relaxed max-w-md">
-            انضم لمئات المطاعم والمقاهي التي تستخدم قائمة لعرض منيو رقمي فاخر.
+            انضم لمئات المطاعم والمقاهي التي تستخدم ميز لعرض منيو رقمي فاخر.
           </p>
         </div>
 
         <div className="relative text-sm text-primary-foreground/60">
-          © {new Date().getFullYear()} قائمة. جميع الحقوق محفوظة.
+          © {new Date().getFullYear()} ميز. جميع الحقوق محفوظة.
         </div>
       </div>
 
       {/* Right form */}
       <div className="flex items-center justify-center p-6 md:p-12">
         <div className="w-full max-w-md">
-          <Link to="/" className="lg:hidden flex items-center gap-2 mb-8 justify-center">
-            <div className="w-10 h-10 rounded-xl bg-gradient-gold flex items-center justify-center">
-              <UtensilsCrossed className="w-5 h-5 text-primary" />
-            </div>
-            <span className="font-display font-black text-2xl text-primary">قائمة</span>
+          <Link to="/" className="lg:hidden flex items-center gap-2 mb-8 justify-center text-primary">
+            <Logo className="h-9 w-auto aspect-[1031/736]" />
           </Link>
 
           <div className="inline-flex p-1 bg-secondary rounded-xl mb-8">

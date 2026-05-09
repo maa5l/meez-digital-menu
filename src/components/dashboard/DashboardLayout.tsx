@@ -21,10 +21,7 @@ const DashboardLayout = ({ children, title, subtitle, action }: { children: Reac
       {/* Sidebar */}
       <aside className="hidden lg:flex w-72 bg-card border-l border-border flex-col fixed inset-y-0 right-0">
         <Link to="/" className="flex items-center gap-2 p-6 border-b border-border">
-          <div className="w-10 h-10 rounded-xl bg-gradient-gold flex items-center justify-center shadow-gold">
-            <UtensilsCrossed className="w-5 h-5 text-primary" />
-          </div>
-          <span className="font-display font-black text-2xl text-primary">قائمة</span>
+          <Logo className="h-9 w-auto aspect-[1031/736] text-primary" />
         </Link>
 
         <nav className="flex-1 p-4 space-y-1">
