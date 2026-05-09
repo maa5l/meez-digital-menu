@@ -40,7 +40,7 @@ const Pricing = () => {
                 <div className="text-left">
                   <div className="flex items-baseline gap-2">
                     <span className="font-display font-black text-6xl text-gradient-gold">٤٥</span>
-                    <span className="text-primary-foreground/80 text-lg">ريال</span>
+                    <span className="text-primary-foreground/80 text-lg inline-flex items-center"><RiyalSymbol /></span>
                   </div>
                   <div className="text-sm text-primary-foreground/60">شهريًا / للشاشة</div>
                 </div>
