@@ -15,6 +15,7 @@ import Devices from "./pages/dashboard/Devices.tsx";
 import Subscription from "./pages/dashboard/Subscription.tsx";
 import Settings from "./pages/dashboard/Settings.tsx";
 import Crops from "./pages/dashboard/Crops.tsx";
+import Theme from "./pages/dashboard/Theme.tsx";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
           <Route path="/dashboard/devices" element={<Devices />} />
           <Route path="/dashboard/subscription" element={<Subscription />} />
           <Route path="/dashboard/settings" element={<Settings />} />
+          <Route path="/dashboard/theme" element={<Theme />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
