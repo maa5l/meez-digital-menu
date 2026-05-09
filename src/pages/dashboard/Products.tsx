@@ -1,6 +1,7 @@
 import { useState } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { categories, products as initial, type Product } from "@/lib/mockData";
+import { Riyal } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,7 +112,7 @@ const Products = () => {
                   ))}
                 </select>
               </div>
-              <FieldP label="السعر (ر.س)" value={price} onChange={setPrice} type="number" />
+              <FieldP label="السعر" value={price} onChange={setPrice} type="number" />
               <FieldP label="السعرات" value={calories} onChange={setCalories} type="number" />
               <div className="col-span-2 space-y-2">
                 <Label className="text-xs">صورة المنتج (اختياري)</Label>
@@ -224,7 +225,7 @@ const Products = () => {
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2 mb-1">
                   <h3 className="font-display font-bold text-primary leading-tight">{p.name}</h3>
-                  <span className="font-display font-black text-accent shrink-0">{p.price} ر.س</span>
+                  <span className="font-display font-black text-accent shrink-0">{p.price} <Riyal /></span>
                 </div>
                 <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{p.description}</p>
                 {p.cropInfo && (

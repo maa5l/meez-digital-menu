@@ -1,6 +1,7 @@
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { categories, products, devices, subscription } from "@/lib/mockData";
 import { FolderTree, UtensilsCrossed, MonitorSmartphone, TrendingUp, ArrowUpRight } from "lucide-react";
+import { Riyal } from "@/components/Brand";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
@@ -47,7 +48,7 @@ const Overview = () => {
               </div>
               <div>
                 <div className="text-primary-foreground/60 text-xs mb-1">السعر / شاشة</div>
-                <div className="font-display font-black text-xl">{subscription.pricePerScreen} ر.س</div>
+                <div className="font-display font-black text-xl">{subscription.pricePerScreen} <Riyal /></div>
               </div>
               <div>
                 <div className="text-primary-foreground/60 text-xs mb-1">التجديد</div>
