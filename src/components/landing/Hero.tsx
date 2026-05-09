@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import heroTablet from "@/assets/hero-tablet.jpg";
+import { Riyal } from "@/components/Brand";
 
 const Hero = () => {
   return (
@@ -26,7 +27,7 @@ const Hero = () => {
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-xl mx-auto lg:mx-0 mb-8">
-              منصة <strong className="text-primary">قائمة</strong> تحوّل أجهزة الآيباد داخل فرعك إلى منيو فاخر بلمسة واحدة. عرض جميل، تحديث فوري، وإدارة كاملة من لوحة تحكم واحدة.
+              منصة <strong className="text-primary">ميز</strong> تحوّل أجهزة الآيباد داخل فرعك إلى منيو فاخر بلمسة واحدة. عرض جميل، تحديث فوري، وإدارة كاملة من لوحة تحكم واحدة.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
@@ -74,7 +75,7 @@ const Hero = () => {
                 ٤٥
               </div>
               <div>
-                <div className="font-bold text-primary">ريال / شاشة</div>
+                <div className="font-bold text-primary flex items-center gap-1"><Riyal /> / شاشة</div>
                 <div className="text-xs text-muted-foreground">شهريًا فقط</div>
               </div>
             </div>

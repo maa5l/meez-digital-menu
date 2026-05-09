@@ -8,53 +8,53 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Qae'mah brand — warm stone + deep navy
-       #F1EFEC bg, #D4C9BE secondary, #123458 primary/accent, #030303 ink */
-    --background: 40 16% 93%;        /* #F1EFEC */
-    --foreground: 0 0% 1%;           /* #030303 */
+    /* Meez brand — warm coffee palette
+       #F6F2EA bg, #E3D3C1 secondary, #B58C6A accent, #7B4A32 primary, #402A1E ink */
+    --background: 41 41% 94%;        /* #F6F2EA */
+    --foreground: 21 36% 19%;        /* #402A1E */
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 1%;
+    --card-foreground: 21 36% 19%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 1%;
+    --popover-foreground: 21 36% 19%;
 
-    /* Brand primary — softened navy (lighter than #123458) */
-    --primary: 213 55% 42%;          /* ~ #3068A8 */
-    --primary-foreground: 40 16% 93%;
+    /* Brand primary — coffee brown */
+    --primary: 19 42% 33%;           /* #7B4A32 */
+    --primary-foreground: 41 41% 94%;
 
     /* Warm stone surface */
-    --secondary: 33 19% 79%;         /* #D4C9BE */
-    --secondary-foreground: 213 66% 21%;
+    --secondary: 31 39% 82%;         /* #E3D3C1 */
+    --secondary-foreground: 21 36% 19%;
 
-    --muted: 35 17% 86%;
-    --muted-foreground: 213 20% 32%;
+    --muted: 31 35% 88%;
+    --muted-foreground: 21 25% 32%;
 
-    /* Accent = same softened navy */
-    --accent: 213 55% 42%;
-    --accent-foreground: 40 16% 93%;
+    /* Accent — caramel */
+    --accent: 27 35% 56%;            /* #B58C6A */
+    --accent-foreground: 21 36% 19%;
 
     --destructive: 0 75% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 33 15% 80%;
-    --input: 33 15% 80%;
-    --ring: 213 55% 42%;
+    --border: 31 25% 80%;
+    --input: 31 25% 80%;
+    --ring: 19 42% 33%;
 
     --radius: 1rem;
 
     /* Custom brand tokens */
-    --navy: 213 55% 42%;
-    --stone: 33 19% 79%;             /* #D4C9BE */
-    --cream: 40 16% 93%;             /* #F1EFEC */
-    --ink: 0 0% 1%;                  /* #030303 */
+    --navy: 19 42% 33%;
+    --stone: 31 39% 82%;             /* #E3D3C1 */
+    --cream: 41 41% 94%;             /* #F6F2EA */
+    --ink: 21 36% 19%;               /* #402A1E */
 
-    --gradient-hero: linear-gradient(135deg, hsl(213 55% 42%) 0%, hsl(213 60% 30%) 50%, hsl(213 70% 16%) 100%);
-    --gradient-gold: linear-gradient(135deg, hsl(213 55% 42%) 0%, hsl(213 50% 55%) 100%);
-    --gradient-cream: linear-gradient(180deg, hsl(40 16% 93%) 0%, hsl(33 19% 84%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(19 42% 33%) 0%, hsl(20 45% 24%) 50%, hsl(21 36% 19%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(27 35% 56%) 0%, hsl(31 39% 72%) 100%);
+    --gradient-cream: linear-gradient(180deg, hsl(41 41% 94%) 0%, hsl(31 39% 86%) 100%);
 
-    --shadow-warm: 0 20px 60px -20px hsl(213 55% 42% / 0.22);
-    --shadow-gold: 0 10px 40px -10px hsl(213 55% 42% / 0.35);
+    --shadow-warm: 0 20px 60px -20px hsl(19 42% 33% / 0.22);
+    --shadow-gold: 0 10px 40px -10px hsl(27 35% 56% / 0.35);
     --shadow-soft: 0 4px 20px -4px hsl(0 0% 1% / 0.08);
 
     --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);

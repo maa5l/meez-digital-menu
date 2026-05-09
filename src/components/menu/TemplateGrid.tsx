@@ -24,7 +24,7 @@ const TemplateGrid = ({ settings = defaultMenuSettings }: { settings?: MenuSetti
       {/* Header: centered logo + categories on the right */}
       <div className="px-8 pt-6 pb-4 shrink-0">
         <h1 className="text-center font-display font-black text-4xl tracking-tight mb-6" style={{ color: settings.textColor }}>
-          Qae&rsquo;mah
+          ميز
         </h1>
 
         <div className="flex flex-wrap gap-3 justify-end">

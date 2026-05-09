@@ -2,6 +2,7 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { subscription } from "@/lib/mockData";
 import { Button } from "@/components/ui/button";
 import { Check, CreditCard, Calendar, Receipt } from "lucide-react";
+import { Riyal } from "@/components/Brand";
 
 const invoices = [
   { id: "INV-001", date: "15 أبريل 2026", amount: 135, status: "مدفوعة" },
@@ -24,7 +25,7 @@ const Subscription = () => {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 mb-8">
               <div>
                 <div className="text-primary-foreground/60 text-xs mb-1 flex items-center gap-1"><CreditCard className="w-3 h-3" /> الإجمالي الشهري</div>
-                <div className="font-display font-black text-3xl text-gradient-gold">{total} <span className="text-base text-primary-foreground/60">ر.س</span></div>
+                <div className="font-display font-black text-3xl text-gradient-gold">{total} <span className="text-base text-primary-foreground/60"><Riyal /></span></div>
               </div>
               <div>
                 <div className="text-primary-foreground/60 text-xs mb-1">الشاشات</div>
@@ -72,7 +73,7 @@ const Subscription = () => {
                 <div className="text-xs text-muted-foreground">{inv.date}</div>
               </div>
               <div className="flex items-center gap-4">
-                <span className="font-display font-black text-primary">{inv.amount} ر.س</span>
+                <span className="font-display font-black text-primary">{inv.amount} <Riyal /></span>
                 <span className="px-3 py-1 rounded-full bg-green-500/15 text-green-700 text-xs font-bold">{inv.status}</span>
                 <Button variant="ghost" size="sm">تنزيل</Button>
               </div>
