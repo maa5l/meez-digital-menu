@@ -3,7 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UtensilsCrossed, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
+import { Logo } from "@/components/Brand";
 
 const Auth = () => {
   const [mode, setMode] = useState<"login" | "signup">("signup");

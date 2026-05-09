@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { LayoutDashboard, FolderTree, UtensilsCrossed, MonitorSmartphone, CreditCard, LogOut, Settings, Coffee } from "lucide-react";
+import { Logo } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 
 const navItems = [

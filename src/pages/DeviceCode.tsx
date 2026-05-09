@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { UtensilsCrossed, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
+import { Logo } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 
 const DeviceCode = () => {
