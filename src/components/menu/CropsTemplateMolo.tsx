@@ -1,5 +1,5 @@
 import { crops, type MenuSettings } from "@/lib/mockData";
-import { Bike } from "lucide-react";
+import { Bike, Sparkles } from "lucide-react";
 
 /**
  * Crops Template — "Cards Carousel".
@@ -7,11 +7,20 @@ import { Bike } from "lucide-react";
  * تستخدم لون البطاقة وصورتها ولون خطها لو تم تعريفها من الإعدادات.
  */
 const CropsTemplateMolo = ({ settings }: { settings: MenuSettings }) => {
+  const ordered = settings.featuredCropId
+    ? [
+        ...crops.filter((c) => c.id === settings.featuredCropId),
+        ...crops.filter((c) => c.id !== settings.featuredCropId),
+      ]
+    : crops;
+  const bgStyle: React.CSSProperties = settings.bgImage
+    ? { backgroundImage: `linear-gradient(${settings.bgColor}cc, ${settings.bgColor}ee), url(${settings.bgImage})`, backgroundSize: "cover", backgroundPosition: "center", color: settings.textColor }
+    : { background: settings.bgColor, color: settings.textColor };
   return (
     <div
       className="h-full flex flex-col"
       dir="rtl"
-      style={{ background: settings.bgColor, color: settings.textColor }}
+      style={bgStyle}
     >
       <div className="px-8 pt-8 pb-4 shrink-0">
         <h1 className="font-display font-black text-3xl md:text-4xl">محاصيل البن</h1>
@@ -20,7 +29,8 @@ const CropsTemplateMolo = ({ settings }: { settings: MenuSettings }) => {
 
       <div className="flex-1 overflow-x-auto overflow-y-hidden px-8 pb-8">
         <div className="flex gap-6 h-full snap-x snap-mandatory">
-          {crops.map((c) => {
+          {ordered.map((c) => {
+            const isFeatured = c.id === settings.featuredCropId;
             const fg = c.textColor || settings.textColor;
             let bg: string = c.cardColor || `${settings.accentColor}25`;
             const showImage = c.bgType === "image" && c.image;
@@ -33,7 +43,7 @@ const CropsTemplateMolo = ({ settings }: { settings: MenuSettings }) => {
               <article
                 key={c.id}
                 className="snap-center shrink-0 w-[78vw] md:w-[520px] h-full rounded-[2.5rem] p-8 md:p-10 flex flex-col justify-between relative overflow-hidden"
-                style={{ background: bg, color: fg }}
+                style={{ background: bg, color: fg, ...(isFeatured ? { boxShadow: `0 0 0 3px ${settings.accentColor}` } : {}) }}
               >
                 {showImage && (
                   <img
@@ -43,6 +53,11 @@ const CropsTemplateMolo = ({ settings }: { settings: MenuSettings }) => {
                   />
                 )}
                 {showImage && <div className="absolute inset-0 bg-black/30" />}
+                {isFeatured && (
+                  <div className="absolute top-4 left-4 flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full" style={{ background: settings.accentColor, color: "#fff" }}>
+                    <Sparkles className="w-3.5 h-3.5" /> محصول الشهر
+                  </div>
+                )}
                 <div className="relative">
                   <Bike className="w-14 h-14 mb-6" strokeWidth={1.5} />
                   <h2 className="font-display font-black text-3xl md:text-4xl leading-tight">
