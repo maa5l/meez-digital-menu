@@ -1,15 +1,24 @@
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { LayoutGrid, Columns2, GalleryHorizontal, Minus, ExternalLink, Palette, Coffee, UtensilsCrossed } from "lucide-react";
+import { LayoutGrid, Columns2, GalleryHorizontal, Minus, ExternalLink, Palette, Coffee, UtensilsCrossed, Sparkles, Upload, X } from "lucide-react";
 import { useMenuSettings } from "@/hooks/useMenuSettings";
-import { defaultMenuSettings } from "@/lib/mockData";
+import { defaultMenuSettings, products, crops, type MenuSettings } from "@/lib/mockData";
 import { toast } from "sonner";
 
 const Theme = () => {
   const [settings, update] = useMenuSettings();
   const reset = () => { update(defaultMenuSettings); toast.success("تمت إعادة الثيم للوضع الافتراضي"); };
+
+  const onUploadImage = (key: "bgImage" | "featuredImage") => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => update({ ...settings, [key]: reader.result as string });
+    reader.readAsDataURL(file);
+  };
 
   return (
     <DashboardLayout
@@ -48,10 +57,28 @@ const Theme = () => {
               onClick={() => update({ ...settings, productTemplate: "split" })}
             />
           </div>
+
+          {/* منتج الشهر */}
+          <FeaturedBlock
+            title="منتج الشهر"
+            label="اختر المنتج المميّز"
+            options={products.map((p) => ({ value: p.id, label: p.name }))}
+            value={settings.featuredProductId || ""}
+            onChange={(v) => update({ ...settings, featuredProductId: v || undefined })}
+            customTitle={settings.featuredTitle}
+            customSubtitle={settings.featuredSubtitle}
+            customImage={settings.featuredImage}
+            onTitleChange={(v) => update({ ...settings, featuredTitle: v || undefined })}
+            onSubtitleChange={(v) => update({ ...settings, featuredSubtitle: v || undefined })}
+            onImageChange={onUploadImage("featuredImage")}
+            onImageClear={() => update({ ...settings, featuredImage: undefined })}
+          />
+
           <Palette3
             bg={settings.bgColor} text={settings.textColor} accent={settings.accentColor}
             onChange={(k, v) => update({ ...settings, [k]: v })}
           />
+          <CardAndBg settings={settings} update={update} onBgUpload={onUploadImage("bgImage")} />
           <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/60">
             <div>
               <div className="font-bold text-primary text-sm">شريط حرق السعرات</div>
@@ -84,6 +111,22 @@ const Theme = () => {
               onClick={() => update({ ...settings, cropsTemplate: "pureshelf" })}
             />
           </div>
+
+          {/* محصول الشهر */}
+          <div className="pt-4 border-t border-border space-y-3">
+            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+              <Sparkles className="w-3.5 h-3.5 text-accent-foreground" /> محصول الشهر
+            </div>
+            <select
+              value={settings.featuredCropId || ""}
+              onChange={(e) => update({ ...settings, featuredCropId: e.target.value || undefined })}
+              className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm"
+            >
+              <option value="">— لا يوجد —</option>
+              {crops.map((c) => <option key={c.id} value={c.id}>{c.beanName}</option>)}
+            </select>
+          </div>
+
           <Palette3
             bg={settings.bgColor} text={settings.textColor} accent={settings.accentColor}
             onChange={(k, v) => update({ ...settings, [k]: v })}
@@ -93,6 +136,99 @@ const Theme = () => {
     </DashboardLayout>
   );
 };
+
+/* ---------- Featured product block ---------- */
+const FeaturedBlock = ({
+  title, label, options, value, onChange,
+  customTitle, customSubtitle, customImage,
+  onTitleChange, onSubtitleChange, onImageChange, onImageClear,
+}: {
+  title: string; label: string;
+  options: { value: string; label: string }[];
+  value: string; onChange: (v: string) => void;
+  customTitle?: string; customSubtitle?: string; customImage?: string;
+  onTitleChange: (v: string) => void;
+  onSubtitleChange: (v: string) => void;
+  onImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onImageClear: () => void;
+}) => (
+  <div className="pt-4 border-t border-border space-y-3">
+    <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+      <Sparkles className="w-3.5 h-3.5 text-accent-foreground" /> {title}
+    </div>
+    <div>
+      <Label className="text-xs">{label}</Label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full bg-background border border-border rounded-xl px-3 py-2 text-sm"
+      >
+        <option value="">— لا يوجد —</option>
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </div>
+    {value && (
+      <>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label className="text-xs">عنوان مخصّص (اختياري)</Label>
+            <Input value={customTitle || ""} onChange={(e) => onTitleChange(e.target.value)} placeholder="منتج الشهر" className="mt-1 h-9 text-sm" />
+          </div>
+          <div>
+            <Label className="text-xs">وصف مخصّص (اختياري)</Label>
+            <Input value={customSubtitle || ""} onChange={(e) => onSubtitleChange(e.target.value)} placeholder="مميّز هذا الشهر" className="mt-1 h-9 text-sm" />
+          </div>
+        </div>
+        <div>
+          <Label className="text-xs">صورة الهيدر (اختياري)</Label>
+          <div className="mt-1 flex items-center gap-2">
+            {customImage && <img src={customImage} alt="" className="w-12 h-12 rounded-lg object-cover border border-border" />}
+            <label className="flex-1 cursor-pointer flex items-center justify-center gap-2 text-xs font-bold bg-secondary hover:bg-secondary/80 rounded-xl py-2.5 transition-colors">
+              <Upload className="w-4 h-4" /> {customImage ? "تغيير الصورة" : "رفع صورة"}
+              <input type="file" accept="image/*" className="hidden" onChange={onImageChange} />
+            </label>
+            {customImage && (
+              <button onClick={onImageClear} className="p-2 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20" aria-label="حذف">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      </>
+    )}
+  </div>
+);
+
+/* ---------- Card color + background image ---------- */
+const CardAndBg = ({
+  settings, update, onBgUpload,
+}: {
+  settings: MenuSettings;
+  update: (s: MenuSettings) => void;
+  onBgUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) => (
+  <div className="pt-4 border-t border-border space-y-3">
+    <div className="text-xs font-bold text-muted-foreground">الخلفية والبطاقات</div>
+    <div className="grid grid-cols-2 gap-3">
+      <ColorField label="لون البطاقات" value={settings.cardColor || "#ededed"} onChange={(v) => update({ ...settings, cardColor: v })} />
+      <div>
+        <Label className="text-xs">صورة خلفية المنيو</Label>
+        <div className="mt-2 flex items-center gap-2">
+          {settings.bgImage && <img src={settings.bgImage} alt="" className="w-10 h-10 rounded-lg object-cover border border-border" />}
+          <label className="flex-1 cursor-pointer flex items-center justify-center gap-2 text-xs font-bold bg-secondary hover:bg-secondary/80 rounded-xl py-2.5 transition-colors">
+            <Upload className="w-4 h-4" /> {settings.bgImage ? "تغيير" : "رفع"}
+            <input type="file" accept="image/*" className="hidden" onChange={onBgUpload} />
+          </label>
+          {settings.bgImage && (
+            <button onClick={() => update({ ...settings, bgImage: undefined })} className="p-2 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20" aria-label="حذف">
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 const Stat = ({ icon, label, value, swatch }: { icon: React.ReactNode; label: string; value: string; swatch?: string }) => (
   <div className="bg-card rounded-2xl border border-border p-4 flex items-center gap-3">

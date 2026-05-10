@@ -234,7 +234,7 @@ export const crops: Crop[] = [
     process: "مجففة",
     processEn: "Natural",
     variety: "هيرلوم",
-    altitude: "١٨٠٠ - ٢٠٠٠ م",
+    altitude: "1800 - 2000 m",
     notes: "التفاح، التوت، الشوكولاته، كراميل",
     notesEn: "Apple, Berry, Chocolate, Caramel",
   },
@@ -247,7 +247,7 @@ export const crops: Crop[] = [
     process: "مجفف",
     processEn: "Natural",
     variety: "هيرلوم",
-    altitude: "٢٠٠٠ م",
+    altitude: "2000 m",
     notes: "أزهار - توتيات - شوكولاته",
     notesEn: "Flowers - Berries - Chocolate",
   },
@@ -260,7 +260,7 @@ export const crops: Crop[] = [
     process: "مغسولة",
     processEn: "Washed",
     variety: "كاتورا",
-    altitude: "١٧٥٠ م",
+    altitude: "1750 m",
     notes: "كراميل، بندق، تفاح أحمر",
     notesEn: "Caramel, Hazelnut, Red Apple",
   },
@@ -273,7 +273,7 @@ export const crops: Crop[] = [
     process: "طبيعية",
     processEn: "Natural",
     variety: "هيرلوم",
-    altitude: "١٩٠٠ م",
+    altitude: "1900 m",
     notes: "شوكولاتة داكنة، توت، كراميل",
     notesEn: "Dark Chocolate, Berry, Caramel",
   },
@@ -293,6 +293,19 @@ export type MenuSettings = {
   textColor: string;     // hex
   accentColor: string;   // hex
   showBurnBar: boolean;
+  /** صورة خلفية اختيارية للمنيو (data URL أو رابط) */
+  bgImage?: string;
+  /** لون بطاقات المنتجات */
+  cardColor?: string;
+  /** منتج الشهر (اختياري) — يظهر كهيدر مميّز في منيو المنتجات */
+  featuredProductId?: string;
+  /** محصول الشهر — يظهر كبطاقة مميّزة في منيو المحاصيل */
+  featuredCropId?: string;
+  /** عنوان الهيدر المميز (يستبدل الافتراضي) */
+  featuredTitle?: string;
+  featuredSubtitle?: string;
+  /** صورة الهيدر المميز (تستبدل صورة المنتج) */
+  featuredImage?: string;
 };
 
 export const defaultMenuSettings: MenuSettings = {
@@ -302,6 +315,7 @@ export const defaultMenuSettings: MenuSettings = {
   textColor: "#030303",
   accentColor: "#3068A8",
   showBurnBar: true,
+  cardColor: "#ededed",
 };
 
 const SETTINGS_KEY = "qaemah-menu-settings";
