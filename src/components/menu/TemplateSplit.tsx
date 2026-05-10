@@ -14,12 +14,22 @@ const TemplateSplit = ({ settings = defaultMenuSettings }: { settings?: MenuSett
   const [activeCat, setActiveCat] = useState(categories[0].id);
   const visible = products.filter((p) => p.categoryId === activeCat);
   const [selected, setSelected] = useState<Product>(visible[0] || products[0]);
+  const featured = settings.featuredProductId
+    ? products.find((p) => p.id === settings.featuredProductId)
+    : null;
+  const heroImg = settings.featuredImage || featured?.image || menuHeroCoffee;
+  const heroTitle = settings.featuredTitle || (featured ? featured.name : "بن الموسم");
+  const heroSubtitle = settings.featuredSubtitle || (featured ? featured.description : "مختارات حصرية من أجود المحاصيل");
+  const cardBg = settings.cardColor || "#ededed";
+  const bgStyle: React.CSSProperties = settings.bgImage
+    ? { backgroundImage: `linear-gradient(${settings.bgColor}cc, ${settings.bgColor}ee), url(${settings.bgImage})`, backgroundSize: "cover", backgroundPosition: "center", color: settings.textColor }
+    : { background: settings.bgColor, color: settings.textColor };
 
   return (
     <div
       className="h-full flex flex-col overflow-hidden"
       dir="rtl"
-      style={{ background: settings.bgColor, color: settings.textColor }}
+      style={bgStyle}
     >
       {settings.showBurnBar && (
         <div
@@ -28,7 +38,7 @@ const TemplateSplit = ({ settings = defaultMenuSettings }: { settings?: MenuSett
         >
           <img src={walkingBurn} alt="" className="w-4 h-4 object-contain" />
           <span className="font-bold">
-            تفاصيل حرق السعرات: المشي ٣٠ دقيقة يحرق ~١٥٠ سعرة • الجري ١٠ دقائق يحرق ~١٠٠ سعرة
+            تفاصيل حرق السعرات: المشي 30 دقيقة يحرق ~150 سعرة • الجري 10 دقائق يحرق ~100 سعرة
           </span>
         </div>
       )}
@@ -36,15 +46,15 @@ const TemplateSplit = ({ settings = defaultMenuSettings }: { settings?: MenuSett
       {/* Hero banner */}
       <div className="relative bg-[#0a0a0a] px-8 py-4 shrink-0">
         <h1 className="text-center font-display font-black text-3xl text-white tracking-tight">
-          Qae&rsquo;mah
+          ميز
         </h1>
 
         <div className="grid grid-cols-2 items-center mt-2">
           {/* Featured product image — coffee bag */}
           <div className="flex justify-center">
             <img
-              src={menuHeroCoffee}
-              alt="بن مختص"
+              src={heroImg}
+              alt={heroTitle}
               className="h-32 md:h-44 object-contain drop-shadow-2xl"
             />
           </div>
@@ -52,17 +62,17 @@ const TemplateSplit = ({ settings = defaultMenuSettings }: { settings?: MenuSett
           {/* Title (right in RTL) */}
           <div className="text-right">
             <h2 className="font-display font-black text-3xl md:text-5xl leading-tight" style={{ color: settings.accentColor }}>
-              بن الموسم
+              {heroTitle}
             </h2>
-            <p className="text-white/70 text-sm md:text-base mt-2">
-              مختارات حصرية من أجود المحاصيل
+            <p className="text-white/70 text-sm md:text-base mt-2 line-clamp-2">
+              {heroSubtitle}
             </p>
           </div>
         </div>
       </div>
 
       {/* Categories */}
-      <div className="px-8 py-4 shrink-0" style={{ background: settings.bgColor }}>
+      <div className="px-8 py-4 shrink-0">
         <div className="flex flex-wrap gap-3 justify-end">
           {categories.map((c) => {
             const active = activeCat === c.id;
@@ -97,9 +107,10 @@ const TemplateSplit = ({ settings = defaultMenuSettings }: { settings?: MenuSett
               <button
                 key={p.id}
                 onClick={() => setSelected(p)}
-                className={`w-full bg-[#ededed] rounded-[1.75rem] p-3 flex items-center gap-4 text-right transition-all ${
-                  active ? "ring-2 ring-[#9CD5FF] shadow-md" : "hover:shadow-sm"
+                className={`w-full rounded-[1.75rem] p-3 flex items-center gap-4 text-right transition-all ${
+                  active ? "ring-2 shadow-md" : "hover:shadow-sm"
                 }`}
+                style={{ background: cardBg, ...(active ? { boxShadow: `0 0 0 2px ${settings.accentColor}` } : {}) }}
               >
                 <div className="w-20 h-20 bg-white rounded-2xl overflow-hidden shrink-0 flex items-center justify-center">
                   {p.image && <img src={p.image} alt={p.name} className="w-full h-full object-cover" />}
@@ -111,11 +122,11 @@ const TemplateSplit = ({ settings = defaultMenuSettings }: { settings?: MenuSett
                   <div className="flex items-center justify-between text-[#3a3a3a] text-sm">
                     <div className="flex items-center gap-1.5">
                       <RiyalIcon className="w-3.5 h-3.5" />
-                      <span className="font-bold">{toArabicNum(p.price)}</span>
+                      <span className="font-bold">{p.price}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Flame className="w-3.5 h-3.5" />
-                      <span className="font-bold">{toArabicNum(p.calories)}</span>
+                      <span className="font-bold">{p.calories}</span>
                     </div>
                     <Leaf className="w-3.5 h-3.5 opacity-50" />
                   </div>
@@ -126,7 +137,7 @@ const TemplateSplit = ({ settings = defaultMenuSettings }: { settings?: MenuSett
         </div>
 
         {/* Detail */}
-        <div className="bg-[#ededed] rounded-[2rem] p-5 flex flex-col overflow-hidden">
+        <div className="rounded-[2rem] p-5 flex flex-col overflow-hidden" style={{ background: cardBg }}>
           {/* Big image area */}
           <div className="flex-[1.2] bg-white rounded-[1.5rem] flex items-center justify-center overflow-hidden mb-4 min-h-[150px]">
             {selected.image && (
@@ -152,11 +163,11 @@ const TemplateSplit = ({ settings = defaultMenuSettings }: { settings?: MenuSett
             <div className="flex items-center justify-between text-[#1a1a1a]">
               <div className="flex items-center gap-2 font-bold text-lg">
                 <RiyalIcon className="w-5 h-5" />
-                {toArabicNum(selected.price)}
+                {selected.price}
               </div>
               <div className="flex items-center gap-2 font-bold text-lg">
                 <Flame className="w-5 h-5" />
-                {toArabicNum(selected.calories)}
+                {selected.calories}
               </div>
             </div>
 
@@ -189,9 +200,6 @@ const TemplateSplit = ({ settings = defaultMenuSettings }: { settings?: MenuSett
     </div>
   );
 };
-
-const toArabicNum = (n: number) =>
-  n.toString().replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[+d]);
 
 const RiyalIcon = ({ className }: { className?: string }) => (
   <span className={`inline-flex items-center justify-center font-bold ${className}`}>﷼</span>
