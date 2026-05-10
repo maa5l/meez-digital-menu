@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { categories, products, type Product, type MenuSettings, defaultMenuSettings } from "@/lib/mockData";
-import { Flame, Leaf, X } from "lucide-react";
+import { Flame, Leaf, Sparkles, X } from "lucide-react";
 import walkingBurn from "@/assets/walking-burn.png";
 
 /**
@@ -12,20 +12,40 @@ const TemplateGrid = ({ settings = defaultMenuSettings }: { settings?: MenuSetti
   const [activeCat, setActiveCat] = useState(categories[0].id);
   const [modal, setModal] = useState<Product | null>(null);
   const visible = products.filter((p) => p.categoryId === activeCat);
+  const featured = settings.featuredProductId
+    ? products.find((p) => p.id === settings.featuredProductId)
+    : null;
+  const cardBg = settings.cardColor || "#ededed";
+  const bgStyle: React.CSSProperties = settings.bgImage
+    ? { backgroundImage: `linear-gradient(${settings.bgColor}cc, ${settings.bgColor}ee), url(${settings.bgImage})`, backgroundSize: "cover", backgroundPosition: "center", color: settings.textColor }
+    : { background: settings.bgColor, color: settings.textColor };
 
   return (
     <div
       className="h-full flex flex-col"
       dir="rtl"
-      style={{ background: settings.bgColor, color: settings.textColor }}
+      style={bgStyle}
     >
       {settings.showBurnBar && <BurnInfoBar accent={settings.accentColor} textColor={settings.textColor} />}
 
       {/* Header: centered logo + categories on the right */}
       <div className="px-8 pt-6 pb-4 shrink-0">
-        <h1 className="text-center font-display font-black text-4xl tracking-tight mb-6" style={{ color: settings.textColor }}>
+        <h1 className="text-center font-display font-black text-4xl tracking-tight mb-5" style={{ color: settings.textColor }}>
           ميز
         </h1>
+
+        {featured && (
+          <FeaturedHeader
+            title={settings.featuredTitle || "منتج الشهر"}
+            subtitle={settings.featuredSubtitle || featured.description}
+            image={settings.featuredImage || featured.image}
+            name={featured.name}
+            price={featured.price}
+            accent={settings.accentColor}
+            text={settings.textColor}
+            onClick={() => setModal(featured)}
+          />
+        )}
 
         <div className="flex flex-wrap gap-3 justify-end">
           {categories.map((c) => {
@@ -54,7 +74,8 @@ const TemplateGrid = ({ settings = defaultMenuSettings }: { settings?: MenuSetti
             <button
               key={p.id}
               onClick={() => setModal(p)}
-              className="group bg-[#ededed] rounded-[2rem] p-3 text-right hover:shadow-lg transition-all duration-300"
+              className="group rounded-[2rem] p-3 text-right hover:shadow-lg transition-all duration-300"
+              style={{ background: cardBg }}
             >
               {/* Image area */}
               <div className="aspect-square bg-white rounded-[1.5rem] overflow-hidden mb-3 flex items-center justify-center">
@@ -80,13 +101,13 @@ const TemplateGrid = ({ settings = defaultMenuSettings }: { settings?: MenuSetti
                   <div className="flex items-center gap-1.5">
                     <RiyalIcon className="w-4 h-4" />
                     <span className="font-bold text-base">
-                      {toArabicNum(p.price)}
+                      {p.price}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Flame className="w-4 h-4" />
                     <span className="font-bold text-base">
-                      {toArabicNum(p.calories)}
+                      {p.calories}
                     </span>
                   </div>
                 </div>
@@ -106,6 +127,35 @@ const TemplateGrid = ({ settings = defaultMenuSettings }: { settings?: MenuSetti
   );
 };
 
+/* ---------- Featured product header ---------- */
+const FeaturedHeader = ({
+  title, subtitle, image, name, price, accent, text, onClick,
+}: {
+  title: string; subtitle?: string; image?: string; name: string; price: number;
+  accent: string; text: string; onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className="w-full mb-6 rounded-[1.75rem] p-4 md:p-5 flex items-center gap-5 text-right shadow-soft transition-transform hover:scale-[1.01]"
+    style={{ background: `linear-gradient(120deg, ${accent}33, ${accent}10)`, border: `1px solid ${accent}55`, color: text }}
+  >
+    <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-white overflow-hidden shrink-0 flex items-center justify-center">
+      {image && <img src={image} alt={name} className="w-full h-full object-cover" />}
+    </div>
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-1.5 text-[11px] font-bold opacity-80 mb-1" style={{ color: accent }}>
+        <Sparkles className="w-3.5 h-3.5" />
+        <span>{title}</span>
+      </div>
+      <h2 className="font-display font-black text-xl md:text-2xl mb-1 truncate">{name}</h2>
+      {subtitle && <p className="text-xs md:text-sm opacity-70 line-clamp-1">{subtitle}</p>}
+    </div>
+    <div className="hidden md:flex items-center gap-1.5 font-bold text-lg shrink-0">
+      <RiyalIcon className="w-4 h-4" /> {price}
+    </div>
+  </button>
+);
+
 /* ---------- Burn-info bar ---------- */
 const BurnInfoBar = ({ accent, textColor }: { accent: string; textColor: string }) => (
   <div
@@ -114,15 +164,12 @@ const BurnInfoBar = ({ accent, textColor }: { accent: string; textColor: string 
   >
     <img src={walkingBurn} alt="" className="w-4 h-4 object-contain" />
     <span className="font-bold">
-      تفاصيل حرق السعرات: المشي ٣٠ دقيقة يحرق ~١٥٠ سعرة • الجري ١٠ دقائق يحرق ~١٠٠ سعرة
+      تفاصيل حرق السعرات: المشي 30 دقيقة يحرق ~150 سعرة • الجري 10 دقائق يحرق ~100 سعرة
     </span>
   </div>
 );
 
 /* ---------- helpers ---------- */
-const toArabicNum = (n: number) =>
-  n.toString().replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[+d]);
-
 const RiyalIcon = ({ className }: { className?: string }) => (
   // Saudi riyal symbol (Unicode ﷼)
   <span className={`inline-flex items-center justify-center font-bold ${className}`}>
@@ -157,11 +204,11 @@ const DetailModal = ({ product, onClose }: { product: Product; onClose: () => vo
         <div className="flex items-center gap-6 text-[#1a1a1a]">
           <div className="flex items-center gap-2 font-bold text-xl">
             <RiyalIcon className="w-5 h-5" />
-            {toArabicNum(product.price)}
+            {product.price}
           </div>
           <div className="flex items-center gap-2 font-bold text-xl">
             <Flame className="w-5 h-5" />
-            {toArabicNum(product.calories)}
+            {product.calories}
           </div>
         </div>
 
