@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { crops, type Crop, type MenuSettings } from "@/lib/mockData";
+import { Sparkles } from "lucide-react";
 
 /**
  * Crops Template — Minimal.
  * قائمة جانبية + عرض نصّي مينمال للمحصول النشط، بدون رسومات.
  */
 const CropsTemplatePureShelf = ({ settings }: { settings: MenuSettings }) => {
-  const [active, setActive] = useState<Crop>(crops[0]);
+  const initial =
+    crops.find((c) => c.id === settings.featuredCropId) || crops[0];
+  const [active, setActive] = useState<Crop>(initial);
   const fg = active.textColor || settings.textColor;
   let bg: string = active.cardColor || settings.bgColor;
   const showImage = active.bgType === "image" && active.image;
@@ -28,17 +31,19 @@ const CropsTemplatePureShelf = ({ settings }: { settings: MenuSettings }) => {
         <div className="space-y-1">
           {crops.map((c) => {
             const isActive = c.id === active.id;
+            const isFeatured = c.id === settings.featuredCropId;
             return (
               <button
                 key={c.id}
                 onClick={() => setActive(c)}
-                className="w-full text-right px-4 py-3 rounded-xl font-bold transition-all text-sm"
+                className="w-full text-right px-4 py-3 rounded-xl font-bold transition-all text-sm flex items-center justify-between gap-2"
                 style={{
                   background: isActive ? settings.accentColor : "transparent",
                   color: isActive ? "#fff" : settings.textColor,
                 }}
               >
-                {c.beanName}
+                <span className="truncate">{c.beanName}</span>
+                {isFeatured && <Sparkles className="w-3.5 h-3.5 shrink-0" />}
               </button>
             );
           })}
@@ -54,7 +59,9 @@ const CropsTemplatePureShelf = ({ settings }: { settings: MenuSettings }) => {
           </>
         )}
         <div className="max-w-2xl relative">
-          <p className="text-sm uppercase tracking-[0.3em] opacity-60 mb-4">Specialty Coffee</p>
+          <p className="text-sm uppercase tracking-[0.3em] opacity-60 mb-4">
+            {active.id === settings.featuredCropId ? "★ Crop of the Month" : "Specialty Coffee"}
+          </p>
           <h1 className="font-display font-black leading-none mb-2"
               style={{ fontSize: "clamp(3rem, 7vw, 6rem)" }}>
             {active.beanName}
