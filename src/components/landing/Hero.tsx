@@ -72,7 +72,7 @@ const Hero = () => {
             {/* Floating badge */}
             <div className="absolute -bottom-6 -left-6 lg:-left-12 bg-card rounded-2xl shadow-warm border border-border p-4 flex items-center gap-3 backdrop-blur-sm">
               <div className="w-12 h-12 rounded-xl bg-gradient-gold flex items-center justify-center text-primary font-black text-lg">
-                ٤٥
+                45
               </div>
               <div>
                 <div className="font-bold text-primary flex items-center gap-1"><Riyal /> / شاشة</div>
