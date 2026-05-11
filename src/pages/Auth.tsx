@@ -29,7 +29,7 @@ const Auth = () => {
         <div className="relative">
           <div className="inline-flex items-center gap-2 rounded-full bg-accent/20 border border-accent/30 px-4 py-1.5 mb-6">
             <Sparkles className="w-4 h-4 text-accent" />
-            <span className="text-sm font-bold">تجربة مجانية ١٤ يوم</span>
+            <span className="text-sm font-bold">تجربة مجانية 14 يوم</span>
           </div>
           <h2 className="font-display font-black text-4xl xl:text-5xl leading-tight mb-4">
             ارتقِ بتجربة ضيوفك إلى <span className="text-gradient-gold">مستوى جديد</span>
@@ -74,7 +74,7 @@ const Auth = () => {
             {mode === "signup" ? "ابدأ تجربتك المجانية" : "أهلًا بعودتك"}
           </h1>
           <p className="text-muted-foreground mb-8">
-            {mode === "signup" ? "١٤ يوم بدون بطاقة ائتمان" : "سجّل الدخول للوصول إلى لوحة التحكم"}
+            {mode === "signup" ? "14 يوم بدون بطاقة ائتمان" : "سجّل الدخول للوصول إلى لوحة التحكم"}
           </p>
 
           <form onSubmit={onSubmit} className="space-y-5">

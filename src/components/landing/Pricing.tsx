@@ -40,7 +40,7 @@ const Pricing = () => {
                 </div>
                 <div className="text-left">
                   <div className="flex items-baseline gap-2">
-                    <span className="font-display font-black text-6xl text-gradient-gold">٤٥</span>
+                    <span className="font-display font-black text-6xl text-gradient-gold">45</span>
                     <span className="text-primary-foreground/80 text-lg inline-flex items-center"><Riyal /></span>
                   </div>
                   <div className="text-sm text-primary-foreground/60">شهريًا / للشاشة</div>
@@ -62,7 +62,7 @@ const Pricing = () => {
 
               <Link to="/auth">
                 <Button variant="hero" size="xl" className="w-full">
-                  ابدأ تجربتك المجانية ١٤ يوم
+                  ابدأ تجربتك المجانية 14 يوم
                 </Button>
               </Link>
               <p className="text-center text-sm text-primary-foreground/60 mt-4">

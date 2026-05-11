@@ -49,7 +49,7 @@ const DashboardLayout = ({ children, title, subtitle, action }: { children: Reac
         <div className="p-4 border-t border-border">
           <div className="bg-gradient-hero rounded-2xl p-4 text-primary-foreground mb-3">
             <div className="text-xs text-primary-foreground/70 mb-1">تنتهي التجربة خلال</div>
-            <div className="font-display font-black text-2xl mb-2">٢١ يوم</div>
+            <div className="font-display font-black text-2xl mb-2">21 يوم</div>
             <Button variant="hero" size="sm" className="w-full">رقّي الاشتراك</Button>
           </div>
           <button
