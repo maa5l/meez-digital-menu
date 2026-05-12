@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { LayoutGrid, Columns2, GalleryHorizontal, Minus, ExternalLink, Palette, Coffee, UtensilsCrossed, Sparkles, Upload, X, Star, ListChecks } from "lucide-react";
+import { GalleryHorizontal, Minus, ExternalLink, Palette, Coffee, UtensilsCrossed, Sparkles, Upload, X, Star, ListChecks } from "lucide-react";
 import { useMenuSettings } from "@/hooks/useMenuSettings";
 import { defaultMenuSettings, products, crops, type MenuSettings } from "@/lib/mockData";
 import { toast } from "sonner";

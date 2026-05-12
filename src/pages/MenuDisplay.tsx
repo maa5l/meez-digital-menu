@@ -93,8 +93,6 @@ const MenuDisplay = () => {
         )
       ) : settings.productTemplate === "detail" ? (
         <TemplateProductsDetail settings={settings} />
-      ) : settings.productTemplate === "grid" ? (
-        <TemplateProductsFeatured settings={settings} />
       ) : (
         <TemplateProductsFeatured settings={settings} />
       )}
