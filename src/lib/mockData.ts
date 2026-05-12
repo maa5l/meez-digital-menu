@@ -12,6 +12,8 @@ export type Product = {
   price: number;
   calories: number;
   image?: string;
+  /** مسببات الحساسية (مثلاً: حليب، مكسرات، جلوتين) */
+  allergens?: string;
   cropInfo?: CropInfo;
 };
 
@@ -49,6 +51,7 @@ export const products: Product[] = [
     description: "جرعة مركزة من البن العربي المختار، محمصة بعناية لاستخراج أعمق النكهات.",
     price: 12,
     calories: 5,
+    allergens: "حليب",
     image: "https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?w=600&q=80",
     cropInfo: {
       beanName: "سيدامو",
@@ -66,6 +69,7 @@ export const products: Product[] = [
     description: "إسبريسو غني مع رغوة حليب مخملية، يُقدّم بفن الباريستا الإيطالي.",
     price: 18,
     calories: 120,
+    allergens: "حليب",
     image: "https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=600&q=80",
     cropInfo: {
       beanName: "هوامبيلا",
@@ -83,6 +87,7 @@ export const products: Product[] = [
     description: "حليب مبخر ناعم مع لمسة من الفانيليا الطبيعية وقطرات من الإسبريسو.",
     price: 22,
     calories: 180,
+    allergens: "حليب، فانيليا",
     image: "https://images.unsplash.com/photo-1561882468-9110e03e0f78?w=600&q=80",
   },
   {
@@ -101,6 +106,7 @@ export const products: Product[] = [
     description: "تخمير V60 بنكهات فاكهية مشرقة وحموضة لطيفة، مثالية لمحبي البن المختص.",
     price: 26,
     calories: 5,
+    allergens: "—",
     image: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?w=600&q=80",
     cropInfo: {
       beanName: "يرقاتشيف",
@@ -136,6 +142,7 @@ export const products: Product[] = [
     description: "قاعدة بسكويت ذهبية، طبقة جبن كريمية، وصلصة توت طازجة.",
     price: 28,
     calories: 380,
+    allergens: "حليب، جلوتين، بيض",
     image: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=600&q=80",
   },
   {
@@ -145,6 +152,7 @@ export const products: Product[] = [
     description: "شعيرات الكنافة الذهبية محشوة بقشطة طازجة ومسقاة بقطر الورد.",
     price: 32,
     calories: 420,
+    allergens: "حليب، جلوتين، مكسرات",
     image: "https://images.unsplash.com/photo-1579954115545-a95591f28bfc?w=600&q=80",
   },
   {
@@ -154,6 +162,7 @@ export const products: Product[] = [
     description: "براوني داكن غني مع قطع شوكولاتة ذائبة وكرة آيس كريم فانيليا.",
     price: 26,
     calories: 450,
+    allergens: "جلوتين، بيض، شوكولاتة",
     image: "https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=600&q=80",
   },
   {
@@ -163,6 +172,7 @@ export const products: Product[] = [
     description: "كرواسون فرنسي طازج بطبقات ذهبية مقرمشة وداخل ناعم.",
     price: 14,
     calories: 230,
+    allergens: "جلوتين، حليب، زبدة",
     image: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=600&q=80",
   },
   {
@@ -172,6 +182,7 @@ export const products: Product[] = [
     description: "عجينة كرواسون محشوة بقطع الشوكولاتة البلجيكية الفاخرة.",
     price: 17,
     calories: 290,
+    allergens: "جلوتين، حليب، شوكولاتة",
     image: "https://images.unsplash.com/photo-1623334044303-241021148842?w=600&q=80",
   },
   {
@@ -181,6 +192,7 @@ export const products: Product[] = [
     description: "ثلاث طبقات من الخبز المحمص مع دجاج مشوي وخضار طازج.",
     price: 38,
     calories: 520,
+    allergens: "جلوتين، بيض",
     image: "https://images.unsplash.com/photo-1567234669003-dce7a7a88821?w=600&q=80",
   },
 ];
@@ -283,7 +295,7 @@ export const crops: Crop[] = [
  * Menu Settings — تخصيص يختاره صاحب الحساب من الإعدادات
  * يُحفظ في localStorage ويُقرأ من شاشات /menu
  * ============================================================ */
-export type ProductTemplate = "grid" | "split";
+export type ProductTemplate = "grid" | "split" | "featured" | "detail";
 export type CropsTemplate = "molo" | "pureshelf";
 
 export type MenuSettings = {
@@ -309,7 +321,7 @@ export type MenuSettings = {
 };
 
 export const defaultMenuSettings: MenuSettings = {
-  productTemplate: "grid",
+  productTemplate: "featured",
   cropsTemplate: "molo",
   bgColor: "#F1EFEC",
   textColor: "#030303",

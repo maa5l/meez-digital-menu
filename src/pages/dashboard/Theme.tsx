@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { LayoutGrid, Columns2, GalleryHorizontal, Minus, ExternalLink, Palette, Coffee, UtensilsCrossed, Sparkles, Upload, X } from "lucide-react";
+import { LayoutGrid, Columns2, GalleryHorizontal, Minus, ExternalLink, Palette, Coffee, UtensilsCrossed, Sparkles, Upload, X, Star, ListChecks } from "lucide-react";
 import { useMenuSettings } from "@/hooks/useMenuSettings";
 import { defaultMenuSettings, products, crops, type MenuSettings } from "@/lib/mockData";
 import { toast } from "sonner";
@@ -28,7 +28,11 @@ const Theme = () => {
     >
       {/* نظرة عامة سريعة */}
       <div className="grid sm:grid-cols-3 gap-4 mb-6">
-        <Stat icon={<UtensilsCrossed className="w-5 h-5" />} label="منيو المنتجات" value={settings.productTemplate === "grid" ? "بطاقات" : "تفاصيل"} />
+        <Stat icon={<UtensilsCrossed className="w-5 h-5" />} label="منيو المنتجات" value={
+          settings.productTemplate === "featured" ? "هيدر مميّز + بطاقات" :
+          settings.productTemplate === "detail" ? "هيدر مميّز + تفاصيل" :
+          settings.productTemplate === "grid" ? "بطاقات" : "بانر + تفاصيل"
+        } />
         <Stat icon={<Coffee className="w-5 h-5" />} label="منيو المحاصيل" value={settings.cropsTemplate === "molo" ? "بطاقات بالعرض" : "مينيمال"} />
         <Stat icon={<Palette className="w-5 h-5" />} label="اللون المميّز" value={settings.accentColor.toUpperCase()} swatch={settings.accentColor} />
       </div>
@@ -43,17 +47,31 @@ const Theme = () => {
         >
           <div className="grid grid-cols-2 gap-3">
             <TemplateCard
+              active={settings.productTemplate === "featured"}
+              icon={<Star className="w-7 h-7" />}
+              title="مميّز + بطاقات"
+              desc="هيدر منتج الشهر + شبكة بطاقات بصور كبيرة"
+              onClick={() => update({ ...settings, productTemplate: "featured" })}
+            />
+            <TemplateCard
+              active={settings.productTemplate === "detail"}
+              icon={<ListChecks className="w-7 h-7" />}
+              title="مميّز + تفاصيل"
+              desc="بطاقة منتج كبيرة + قائمة جانبية"
+              onClick={() => update({ ...settings, productTemplate: "detail" })}
+            />
+            <TemplateCard
               active={settings.productTemplate === "grid"}
               icon={<LayoutGrid className="w-7 h-7" />}
-              title="البطاقات"
-              desc="شبكة بطاقات نظيفة بصور كبيرة"
+              title="البطاقات الكلاسيكية"
+              desc="شبكة بطاقات نظيفة"
               onClick={() => update({ ...settings, productTemplate: "grid" })}
             />
             <TemplateCard
               active={settings.productTemplate === "split"}
               icon={<Columns2 className="w-7 h-7" />}
-              title="التفاصيل"
-              desc="بانر مشروب الموسم + قائمة وتفاصيل"
+              title="بانر + تفاصيل"
+              desc="بانر مشروب الموسم + قائمة"
               onClick={() => update({ ...settings, productTemplate: "split" })}
             />
           </div>
