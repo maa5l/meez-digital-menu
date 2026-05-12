@@ -321,7 +321,7 @@ export type MenuSettings = {
 };
 
 export const defaultMenuSettings: MenuSettings = {
-  productTemplate: "grid",
+  productTemplate: "featured",
   cropsTemplate: "molo",
   bgColor: "#F1EFEC",
   textColor: "#030303",
