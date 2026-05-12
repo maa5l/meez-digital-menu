@@ -12,6 +12,8 @@ export type Product = {
   price: number;
   calories: number;
   image?: string;
+  /** مسببات الحساسية (مثلاً: حليب، مكسرات، جلوتين) */
+  allergens?: string;
   cropInfo?: CropInfo;
 };
 
@@ -283,7 +285,7 @@ export const crops: Crop[] = [
  * Menu Settings — تخصيص يختاره صاحب الحساب من الإعدادات
  * يُحفظ في localStorage ويُقرأ من شاشات /menu
  * ============================================================ */
-export type ProductTemplate = "grid" | "split";
+export type ProductTemplate = "grid" | "split" | "featured" | "detail";
 export type CropsTemplate = "molo" | "pureshelf";
 
 export type MenuSettings = {
