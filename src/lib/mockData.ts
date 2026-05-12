@@ -295,8 +295,13 @@ export const crops: Crop[] = [
  * Menu Settings — تخصيص يختاره صاحب الحساب من الإعدادات
  * يُحفظ في localStorage ويُقرأ من شاشات /menu
  * ============================================================ */
-export type ProductTemplate = "grid" | "split" | "featured" | "detail";
+export type ProductTemplate = "featured" | "detail";
 export type CropsTemplate = "molo" | "pureshelf";
+
+const normalizeProductTemplate = (value: unknown): ProductTemplate => {
+  if (value === "detail" || value === "split") return "detail";
+  return "featured";
+};
 
 export type MenuSettings = {
   productTemplate: ProductTemplate;
@@ -339,12 +344,20 @@ export const loadMenuSettings = (): MenuSettings => {
     if (!raw) {
       // backward compat: قراءة قيمة قديمة
       const oldTpl = localStorage.getItem("qaemah-template");
-      if (oldTpl === "grid" || oldTpl === "split") {
-        return { ...defaultMenuSettings, productTemplate: oldTpl };
+      if (oldTpl) {
+        return {
+          ...defaultMenuSettings,
+          productTemplate: normalizeProductTemplate(oldTpl),
+        };
       }
       return defaultMenuSettings;
     }
-    return { ...defaultMenuSettings, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    return {
+      ...defaultMenuSettings,
+      ...parsed,
+      productTemplate: normalizeProductTemplate(parsed?.productTemplate),
+    };
   } catch {
     return defaultMenuSettings;
   }
