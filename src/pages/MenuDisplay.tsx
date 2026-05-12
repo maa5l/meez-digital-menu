@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import TemplateGrid from "@/components/menu/TemplateGrid";
-import TemplateSplit from "@/components/menu/TemplateSplit";
 import TemplateProductsFeatured from "@/components/menu/TemplateProductsFeatured";
 import TemplateProductsDetail from "@/components/menu/TemplateProductsDetail";
 import CropsTemplateMolo from "@/components/menu/CropsTemplateMolo";
@@ -93,14 +91,12 @@ const MenuDisplay = () => {
         ) : (
           <CropsTemplatePureShelf settings={settings} />
         )
-      ) : settings.productTemplate === "featured" ? (
-        <TemplateProductsFeatured settings={settings} />
       ) : settings.productTemplate === "detail" ? (
         <TemplateProductsDetail settings={settings} />
       ) : settings.productTemplate === "grid" ? (
-        <TemplateGrid settings={settings} />
+        <TemplateProductsFeatured settings={settings} />
       ) : (
-        <TemplateSplit settings={settings} />
+        <TemplateProductsFeatured settings={settings} />
       )}
     </div>
   );
