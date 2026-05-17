@@ -2,23 +2,54 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { GalleryHorizontal, Minus, ExternalLink, Palette, Coffee, UtensilsCrossed, Sparkles, Upload, X, Star, ListChecks } from "lucide-react";
+import { GalleryHorizontal, Minus, ExternalLink, Palette, Coffee, UtensilsCrossed, Sparkles, Upload, X, Star, ListChecks, LayoutTemplate } from "lucide-react";
+import type { ChangeEvent, ReactNode } from "react";
 import { useMenuSettings } from "@/hooks/useMenuSettings";
-import { defaultMenuSettings, products, crops, type MenuSettings } from "@/lib/mockData";
+import { defaultMenuSettings, type MenuSettings } from "@/lib/mockData";
+import { useVenueData } from "@/hooks/useVenueData";
 import { toast } from "sonner";
+import { processHeaderImageFile } from "@/lib/header-image";
 
 const Theme = () => {
+  const [venue] = useVenueData();
   const [settings, update] = useMenuSettings();
+  const { products, crops } = venue;
   const reset = () => { update(defaultMenuSettings); toast.success("تمت إعادة الثيم للوضع الافتراضي"); };
 
-  const onUploadImage = (key: "bgImage" | "featuredImage") => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => update({ ...settings, [key]: reader.result as string });
-    reader.readAsDataURL(file);
-  };
+  const onUploadImage = (key: "bgImage" | "featuredImage" | "logoImage" | "headerImage") =>
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      try {
+        if (key === "headerImage") {
+          const loading = toast.loading("جاري معالجة الصورة…");
+          try {
+            const dataUrl = await processHeaderImageFile(file);
+            update({ ...settings, headerImage: dataUrl });
+            toast.success("تم رفع صورة الهيدر", { id: loading });
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : "تعذّر رفع الصورة", { id: loading });
+            e.target.value = "";
+            return;
+          }
+          e.target.value = "";
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          update({ ...settings, [key]: result });
+          toast.success("تم رفع الصورة");
+        };
+        reader.onerror = () => toast.error("تعذّر قراءة الملف");
+        reader.readAsDataURL(file);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "تعذّر رفع الصورة");
+        e.target.value = "";
+      }
+    };
 
   return (
     <DashboardLayout
@@ -61,20 +92,18 @@ const Theme = () => {
             />
           </div>
 
-          {/* منتج الشهر */}
+          <HeaderCustomizeBlock
+            settings={settings}
+            update={update}
+            onLogoUpload={onUploadImage("logoImage")}
+            onHeaderImageUpload={onUploadImage("headerImage")}
+          />
+
           <FeaturedBlock
-            title="منتج الشهر"
-            label="اختر المنتج المميّز"
+            label="منتج مميّز في المنيو (اختياري)"
             options={products.map((p) => ({ value: p.id, label: p.name }))}
             value={settings.featuredProductId || ""}
             onChange={(v) => update({ ...settings, featuredProductId: v || undefined })}
-            customTitle={settings.featuredTitle}
-            customSubtitle={settings.featuredSubtitle}
-            customImage={settings.featuredImage}
-            onTitleChange={(v) => update({ ...settings, featuredTitle: v || undefined })}
-            onSubtitleChange={(v) => update({ ...settings, featuredSubtitle: v || undefined })}
-            onImageChange={onUploadImage("featuredImage")}
-            onImageClear={() => update({ ...settings, featuredImage: undefined })}
           />
 
           <Palette3
@@ -82,13 +111,6 @@ const Theme = () => {
             onChange={(k, v) => update({ ...settings, [k]: v })}
           />
           <CardAndBg settings={settings} update={update} onBgUpload={onUploadImage("bgImage")} />
-          <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/60">
-            <div>
-              <div className="font-bold text-primary text-sm">شريط حرق السعرات</div>
-              <div className="text-xs text-muted-foreground">يظهر أعلى المنيو</div>
-            </div>
-            <Switch checked={settings.showBurnBar} onCheckedChange={(v) => update({ ...settings, showBurnBar: v })} />
-          </div>
         </Section>
 
         {/* === منيو المحاصيل === */}
@@ -140,24 +162,139 @@ const Theme = () => {
   );
 };
 
-/* ---------- Featured product block ---------- */
-const FeaturedBlock = ({
-  title, label, options, value, onChange,
-  customTitle, customSubtitle, customImage,
-  onTitleChange, onSubtitleChange, onImageChange, onImageClear,
+/* ---------- تخصيص الهيدر (مبسّط) ---------- */
+const HeaderCustomizeBlock = ({
+  settings,
+  update,
+  onLogoUpload,
+  onHeaderImageUpload,
 }: {
-  title: string; label: string;
-  options: { value: string; label: string }[];
-  value: string; onChange: (v: string) => void;
-  customTitle?: string; customSubtitle?: string; customImage?: string;
-  onTitleChange: (v: string) => void;
-  onSubtitleChange: (v: string) => void;
-  onImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onImageClear: () => void;
+  settings: MenuSettings;
+  update: (s: MenuSettings) => void;
+  onLogoUpload: (e: ChangeEvent<HTMLInputElement>) => void;
+  onHeaderImageUpload: (e: ChangeEvent<HTMLInputElement>) => void;
 }) => (
   <div className="pt-4 border-t border-border space-y-3">
     <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
-      <Sparkles className="w-3.5 h-3.5 text-accent-foreground" /> {title}
+      <LayoutTemplate className="w-3.5 h-3.5 text-accent-foreground" /> الهيدر
+    </div>
+
+    <UploadRow
+      label="بانر الهيدر"
+      hint="JPG/PNG عريض — إن فيه نص جاهز اترك العنوان فارغاً"
+      preview={
+        settings.headerImage ? (
+          <img src={settings.headerImage} alt="" className="w-20 aspect-[6/1] rounded-lg object-contain border bg-muted" />
+        ) : undefined
+      }
+      onUpload={onHeaderImageUpload}
+      onClear={settings.headerImage ? () => update({ ...settings, headerImage: undefined }) : undefined}
+    />
+
+    <UploadRow
+      label="الشعار"
+      hint="اختياري"
+      preview={
+        settings.logoImage ? (
+          <img src={settings.logoImage} alt="" className="h-9 w-auto max-w-[72px] object-contain border rounded-lg p-0.5" />
+        ) : undefined
+      }
+      onUpload={onLogoUpload}
+      onClear={settings.logoImage ? () => update({ ...settings, logoImage: undefined }) : undefined}
+    />
+
+    <div>
+      <Label className="text-xs">عنوان الهيدر (اختياري)</Label>
+      <Input
+        value={settings.featuredTitle || ""}
+        onChange={(e) => update({ ...settings, featuredTitle: e.target.value || undefined })}
+        placeholder="مثال: مشروب الصيف"
+        className="mt-1 h-9 text-sm"
+        disabled={Boolean(settings.headerImage)}
+      />
+      {settings.headerImage && (
+        <p className="text-[10px] text-muted-foreground mt-1">معطّل — البانر يحتوي نصاً جاهزاً</p>
+      )}
+    </div>
+
+    <div className="flex flex-wrap gap-2">
+      <ToggleChip
+        label="زر اللغة"
+        checked={settings.showLanguageToggle !== false}
+        onChange={(v) => update({ ...settings, showLanguageToggle: v })}
+      />
+    </div>
+    <p className="text-[10px] text-muted-foreground leading-relaxed">
+      إفصاح حرق السعرات (رجال / نساء / أطفال) يظهر تلقائياً أعلى المنيو ولا يمكن إخفاؤه — وفق المتطلبات القانونية.
+    </p>
+  </div>
+);
+
+const UploadRow = ({
+  label,
+  hint,
+  preview,
+  onUpload,
+  onClear,
+}: {
+  label: string;
+  hint?: string;
+  preview?: ReactNode;
+  onUpload: (e: ChangeEvent<HTMLInputElement>) => void;
+  onClear?: () => void;
+}) => (
+  <div className="rounded-xl border border-border bg-secondary/30 p-3 space-y-2">
+    <div className="text-xs font-bold text-primary">{label}</div>
+    {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
+    <div className="flex items-center gap-2">
+      {preview ?? <span className="text-[10px] text-muted-foreground">—</span>}
+      <label className="flex-1 cursor-pointer flex items-center justify-center gap-1.5 text-xs font-bold bg-card hover:bg-card/80 rounded-lg py-2 border border-border">
+        <Upload className="w-3.5 h-3.5" /> رفع
+        <input type="file" accept="image/*" className="hidden" onChange={onUpload} />
+      </label>
+      {onClear && (
+        <button type="button" onClick={onClear} className="p-2 rounded-lg bg-destructive/10 text-destructive" aria-label="حذف">
+          <X className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  </div>
+);
+
+const ToggleChip = ({
+  label,
+  checked,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) => (
+  <button
+    type="button"
+    onClick={() => onChange(!checked)}
+    className={`px-3 py-2 rounded-full text-xs font-bold border transition-colors ${
+      checked ? "bg-accent text-accent-foreground border-accent" : "bg-card text-muted-foreground border-border"
+    }`}
+  >
+    {label}
+  </button>
+);
+
+const FeaturedBlock = ({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (v: string) => void;
+}) => (
+  <div className="pt-4 border-t border-border space-y-2">
+    <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+      <Sparkles className="w-3.5 h-3.5 text-accent-foreground" /> منتج مميّز
     </div>
     <div>
       <Label className="text-xs">{label}</Label>
@@ -167,38 +304,13 @@ const FeaturedBlock = ({
         className="mt-1 w-full bg-background border border-border rounded-xl px-3 py-2 text-sm"
       >
         <option value="">— لا يوجد —</option>
-        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
       </select>
     </div>
-    {value && (
-      <>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label className="text-xs">عنوان مخصّص (اختياري)</Label>
-            <Input value={customTitle || ""} onChange={(e) => onTitleChange(e.target.value)} placeholder="منتج الشهر" className="mt-1 h-9 text-sm" />
-          </div>
-          <div>
-            <Label className="text-xs">وصف مخصّص (اختياري)</Label>
-            <Input value={customSubtitle || ""} onChange={(e) => onSubtitleChange(e.target.value)} placeholder="مميّز هذا الشهر" className="mt-1 h-9 text-sm" />
-          </div>
-        </div>
-        <div>
-          <Label className="text-xs">صورة الهيدر (اختياري)</Label>
-          <div className="mt-1 flex items-center gap-2">
-            {customImage && <img src={customImage} alt="" className="w-12 h-12 rounded-lg object-cover border border-border" />}
-            <label className="flex-1 cursor-pointer flex items-center justify-center gap-2 text-xs font-bold bg-secondary hover:bg-secondary/80 rounded-xl py-2.5 transition-colors">
-              <Upload className="w-4 h-4" /> {customImage ? "تغيير الصورة" : "رفع صورة"}
-              <input type="file" accept="image/*" className="hidden" onChange={onImageChange} />
-            </label>
-            {customImage && (
-              <button onClick={onImageClear} className="p-2 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20" aria-label="حذف">
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-        </div>
-      </>
-    )}
   </div>
 );
 

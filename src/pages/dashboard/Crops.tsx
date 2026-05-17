@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { crops as initialCrops, type Crop } from "@/lib/mockData";
+import { useVenueData } from "@/hooks/useVenueData";
+import type { Crop } from "@/types/domain";
 import { Plus, Coffee, Trash2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,23 +17,27 @@ const empty: Omit<Crop, "id"> = {
 };
 
 const Crops = () => {
-  const [list, setList] = useState<Crop[]>(initialCrops);
+  const [venue, updateVenue] = useVenueData();
+  const list = venue.crops;
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(empty);
 
   const add = () => {
     if (!form.beanName.trim()) {
-      toast.error("اسم البن مطلوب");
+      toast.error("اسم المحصول مطلوب");
       return;
     }
-    setList([...list, { ...form, id: `cr-${Date.now()}` }]);
+    updateVenue((v) => ({
+      ...v,
+      crops: [...v.crops, { ...form, id: `cr-${Date.now()}` }],
+    }));
     setForm(empty);
     setOpen(false);
     toast.success("تمت إضافة المحصول");
   };
 
   const remove = (id: string) => {
-    setList(list.filter((c) => c.id !== id));
+    updateVenue((v) => ({ ...v, crops: v.crops.filter((c) => c.id !== id) }));
     toast.success("تم الحذف");
   };
 
@@ -59,8 +64,8 @@ const Crops = () => {
                 <DialogTitle className="font-display text-2xl">محصول جديد</DialogTitle>
               </DialogHeader>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="اسم البن (عربي)" value={form.beanName} onChange={(v) => setForm({ ...form, beanName: v })} />
-                <Field label="اسم البن (English)" value={form.beanNameEn} onChange={(v) => setForm({ ...form, beanNameEn: v })} />
+                <Field label="اسم المحصول (عربي)" value={form.beanName} onChange={(v) => setForm({ ...form, beanName: v })} />
+                <Field label="اسم المحصول (English)" value={form.beanNameEn} onChange={(v) => setForm({ ...form, beanNameEn: v })} />
                 <Field label="البلد (عربي)" value={form.country} onChange={(v) => setForm({ ...form, country: v })} />
                 <Field label="Country (English)" value={form.countryEn} onChange={(v) => setForm({ ...form, countryEn: v })} />
                 <Field label="نوع المعالجة" value={form.process} onChange={(v) => setForm({ ...form, process: v })} />

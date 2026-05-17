@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Tajawal", "system-ui", "sans-serif"],
-        body: ["Cairo", "Tajawal", "system-ui", "sans-serif"],
+        display: ["Huwiya", "system-ui", "sans-serif"],
+        body: ["Huwiya", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

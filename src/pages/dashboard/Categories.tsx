@@ -1,6 +1,6 @@
 import { useState } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import { categories as initial, products } from "@/lib/mockData";
+import { useVenueData } from "@/hooks/useVenueData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Pencil, Trash2 } from "lucide-react";
@@ -15,20 +15,29 @@ import {
 import { Label } from "@/components/ui/label";
 
 const Categories = () => {
-  const [list, setList] = useState(initial);
+  const [venue, updateVenue] = useVenueData();
+  const list = venue.categories;
+  const products = venue.products;
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("✨");
 
   const add = () => {
     if (!name.trim()) return;
-    setList([...list, { id: `c${Date.now()}`, name, icon }]);
+    updateVenue((v) => ({
+      ...v,
+      categories: [...v.categories, { id: `c${Date.now()}`, name, icon }],
+    }));
     setName("");
     setIcon("✨");
     setOpen(false);
   };
 
-  const remove = (id: string) => setList(list.filter((c) => c.id !== id));
+  const remove = (id: string) =>
+    updateVenue((v) => ({
+      ...v,
+      categories: v.categories.filter((c) => c.id !== id),
+    }));
 
   return (
     <DashboardLayout
@@ -63,6 +72,12 @@ const Categories = () => {
         </Dialog>
       }
     >
+      {list.length === 0 ? (
+        <div className="bg-card border border-dashed border-border rounded-2xl p-12 text-center">
+          <p className="font-display font-bold text-xl text-primary mb-2">لا توجد تصنيفات بعد</p>
+          <p className="text-sm text-muted-foreground">أنشئ أول تصنيف لبدء بناء منيوك.</p>
+        </div>
+      ) : (
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {list.map((c) => {
           const count = products.filter((p) => p.categoryId === c.id).length;
@@ -87,6 +102,7 @@ const Categories = () => {
           );
         })}
       </div>
+      )}
     </DashboardLayout>
   );
 };

@@ -1,17 +1,25 @@
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import { categories, products, devices, subscription } from "@/lib/mockData";
+import { useVenueData } from "@/hooks/useVenueData";
 import { FolderTree, UtensilsCrossed, MonitorSmartphone, TrendingUp, ArrowUpRight } from "lucide-react";
 import { Riyal } from "@/components/Brand";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
-const stats = [
-  { label: "التصنيفات", value: categories.length, icon: FolderTree, color: "bg-blue-500/10 text-blue-600" },
-  { label: "المنتجات", value: products.length, icon: UtensilsCrossed, color: "bg-accent/15 text-accent" },
-  { label: "الشاشات النشطة", value: devices.filter(d => d.status === "active").length, icon: MonitorSmartphone, color: "bg-green-500/10 text-green-600" },
-];
-
 const Overview = () => {
+  const [venue] = useVenueData();
+  const { categories, products, devices, subscription } = venue;
+
+  const stats = [
+    { label: "التصنيفات", value: categories.length, icon: FolderTree, color: "bg-blue-500/10 text-blue-600" },
+    { label: "المنتجات", value: products.length, icon: UtensilsCrossed, color: "bg-accent/15 text-accent" },
+    {
+      label: "الشاشات النشطة",
+      value: devices.filter((d) => d.status === "active").length,
+      icon: MonitorSmartphone,
+      color: "bg-green-500/10 text-green-600",
+    },
+  ];
+
   return (
     <DashboardLayout title="نظرة عامة" subtitle="مرحبًا بك مجددًا — إليك ما يجري في منشأتك">
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
@@ -27,7 +35,6 @@ const Overview = () => {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Subscription card */}
         <div className="lg:col-span-2 bg-gradient-hero rounded-3xl p-8 text-primary-foreground relative overflow-hidden">
           <div className="absolute -top-20 -left-20 w-64 h-64 rounded-full bg-accent/20 blur-3xl" />
           <div className="relative">
@@ -44,14 +51,18 @@ const Overview = () => {
             <div className="grid grid-cols-3 gap-4 mb-6">
               <div>
                 <div className="text-primary-foreground/60 text-xs mb-1">الشاشات</div>
-                <div className="font-display font-black text-xl">{subscription.screens} / {subscription.maxScreens}</div>
+                <div className="font-display font-black text-xl">
+                  {devices.length} / {subscription.maxScreens}
+                </div>
               </div>
               <div>
                 <div className="text-primary-foreground/60 text-xs mb-1">السعر / شاشة</div>
-                <div className="font-display font-black text-xl">{subscription.pricePerScreen} <Riyal /></div>
+                <div className="font-display font-black text-xl">
+                  {subscription.pricePerScreen} <Riyal />
+                </div>
               </div>
               <div>
-                <div className="text-primary-foreground/60 text-xs mb-1">التجديد</div>
+                <div className="text-primary-foreground/60 text-xs mb-1">التجربة</div>
                 <div className="font-display font-black text-xl">{subscription.daysLeft} يوم</div>
               </div>
             </div>
@@ -65,7 +76,6 @@ const Overview = () => {
           </div>
         </div>
 
-        {/* Quick actions */}
         <div className="bg-card rounded-3xl p-6 border border-border">
           <h3 className="font-display font-bold text-lg text-primary mb-4 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-accent" />
@@ -81,7 +91,7 @@ const Overview = () => {
             <Link to="/dashboard/devices" className="block p-3 rounded-xl hover:bg-secondary transition-colors font-semibold text-primary">
               + ولّد رمز جهاز
             </Link>
-            <Link to="/menu" className="block p-3 rounded-xl hover:bg-secondary transition-colors font-semibold text-accent">
+            <Link to="/menu?preview=1" className="block p-3 rounded-xl hover:bg-secondary transition-colors font-semibold text-accent">
               ↗ عاين المنيو
             </Link>
           </div>

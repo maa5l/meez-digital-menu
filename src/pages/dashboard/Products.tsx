@@ -1,6 +1,7 @@
 import { useState } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import { categories, products as initial, type Product } from "@/lib/mockData";
+import { useVenueData } from "@/hooks/useVenueData";
+import type { Product } from "@/types/domain";
 import { Riyal } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,8 +16,12 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Plus, Search, Pencil, Trash2, ImageIcon, Sprout } from "lucide-react";
+import AllergenSelector from "@/components/dashboard/AllergenSelector";
+import { formatAllergensString } from "@/constants/allergens";
 const Products = () => {
-  const [list, setList] = useState(initial);
+  const [venue, updateVenue] = useVenueData();
+  const list = venue.products;
+  const categories = venue.categories;
   const [filter, setFilter] = useState<string>("all");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -24,12 +29,13 @@ const Products = () => {
   // form state
   const [name, setName] = useState("");
   const [nameEn, setNameEn] = useState("");
-  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "");
+  const [categoryId, setCategoryId] = useState("");
   const [description, setDescription] = useState("");
   const [descriptionEn, setDescriptionEn] = useState("");
   const [price, setPrice] = useState("");
   const [calories, setCalories] = useState("");
   const [image, setImage] = useState("");
+  const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
   const [hasCrop, setHasCrop] = useState(false);
   const [crop, setCrop] = useState({
     beanName: "",
@@ -43,23 +49,26 @@ const Products = () => {
   const reset = () => {
     setName(""); setNameEn(""); setDescription(""); setDescriptionEn("");
     setPrice(""); setCalories(""); setImage("");
+    setSelectedAllergens([]);
     setHasCrop(false);
     setCrop({ beanName: "", country: "", process: "", variety: "", altitude: "", notes: "" });
   };
 
   const add = () => {
     if (!name.trim()) return;
+    if (categories.length === 0) return;
     const newP: Product = {
       id: `p${Date.now()}`,
-      categoryId,
+      categoryId: categoryId || categories[0]?.id || "",
       name,
       description,
       price: Number(price) || 0,
       calories: Number(calories) || 0,
       image: image || undefined,
+      allergens: formatAllergensString(selectedAllergens),
       cropInfo: hasCrop ? { ...crop } : undefined,
     };
-    setList([newP, ...list]);
+    updateVenue((v) => ({ ...v, products: [newP, ...v.products] }));
     reset();
     setOpen(false);
   };
@@ -70,7 +79,8 @@ const Products = () => {
     return matchCat && matchQ;
   });
 
-  const remove = (id: string) => setList(list.filter((p) => p.id !== id));
+  const remove = (id: string) =>
+    updateVenue((v) => ({ ...v, products: v.products.filter((p) => p.id !== id) }));
 
   return (
     <DashboardLayout
@@ -131,6 +141,14 @@ const Products = () => {
                 {image && <img src={image} alt="" className="h-20 rounded-lg object-cover" />}
               </div>
 
+              <div className="col-span-2 border border-border rounded-2xl p-4 bg-secondary/40 space-y-3">
+                <div>
+                  <Label className="text-xs font-bold text-primary">Allergens</Label>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">مسببات الحساسية — اختيار متعدد</p>
+                </div>
+                <AllergenSelector value={selectedAllergens} onChange={setSelectedAllergens} />
+              </div>
+
               <div className="col-span-2 border border-border rounded-2xl p-4 bg-secondary/40">
                 <label className="flex items-center gap-2 cursor-pointer mb-3">
                   <input
@@ -145,7 +163,7 @@ const Products = () => {
                 {hasCrop && (
                   <div className="grid grid-cols-2 gap-3">
                     {([
-                      ["beanName", "اسم البن"],
+                      ["beanName", "اسم المحصول"],
                       ["country", "البلد"],
                       ["process", "المعالجة"],
                       ["variety", "السلالة"],
@@ -199,6 +217,17 @@ const Products = () => {
         </div>
       </div>
 
+      {categories.length === 0 ? (
+        <div className="bg-card border border-dashed border-border rounded-2xl p-12 text-center">
+          <p className="font-display font-bold text-xl text-primary mb-2">أضف تصنيفًا أولاً</p>
+          <p className="text-sm text-muted-foreground">لا يمكن إضافة منتجات قبل إنشاء تصنيف واحد على الأقل.</p>
+        </div>
+      ) : list.length === 0 ? (
+        <div className="bg-card border border-dashed border-border rounded-2xl p-12 text-center">
+          <p className="font-display font-bold text-xl text-primary mb-2">لا توجد منتجات بعد</p>
+          <p className="text-sm text-muted-foreground">ابدأ بإضافة أول منتج إلى منيوك.</p>
+        </div>
+      ) : (
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filtered.map((p) => {
           const cat = categories.find((c) => c.id === p.categoryId);
@@ -250,6 +279,7 @@ const Products = () => {
           );
         })}
       </div>
+      )}
     </DashboardLayout>
   );
 };

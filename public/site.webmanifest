@@ -1,0 +1,25 @@
+{
+  "name": "قائمة — منيو رقمي",
+  "short_name": "قائمة",
+  "description": "منصة المنيو الرقمي التفاعلي للمطاعم والمقاهي",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F6F2EA",
+  "theme_color": "#7B4A32",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

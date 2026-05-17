@@ -1,17 +1,14 @@
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import { subscription } from "@/lib/mockData";
+import { useVenueData } from "@/hooks/useVenueData";
 import { Button } from "@/components/ui/button";
 import { Check, CreditCard, Calendar, Receipt } from "lucide-react";
 import { Riyal } from "@/components/Brand";
 
-const invoices = [
-  { id: "INV-001", date: "15 أبريل 2026", amount: 135, status: "مدفوعة" },
-  { id: "INV-002", date: "15 مارس 2026", amount: 90, status: "مدفوعة" },
-  { id: "INV-003", date: "15 فبراير 2026", amount: 90, status: "مدفوعة" },
-];
-
 const Subscription = () => {
+  const [venue] = useVenueData();
+  const subscription = venue.subscription;
   const total = subscription.screens * subscription.pricePerScreen;
+  const invoices: { id: string; date: string; amount: number; status: string }[] = [];
 
   return (
     <DashboardLayout title="الاشتراك" subtitle="إدارة باقتك وفواتيرك">
@@ -66,7 +63,9 @@ const Subscription = () => {
           <h3 className="font-display font-bold text-lg text-primary">الفواتير السابقة</h3>
         </div>
         <div className="divide-y divide-border">
-          {invoices.map((inv) => (
+          {invoices.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">لا توجد فواتير بعد — أنت في فترة التجربة المجانية.</div>
+          ) : invoices.map((inv) => (
             <div key={inv.id} className="p-4 px-6 flex items-center justify-between hover:bg-secondary/40 transition-colors">
               <div>
                 <div className="font-display font-bold text-primary">{inv.id}</div>

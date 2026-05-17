@@ -1,15 +1,18 @@
 import { useState } from "react";
-import { crops, type Crop, type MenuSettings } from "@/lib/mockData";
+import type { Crop, MenuSettings } from "@/types/domain";
 import { Sparkles, Languages } from "lucide-react";
 import { Logo } from "@/components/Brand";
+import CropDetailModal from "@/components/menu/CropDetailModal";
+import MenuCalorieDisclaimer from "@/components/menu/MenuCalorieDisclaimer";
 
 /**
  * Crops Template — "Featured Detail + Side List".
  * هيدر علوي + بطاقة كبيرة للمحصول النشط على جانب، وقائمة بطاقات صغيرة على الجانب الآخر.
  */
-const CropsTemplatePureShelf = ({ settings }: { settings: MenuSettings }) => {
+const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; crops: Crop[] }) => {
   const [lang, setLang] = useState<"ar" | "en">("ar");
-  const initial = crops.find((c) => c.id === settings.featuredCropId) || crops[0];
+  const [modal, setModal] = useState<Crop | null>(null);
+  const initial = crops.find((c) => c.id === settings.featuredCropId) || crops[0]!;
   const [active, setActive] = useState<Crop>(initial);
 
   const fg = active.textColor || settings.textColor;
@@ -34,11 +37,12 @@ const CropsTemplatePureShelf = ({ settings }: { settings: MenuSettings }) => {
 
   return (
     <div className="h-full flex flex-col" dir={lang === "ar" ? "rtl" : "ltr"} style={pageBg}>
-      {/* Header */}
       <header
-        className="shrink-0 px-8 md:px-12 py-6 flex items-center justify-between gap-4"
-        style={{ background: `${settings.textColor}10` }}
+        className="shrink-0 flex flex-col border-b border-black/5"
+        style={{ background: `${settings.textColor}10`, color: settings.textColor }}
       >
+        <MenuCalorieDisclaimer lang={lang} textColor={settings.textColor} />
+        <div className="px-8 md:px-12 py-6 flex items-center justify-between gap-4">
         <button
           onClick={() => setLang(lang === "ar" ? "en" : "ar")}
           className="flex items-center gap-1.5 text-sm font-bold opacity-80 hover:opacity-100"
@@ -50,13 +54,23 @@ const CropsTemplatePureShelf = ({ settings }: { settings: MenuSettings }) => {
           {headerTitle}
         </h1>
         <Logo className="h-9 md:h-11 w-auto aspect-[1031/736]" />
+        </div>
       </header>
 
       {/* Body */}
       <div className="flex-1 grid grid-cols-1 md:grid-cols-[1fr_280px] gap-5 p-6 md:p-8 overflow-hidden">
         {/* Featured big card */}
         <article
-          className="relative rounded-[2rem] p-8 md:p-12 overflow-hidden flex flex-col"
+          role="button"
+          tabIndex={0}
+          onClick={() => setModal(active)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setModal(active);
+            }
+          }}
+          className="relative rounded-[2rem] p-8 md:p-12 overflow-hidden flex flex-col cursor-pointer transition-transform hover:scale-[1.005] active:scale-[0.995]"
           style={{ background: bg, color: fg }}
         >
           {showImage && (
@@ -73,6 +87,12 @@ const CropsTemplatePureShelf = ({ settings }: { settings: MenuSettings }) => {
           </div>
 
           <div className="relative flex-1 grid grid-cols-2 gap-x-12 gap-y-8 content-center mt-8 max-w-3xl mx-auto w-full">
+            <BigField
+              labelAr="اسم المحصول"
+              labelEn="Crop name"
+              valueAr={active.beanName}
+              valueEn={active.beanNameEn || active.beanName}
+            />
             <BigField labelAr="البلد" labelEn="Country" valueAr={active.country} valueEn={active.countryEn} />
             <BigField labelAr="المعالجة" labelEn="Process" valueAr={active.process} valueEn={active.processEn} />
             <BigField labelAr="السلالة" labelEn="Variety" valueAr={active.variety} valueEn={active.variety} />
@@ -93,8 +113,12 @@ const CropsTemplatePureShelf = ({ settings }: { settings: MenuSettings }) => {
             return (
               <button
                 key={c.id}
-                onClick={() => setActive(c)}
-                className="text-right rounded-2xl px-5 py-4 transition-all relative"
+                type="button"
+                onClick={() => {
+                  setActive(c);
+                  setModal(c);
+                }}
+                className="text-right rounded-2xl px-5 py-4 transition-all relative w-full"
                 style={{
                   background: isActive ? settings.accentColor : `${settings.textColor}15`,
                   color: isActive ? "#fff" : settings.textColor,
@@ -112,6 +136,16 @@ const CropsTemplatePureShelf = ({ settings }: { settings: MenuSettings }) => {
           })}
         </aside>
       </div>
+
+      {modal && (
+        <CropDetailModal
+          crop={modal}
+          lang={lang}
+          accent={settings.accentColor}
+          featured={modal.id === settings.featuredCropId}
+          onClose={() => setModal(null)}
+        />
+      )}
     </div>
   );
 };

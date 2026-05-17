@@ -1,6 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
-import { devices as initial, subscription } from "@/lib/mockData";
+import { useVenueData } from "@/hooks/useVenueData";
+import {
+  getCurrentUserId,
+  inferDeviceMenuType,
+  linkDeviceToOwner,
+  refreshDeviceVenueSync,
+  setDeviceMenuType,
+  syncDeviceLinks,
+} from "@/lib/venue-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,13 +22,31 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { activateDevice } from "@/services/device/activation";
+import { deviceActivationCodeSchema } from "@/validations/device.schema";
+import { getErrorMessage } from "@/lib/errors";
 
 const Devices = () => {
-  const [list, setList] = useState(initial);
+  const [venue, updateVenue] = useVenueData();
+  const list = venue.devices;
+  const subscription = venue.subscription;
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [menuType, setMenuType] = useState<"products" | "crops">("products");
   const [activationCode, setActivationCode] = useState("");
+
+  useEffect(() => {
+    const ownerId = getCurrentUserId();
+    if (!ownerId || list.length === 0) return;
+    syncDeviceLinks(
+      list.map((d) => d.code),
+      ownerId,
+    );
+    for (const d of list) {
+      setDeviceMenuType(d.code, inferDeviceMenuType(d));
+      refreshDeviceVenueSync(d.code, ownerId);
+    }
+  }, [list]);
 
   const add = () => {
     if (!name.trim()) {
@@ -35,20 +61,39 @@ const Devices = () => {
       toast.error("وصلت للحد الأقصى. رقّ اشتراكك لإضافة شاشات أخرى.");
       return;
     }
-    setList([
-      ...list,
-      {
-        id: `d${Date.now()}`,
-        name: `${name} · ${menuType === "crops" ? "محاصيل" : "منتجات"}`,
-        code: activationCode.toUpperCase(),
-        lastActive: "تم التفعيل الآن",
-        status: "active",
-      },
-    ]);
-    // Activate the matching menu screen
+    const parsed = deviceActivationCodeSchema.safeParse({ code: activationCode });
+    if (!parsed.success) {
+      toast.error(parsed.error.errors[0]?.message ?? "رمز غير صالح");
+      return;
+    }
+
     try {
-      localStorage.setItem(`qaemah-activated-${activationCode.toUpperCase()}`, "1");
-    } catch {}
+      activateDevice(parsed.data.code, { menuType });
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+      return;
+    }
+
+    const ownerId = getCurrentUserId();
+    if (ownerId) {
+      linkDeviceToOwner(parsed.data.code, ownerId);
+      setDeviceMenuType(parsed.data.code, menuType);
+    }
+
+    const newDevice = {
+      id: `d${Date.now()}`,
+      name: `${name} · ${menuType === "crops" ? "محاصيل" : "منتجات"}`,
+      code: parsed.data.code,
+      menuType,
+      lastActive: "تم التفعيل الآن",
+      status: "active" as const,
+    };
+
+    updateVenue((v) => ({
+      ...v,
+      devices: [...v.devices, newDevice],
+      subscription: { ...v.subscription, screens: v.devices.length + 1 },
+    }));
     setName("");
     setActivationCode("");
     setMenuType("products");
@@ -56,7 +101,12 @@ const Devices = () => {
     setOpen(false);
   };
 
-  const remove = (id: string) => setList(list.filter((d) => d.id !== id));
+  const remove = (id: string) =>
+    updateVenue((v) => ({
+      ...v,
+      devices: v.devices.filter((d) => d.id !== id),
+      subscription: { ...v.subscription, screens: Math.max(0, v.devices.length - 1) },
+    }));
   const copy = (code: string) => {
     navigator.clipboard.writeText(code);
     toast.success("تم نسخ الرمز");

@@ -4,53 +4,43 @@ import TemplateProductsFeatured from "@/components/menu/TemplateProductsFeatured
 import TemplateProductsDetail from "@/components/menu/TemplateProductsDetail";
 import CropsTemplateMolo from "@/components/menu/CropsTemplateMolo";
 import CropsTemplatePureShelf from "@/components/menu/CropsTemplatePureShelf";
-import { useMenuSettings } from "@/hooks/useMenuSettings";
+import MenuEmptyState from "@/components/menu/MenuEmptyState";
+import { useMenuVenue } from "@/hooks/useMenuVenue";
+import { getDeviceMenuType } from "@/lib/venue-store";
+import {
+  getOrCreatePendingDeviceCode,
+  isDeviceActivated,
+} from "@/services/device/activation";
 import { UtensilsCrossed } from "lucide-react";
 
-const genCode = () => {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return "QM-" + Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-};
-
-const PENDING_KEY = "qaemah-pending-code";
-const ACT_PREFIX = "qaemah-activated-";
-
 /**
- * MenuDisplay — شاشة الكاشير/الجهاز.
- * بلا أي عناصر تحكم. تعرض المنيو فقط حسب إعدادات صاحب الحساب.
- * يدعم نوعين عبر query string:
- *   /menu              → منيو المنتجات
- *   /menu?type=crops   → منيو محاصيل البن
+ * شاشة عرض المنيو على الجهاز — بلا عناصر تحكم.
  */
 const MenuDisplay = () => {
   const [params] = useSearchParams();
-  const [settings] = useMenuSettings();
-  const type = params.get("type") === "crops" ? "crops" : "products";
+  const typeParam = params.get("type");
   const tplOverride = params.get("tpl");
+  const isPreview = params.get("preview") === "1" || !!tplOverride;
+  const [code] = useState(() => getOrCreatePendingDeviceCode());
+  const deviceMenuType = getDeviceMenuType(code);
+  const type =
+    typeParam === "crops" || typeParam === "products"
+      ? typeParam
+      : deviceMenuType ?? "products";
+  const [activated, setActivated] = useState(() => isDeviceActivated(code));
+
+  const venueReady = isPreview || activated;
+  const venue = useMenuVenue(venueReady ? code : null, isPreview, venueReady);
+  const settings = venue.menuSettings;
   const cropsTpl =
     tplOverride === "pureshelf" || tplOverride === "molo"
       ? tplOverride
       : settings.cropsTemplate;
 
-  // Activation flow — معاينة المالك تتجاوز الكود
-  const isPreview = params.get("preview") === "1" || !!tplOverride;
-  const [code] = useState<string>(() => {
-    if (typeof window === "undefined") return "";
-    const existing = localStorage.getItem(PENDING_KEY);
-    if (existing) return existing;
-    const c = genCode();
-    localStorage.setItem(PENDING_KEY, c);
-    return c;
-  });
-  const [activated, setActivated] = useState<boolean>(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem(ACT_PREFIX + code) === "1";
-  });
-
   useEffect(() => {
     if (isPreview || activated) return;
     const check = () => {
-      if (localStorage.getItem(ACT_PREFIX + code) === "1") setActivated(true);
+      if (isDeviceActivated(code)) setActivated(true);
     };
     const t = setInterval(check, 1500);
     window.addEventListener("storage", check);
@@ -79,6 +69,9 @@ const MenuDisplay = () => {
     );
   }
 
+  const productsEmpty = venue.products.length === 0;
+  const cropsEmpty = venue.crops.length === 0;
+
   return (
     <div
       className="h-screen overflow-hidden flex flex-col"
@@ -86,15 +79,27 @@ const MenuDisplay = () => {
       style={{ background: settings.bgColor, color: settings.textColor }}
     >
       {type === "crops" ? (
-        cropsTpl === "molo" ? (
-          <CropsTemplateMolo settings={settings} />
+        cropsEmpty ? (
+          <MenuEmptyState settings={settings} type="crops" />
+        ) : cropsTpl === "molo" ? (
+          <CropsTemplateMolo settings={settings} crops={venue.crops} />
         ) : (
-          <CropsTemplatePureShelf settings={settings} />
+          <CropsTemplatePureShelf settings={settings} crops={venue.crops} />
         )
+      ) : productsEmpty ? (
+        <MenuEmptyState settings={settings} type="products" />
       ) : settings.productTemplate === "detail" ? (
-        <TemplateProductsDetail settings={settings} />
+        <TemplateProductsDetail
+          settings={settings}
+          categories={venue.categories}
+          products={venue.products}
+        />
       ) : (
-        <TemplateProductsFeatured settings={settings} />
+        <TemplateProductsFeatured
+          settings={settings}
+          categories={venue.categories}
+          products={venue.products}
+        />
       )}
     </div>
   );

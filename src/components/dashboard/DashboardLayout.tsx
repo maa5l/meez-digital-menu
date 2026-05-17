@@ -3,6 +3,8 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { LayoutDashboard, FolderTree, UtensilsCrossed, MonitorSmartphone, CreditCard, LogOut, Settings, Coffee, Palette } from "lucide-react";
 import { Logo } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
+import { signOut } from "@/services/auth/auth.service";
+import { ROUTES } from "@/config/app";
 
 const navItems = [
   { to: "/dashboard", label: "نظرة عامة", icon: LayoutDashboard, end: true },
@@ -53,7 +55,10 @@ const DashboardLayout = ({ children, title, subtitle, action }: { children: Reac
             <Button variant="hero" size="sm" className="w-full">رقّي الاشتراك</Button>
           </div>
           <button
-            onClick={() => navigate("/auth")}
+            onClick={async () => {
+              await signOut();
+              navigate(ROUTES.auth);
+            }}
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-muted-foreground hover:bg-secondary hover:text-primary w-full font-semibold transition-all"
           >
             <LogOut className="w-5 h-5" />

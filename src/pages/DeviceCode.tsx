@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
+import { devicePinSchema } from "@/validations/device.schema";
+import { checkRateLimit } from "@/security/rate-limit";
+import { ROUTES } from "@/config/app";
+import { logger } from "@/lib/logger";
 
 const DeviceCode = () => {
   const [digits, setDigits] = useState(["", "", "", ""]);
@@ -24,13 +28,20 @@ const DeviceCode = () => {
   };
 
   const submit = () => {
-    const code = digits.join("");
-    if (code.length !== 4) {
-      setError("أدخل الرمز كاملاً (4 أرقام)");
+    const rate = checkRateLimit("device:pin", 10, 60_000);
+    if (!rate.allowed) {
+      setError("محاولات كثيرة. انتظر قليلاً.");
       return;
     }
-    // Mock: any 4-digit code opens the menu
-    navigate("/menu");
+
+    const parsed = devicePinSchema.safeParse({ pin: digits.join("") });
+    if (!parsed.success) {
+      setError(parsed.error.errors[0]?.message ?? "رمز غير صالح");
+      return;
+    }
+
+    logger.audit("device.pin_submitted");
+    navigate(ROUTES.menu);
   };
 
   return (
@@ -39,13 +50,11 @@ const DeviceCode = () => {
       <div className="absolute -bottom-32 -left-32 w-[32rem] h-[32rem] rounded-full bg-accent/15 blur-3xl pointer-events-none" />
 
       <div className="relative w-full max-w-lg">
-        {/* Logo */}
         <div className="flex flex-col items-center mb-10 text-primary-foreground">
           <Logo className="h-20 w-auto aspect-[1031/736] mb-4 animate-float" />
           <p className="text-primary-foreground/60">أدخل رمز الجهاز لفتح المنيو</p>
         </div>
 
-        {/* Code input card */}
         <div className="bg-card/95 backdrop-blur-xl rounded-[2rem] p-8 md:p-10 shadow-warm border border-accent/20">
           <div className="text-center mb-6">
             <div className="text-xs uppercase tracking-widest text-accent font-bold mb-2">رمز التفعيل</div>
@@ -62,25 +71,19 @@ const DeviceCode = () => {
                 onKeyDown={(e) => onKey(i, e)}
                 inputMode="numeric"
                 maxLength={1}
+                autoComplete="one-time-code"
+                aria-label={`رقم ${i + 1}`}
                 className="w-16 h-20 md:w-20 md:h-24 text-center font-display font-black text-4xl md:text-5xl text-primary bg-secondary border-2 border-border rounded-2xl focus:border-accent focus:outline-none focus:shadow-gold transition-all"
               />
             ))}
           </div>
 
-          {error && (
-            <p className="text-center text-destructive text-sm font-semibold mb-4">{error}</p>
-          )}
+          {error && <p className="text-center text-destructive text-sm font-semibold mb-4">{error}</p>}
 
           <Button variant="hero" size="xl" className="w-full" onClick={submit}>
             فتح المنيو
             <ArrowLeft className="w-5 h-5" />
           </Button>
-
-          <div className="mt-6 text-center">
-            <p className="text-xs text-muted-foreground">
-              للتجربة: أدخل أي 4 أرقام (مثل 1234)
-            </p>
-          </div>
         </div>
 
         <p className="text-center text-primary-foreground/50 text-xs mt-8">

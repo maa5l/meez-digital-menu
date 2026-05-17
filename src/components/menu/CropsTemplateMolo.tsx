@@ -1,14 +1,17 @@
 import { useState } from "react";
-import { crops, type MenuSettings } from "@/lib/mockData";
+import type { Crop, MenuSettings } from "@/types/domain";
 import { Sparkles, Languages } from "lucide-react";
 import { Logo } from "@/components/Brand";
+import CropDetailModal from "@/components/menu/CropDetailModal";
+import MenuCalorieDisclaimer from "@/components/menu/MenuCalorieDisclaimer";
 
 /**
  * Crops Template — "Featured Header + Cards Carousel".
  * هيدر علوي يعرض "محصول الشهر" + لوقو + زر اللغة، ثم بطاقات أفقية للمحاصيل.
  */
-const CropsTemplateMolo = ({ settings }: { settings: MenuSettings }) => {
+const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops: Crop[] }) => {
   const [lang, setLang] = useState<"ar" | "en">("ar");
+  const [modal, setModal] = useState<Crop | null>(null);
   const ordered = settings.featuredCropId
     ? [
         ...crops.filter((c) => c.id === settings.featuredCropId),
@@ -30,11 +33,12 @@ const CropsTemplateMolo = ({ settings }: { settings: MenuSettings }) => {
 
   return (
     <div className="h-full flex flex-col" dir={lang === "ar" ? "rtl" : "ltr"} style={bgStyle}>
-      {/* Header */}
       <header
-        className="shrink-0 px-8 md:px-12 py-6 flex items-center justify-between gap-4"
-        style={{ background: `${settings.textColor}10` }}
+        className="shrink-0 flex flex-col border-b border-black/5"
+        style={{ background: `${settings.textColor}10`, color: settings.textColor }}
       >
+        <MenuCalorieDisclaimer lang={lang} textColor={settings.textColor} />
+        <div className="px-8 md:px-12 py-6 flex items-center justify-between gap-4">
         <button
           onClick={() => setLang(lang === "ar" ? "en" : "ar")}
           className="flex items-center gap-1.5 text-sm font-bold opacity-80 hover:opacity-100"
@@ -48,6 +52,7 @@ const CropsTemplateMolo = ({ settings }: { settings: MenuSettings }) => {
         </h1>
 
         <Logo className="h-9 md:h-11 w-auto aspect-[1031/736]" />
+        </div>
       </header>
 
       {/* Cards carousel */}
@@ -66,7 +71,16 @@ const CropsTemplateMolo = ({ settings }: { settings: MenuSettings }) => {
             return (
               <article
                 key={c.id}
-                className="snap-center shrink-0 w-[72vw] md:w-[360px] h-full rounded-[2rem] p-7 md:p-8 flex flex-col relative overflow-hidden"
+                role="button"
+                tabIndex={0}
+                onClick={() => setModal(c)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setModal(c);
+                  }
+                }}
+                className="snap-center shrink-0 w-[72vw] md:w-[360px] h-full rounded-[2rem] p-7 md:p-8 flex flex-col relative overflow-hidden cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.99]"
                 style={{
                   background: bg,
                   color: fg,
@@ -97,6 +111,10 @@ const CropsTemplateMolo = ({ settings }: { settings: MenuSettings }) => {
 
                 <div className="relative flex-1 flex flex-col justify-center gap-5 mt-6 text-sm md:text-base">
                   <Field
+                    label={lang === "ar" ? "اسم المحصول" : "Crop name"}
+                    value={lang === "ar" ? c.beanName : c.beanNameEn || c.beanName}
+                  />
+                  <Field
                     label={lang === "ar" ? "البلد" : "Country"}
                     value={lang === "ar" ? c.country : c.countryEn}
                   />
@@ -123,6 +141,16 @@ const CropsTemplateMolo = ({ settings }: { settings: MenuSettings }) => {
           })}
         </div>
       </div>
+
+      {modal && (
+        <CropDetailModal
+          crop={modal}
+          lang={lang}
+          accent={settings.accentColor}
+          featured={modal.id === settings.featuredCropId}
+          onClose={() => setModal(null)}
+        />
+      )}
     </div>
   );
 };
