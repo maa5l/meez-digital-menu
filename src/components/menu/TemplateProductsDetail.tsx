@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import type { Category, Product, MenuSettings } from "@/types/domain";
-import MenuProductHeader from "@/components/menu/MenuProductHeader";
+import MenuLangToggle from "@/components/menu/MenuLangToggle";
+import { MenuProductSubheaderBar, MenuProductTopChrome } from "@/components/menu/MenuProductTopChrome";
 import { ProductDetailCard, ProductListCard } from "@/components/menu/ProductCardParts";
+import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
+import { getMenuTopChromeHeight } from "@/lib/menu-header";
 
-/**
- * قالب «هيدر + بطاقة كبيرة + قائمة جانبية» — مطابق للـ wireframe الأول.
- */
 type Props = {
   settings: MenuSettings;
   categories: Category[];
@@ -19,6 +19,7 @@ const TemplateProductsDetail = ({ settings, products }: Props) => {
     : null;
   const initial = featured ?? products[0];
   const [selected, setSelected] = useState<Product | undefined>(initial);
+  const { scrollRef, headerVisible } = useProductTemplateScroll();
 
   useEffect(() => {
     setSelected(featured ?? products[0]);
@@ -34,47 +35,79 @@ const TemplateProductsDetail = ({ settings, products }: Props) => {
     : { background: settings.bgColor, color: settings.textColor };
 
   const cardBg = settings.cardColor || "#d4d4d4";
+  const showLang = settings.showLanguageToggle !== false;
+  const chromeH = getMenuTopChromeHeight(showLang);
+  const panelGapTop = 24;
+  const panelGapBottom = 24;
+  const panelHeight = `calc(100dvh - ${chromeH + panelGapTop + panelGapBottom}px)`;
 
   return (
-    <div className="h-full flex flex-col" dir={lang === "ar" ? "rtl" : "ltr"} style={bgStyle}>
-      <MenuProductHeader
+    <div className="relative flex h-full min-h-0 flex-col" dir={lang === "ar" ? "rtl" : "ltr"} style={bgStyle}>
+      <MenuProductTopChrome
         settings={settings}
         lang={lang}
-        onLangToggle={() => setLang(lang === "ar" ? "en" : "ar")}
-      />
+        visible={headerVisible}
+        scrollRef={scrollRef}
+        subheader={
+          showLang ? (
+            <MenuProductSubheaderBar settings={settings}>
+              <div className="flex justify-end">
+                <MenuLangToggle
+                  lang={lang}
+                  onToggle={() => setLang(lang === "ar" ? "en" : "ar")}
+                  textColor={settings.textColor}
+                  accentColor={settings.accentColor}
+                />
+              </div>
+            </MenuProductSubheaderBar>
+          ) : undefined
+        }
+      >
+        {/* قائمة ~⅓ يساراً | تفاصيل ~⅔ يميناً — مثل المرجع */}
+        <div
+          dir="ltr"
+          className="grid min-h-0 grid-cols-1 gap-3 px-4 pb-6 md:grid-cols-[minmax(240px,34%)_1fr] md:items-stretch md:gap-4 md:px-6 md:pb-6"
+        >
+          <div
+            className="order-2 flex flex-col gap-2.5 overflow-y-auto overscroll-y-contain md:order-1 md:pt-6"
+            style={{ height: panelHeight, maxHeight: panelHeight }}
+          >
+            {products.map((p) => (
+              <ProductListCard
+                key={p.id}
+                product={p}
+                lang={lang}
+                cardBg={cardBg}
+                active={selected?.id === p.id}
+                accentColor={settings.accentColor}
+                onClick={() => setSelected(p)}
+              />
+            ))}
+          </div>
 
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-[minmax(260px,340px)_1fr] gap-4 px-5 md:px-10 pb-8 overflow-hidden min-h-0">
-        <div className="overflow-y-auto space-y-2.5 md:space-y-3 order-2 md:order-1 min-h-0">
-          {products.map((p) => (
-            <ProductListCard
-              key={p.id}
-              product={p}
-              lang={lang}
-              cardBg={cardBg}
-              active={selected?.id === p.id}
-              accentColor={settings.accentColor}
-              onClick={() => setSelected(p)}
-            />
-          ))}
+          <div
+            className="order-1 flex w-full flex-col md:order-2 md:pt-6"
+            style={{ height: panelHeight, maxHeight: panelHeight }}
+          >
+            {selected ? (
+              <ProductDetailCard
+                product={selected}
+                lang={lang}
+                cardBg={cardBg}
+                accentColor={settings.accentColor}
+                className="h-full min-h-0 w-full"
+              />
+            ) : (
+              <div
+                className="flex h-full w-full items-center justify-center rounded-2xl text-sm font-bold opacity-50"
+                style={{ background: cardBg }}
+              >
+                {lang === "ar" ? "اختر منتجًا" : "Select a product"}
+              </div>
+            )}
+          </div>
         </div>
-
-        <div className="order-1 md:order-2 min-h-[320px] md:min-h-0">
-          {selected ? (
-            <ProductDetailCard
-              product={selected}
-              lang={lang}
-              cardBg={cardBg}
-            />
-          ) : (
-            <div
-              className="h-full rounded-[2rem] flex items-center justify-center text-sm opacity-50 font-bold"
-              style={{ background: cardBg }}
-            >
-              {lang === "ar" ? "اختر منتجًا" : "Select a product"}
-            </div>
-          )}
-        </div>
-      </div>
+      </MenuProductTopChrome>
     </div>
   );
 };

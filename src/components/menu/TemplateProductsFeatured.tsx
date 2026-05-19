@@ -2,13 +2,11 @@ import { useEffect, useState } from "react";
 import type { Category, Product, MenuSettings } from "@/types/domain";
 import { X, Flame, AlertCircle } from "lucide-react";
 import { Riyal } from "@/components/Brand";
-import MenuProductHeader from "@/components/menu/MenuProductHeader";
 import CategoryTabs from "@/components/menu/CategoryTabs";
+import { MenuProductSubheaderBar, MenuProductTopChrome } from "@/components/menu/MenuProductTopChrome";
 import { ProductGridCard } from "@/components/menu/ProductCardParts";
+import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
 
-/**
- * قالب «هيدر + تبويبات + شبكة بطاقات» — مطابق للـ wireframe الثاني.
- */
 type Props = {
   settings: MenuSettings;
   categories: Category[];
@@ -19,6 +17,7 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
   const [lang, setLang] = useState<"ar" | "en">("ar");
   const [activeCat, setActiveCat] = useState(() => categories[0]?.id ?? "");
   const [modal, setModal] = useState<Product | null>(null);
+  const { scrollRef, headerVisible } = useProductTemplateScroll();
 
   useEffect(() => {
     if (categories.length === 0) {
@@ -49,39 +48,43 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
   const cardBg = settings.cardColor || "#d4d4d4";
 
   return (
-    <div className="h-full flex flex-col min-h-0" dir={lang === "ar" ? "rtl" : "ltr"} style={bgStyle}>
-      <MenuProductHeader
+    <div className="relative h-full flex flex-col min-h-0" dir={lang === "ar" ? "rtl" : "ltr"} style={bgStyle}>
+      <MenuProductTopChrome
         settings={settings}
         lang={lang}
-        onLangToggle={() => setLang(lang === "ar" ? "en" : "ar")}
-      />
-
-      {categories.length > 0 && (
-        <div className="shrink-0 px-5 md:px-10 py-2 md:py-2.5 bg-transparent">
-          <CategoryTabs
-            categories={categories}
-            activeId={activeCat}
-            accentColor={settings.accentColor}
-            textColor={settings.textColor}
-            lang={lang}
-            onSelect={setActiveCat}
-          />
+        visible={headerVisible}
+        scrollRef={scrollRef}
+        subheader={
+          categories.length > 0 || settings.showLanguageToggle !== false ? (
+            <MenuProductSubheaderBar settings={settings}>
+              <CategoryTabs
+                categories={categories}
+                activeId={activeCat}
+                accentColor={settings.accentColor}
+                textColor={settings.textColor}
+                lang={lang}
+                onSelect={setActiveCat}
+                onLangToggle={() => setLang(lang === "ar" ? "en" : "ar")}
+                showLang={settings.showLanguageToggle !== false}
+              />
+            </MenuProductSubheaderBar>
+          ) : undefined
+        }
+      >
+        <div className="px-5 md:px-10 pb-8 pt-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+            {visible.map((p) => (
+              <ProductGridCard
+                key={p.id}
+                product={p}
+                lang={lang}
+                cardBg={cardBg}
+                onClick={() => setModal(p)}
+              />
+            ))}
+          </div>
         </div>
-      )}
-
-      <div className="flex-1 overflow-y-auto px-5 md:px-10 pb-8 pt-3 min-h-0">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-          {visible.map((p) => (
-            <ProductGridCard
-              key={p.id}
-              product={p}
-              lang={lang}
-              cardBg={cardBg}
-              onClick={() => setModal(p)}
-            />
-          ))}
-        </div>
-      </div>
+      </MenuProductTopChrome>
 
       {modal && (
         <DetailModal

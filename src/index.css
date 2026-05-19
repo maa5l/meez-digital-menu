@@ -3,40 +3,56 @@
 @tailwind utilities;
 
 @font-face {
-  font-family: "Huwiya";
-  src: url("/fonts/HuwiyaTypeface-Light.otf") format("opentype");
+  font-family: "Wakad Text";
+  src: url("/fonts/WakadTextAR%2BENThin.ttf") format("truetype");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Wakad Text";
+  src: url("/fonts/WakadTextAR%2BENLight.ttf") format("truetype");
   font-weight: 300;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Huwiya";
-  src: url("/fonts/HuwiyaTypeface-Regular.otf") format("opentype");
+  font-family: "Wakad Text";
+  src: url("/fonts/WakadTextAR%2BENRegular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Huwiya";
-  src: url("/fonts/HuwiyaTypeface-Medium.otf") format("opentype");
+  font-family: "Wakad Text";
+  src: url("/fonts/WakadTextAR%2BENMedium.ttf") format("truetype");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Huwiya";
-  src: url("/fonts/HuwiyaTypeface-Bold.otf") format("opentype");
+  font-family: "Wakad Text";
+  src: url("/fonts/WakadTextAR%2BENHeavy.ttf") format("truetype");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 
 @font-face {
-  font-family: "Huwiya";
-  src: url("/fonts/HuwiyaTypeface-Black.otf") format("opentype");
+  font-family: "Wakad Text";
+  src: url("/fonts/WakadTextAR%2BENHeavy.ttf") format("truetype");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Wakad Text";
+  src: url("/fonts/WakadTextAR%2BENHeavy.ttf") format("truetype");
   font-weight: 900;
   font-style: normal;
   font-display: swap;

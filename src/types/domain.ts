@@ -61,6 +61,8 @@ export type MenuSettings = {
   burnBarText?: string;
   burnBarTextEn?: string;
   showLanguageToggle?: boolean;
+  /** لون نص وأيقونات إفصاح السعرات (اختياري) */
+  calorieTextColor?: string;
 };
 
 export type AuthSession = {

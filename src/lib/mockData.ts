@@ -68,6 +68,7 @@ function sanitizeSettings(input: MenuSettings): MenuSettings {
     cardColor: input.cardColor ? (sanitizeHexColor(input.cardColor) ?? undefined) : undefined,
     headerBgColor: input.headerBgColor ? (sanitizeHexColor(input.headerBgColor) ?? undefined) : undefined,
     headerTextColor: input.headerTextColor ? (sanitizeHexColor(input.headerTextColor) ?? undefined) : undefined,
+    calorieTextColor: input.calorieTextColor ? (sanitizeHexColor(input.calorieTextColor) ?? undefined) : undefined,
     bgImage: sanitizeImageUrl(input.bgImage),
     featuredImage: sanitizeImageUrl(input.featuredImage),
     logoImage: sanitizeImageUrl(input.logoImage),

@@ -14,8 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Huwiya", "system-ui", "sans-serif"],
-        body: ["Huwiya", "system-ui", "sans-serif"],
+        sans: ['"Wakad Text"', "system-ui", "sans-serif"],
+        display: ['"Wakad Text"', "system-ui", "sans-serif"],
+        body: ['"Wakad Text"', "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

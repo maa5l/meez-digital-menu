@@ -24,4 +24,5 @@ export const menuSettingsSchema = z.object({
   burnBarText: z.string().max(80).optional(),
   burnBarTextEn: z.string().max(80).optional(),
   showLanguageToggle: z.boolean().optional(),
+  calorieTextColor: hexColor.optional(),
 });

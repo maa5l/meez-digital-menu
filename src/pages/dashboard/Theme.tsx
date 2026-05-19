@@ -9,6 +9,7 @@ import { defaultMenuSettings, type MenuSettings } from "@/lib/mockData";
 import { useVenueData } from "@/hooks/useVenueData";
 import { toast } from "sonner";
 import { processHeaderImageFile } from "@/lib/header-image";
+import { HEADER_IMAGE_SPEC } from "@/lib/header-image-spec";
 
 const Theme = () => {
   const [venue] = useVenueData();
@@ -181,7 +182,7 @@ const HeaderCustomizeBlock = ({
 
     <UploadRow
       label="بانر الهيدر"
-      hint="JPG/PNG عريض — إن فيه نص جاهز اترك العنوان فارغاً"
+      hint={`JPG أو PNG — يُعاد القياس تلقائياً إلى ${HEADER_IMAGE_SPEC.recommendedWidth}×${HEADER_IMAGE_SPEC.recommendedHeight} بكسل (نسبة 6:1)`}
       preview={
         settings.headerImage ? (
           <img src={settings.headerImage} alt="" className="w-20 aspect-[6/1] rounded-lg object-contain border bg-muted" />
@@ -190,6 +191,11 @@ const HeaderCustomizeBlock = ({
       onUpload={onHeaderImageUpload}
       onClear={settings.headerImage ? () => update({ ...settings, headerImage: undefined }) : undefined}
     />
+    <p className="rounded-lg border border-dashed border-border/80 bg-muted/30 px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
+      <span className="font-bold text-foreground/80">ملاحظة:</span> صمّم البانر بعرض الشاشة (مثلاً آيباد أفقي). الحد الأدنى{" "}
+      {HEADER_IMAGE_SPEC.minWidth}×{HEADER_IMAGE_SPEC.minHeight} بكسل. إن كان البانر يحتوي شعاراً أو نصاً جاهزاً، اترك «عنوان الهيدر»
+      فارغاً — وإلا سيظهر العنوان فوق الصورة.
+    </p>
 
     <UploadRow
       label="الشعار"
@@ -224,9 +230,23 @@ const HeaderCustomizeBlock = ({
         onChange={(v) => update({ ...settings, showLanguageToggle: v })}
       />
     </div>
-    <p className="text-[10px] text-muted-foreground leading-relaxed">
-      إفصاح حرق السعرات (رجال / نساء / أطفال) يظهر تلقائياً أعلى المنيو ولا يمكن إخفاؤه — وفق المتطلبات القانونية.
-    </p>
+    <div className="rounded-xl border border-border bg-secondary/20 p-3 space-y-3">
+      <p className="text-xs font-bold text-primary">إفصاح السعرات (إلزامي)</p>
+      <ColorField
+        label="لون النص والأيقونات"
+        value={settings.calorieTextColor || settings.textColor}
+        onChange={(v) => update({ ...settings, calorieTextColor: v })}
+      />
+      {settings.calorieTextColor && (
+        <button
+          type="button"
+          onClick={() => update({ ...settings, calorieTextColor: undefined })}
+          className="text-[10px] font-bold text-muted-foreground hover:text-primary"
+        >
+          إعادة لون النص الافتراضي
+        </button>
+      )}
+    </div>
   </div>
 );
 

@@ -1,5 +1,6 @@
 import { Riyal } from "@/components/Brand";
 import type { Product } from "@/types/domain";
+import { Ban, Flame } from "lucide-react";
 
 type Lang = "ar" | "en";
 
@@ -167,31 +168,32 @@ export const ProductListCard = ({
   <button
     type="button"
     onClick={onClick}
-    className="w-full rounded-[1.25rem] md:rounded-[1.5rem] overflow-hidden text-start transition-all border-2 border-black/[0.07]"
+    dir={lang === "ar" ? "rtl" : "ltr"}
+    className="flex w-full gap-3 rounded-2xl p-3 text-start transition-all"
     style={{
       background: cardBg,
-      boxShadow: active ? `0 0 0 2px ${accentColor}` : undefined,
+      boxShadow: active ? `inset 0 0 0 2px ${accentColor}` : undefined,
     }}
   >
-    <div className="flex flex-row-reverse gap-0">
-      <div className="w-[72px] md:w-[80px] shrink-0 m-2 self-stretch min-h-[76px]">
-        <div className="h-full bg-white rounded-xl overflow-hidden flex items-center justify-center">
-          {product.image ? (
-            <img
-              src={product.image}
-              alt={product.name}
-              className="w-[88%] h-[88%] object-contain"
-            />
-          ) : (
-            <span className="text-[9px] text-muted-foreground/50 font-bold text-center px-1">
-              {labels[lang].img}
-            </span>
-          )}
-        </div>
+    <div className="flex min-h-[72px] min-w-0 flex-1 flex-col justify-between py-0.5">
+      <h3 className="line-clamp-2 font-black text-sm leading-tight text-[#1a1a1a]">{product.name}</h3>
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <span className="inline-flex items-center gap-0.5 font-black text-sm text-[#1a1a1a]">
+          {product.price} <Riyal className="h-3.5 w-3.5" />
+        </span>
+        <span className="inline-flex items-center gap-1 font-bold text-sm text-[#1a1a1a]/85">
+          {product.allergens?.trim() ? <Ban className="h-3.5 w-3.5 shrink-0 opacity-45" /> : null}
+          <Flame className="h-3.5 w-3.5 shrink-0 text-orange-500" />
+          {product.calories}
+        </span>
       </div>
-      <div className="flex-1 min-w-0">
-        <ProductCardFooter product={product} lang={lang} cardBg={cardBg} compact />
-      </div>
+    </div>
+    <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white">
+      {product.image ? (
+        <img src={product.image} alt={product.name} className="h-[88%] w-[88%] object-contain" />
+      ) : (
+        <span className="px-1 text-center text-[9px] font-bold text-muted-foreground/50">{labels[lang].img}</span>
+      )}
     </div>
   </button>
 );
@@ -200,28 +202,50 @@ export const ProductDetailCard = ({
   product,
   lang,
   cardBg,
+  accentColor,
+  className,
 }: {
   product: Product;
   lang: Lang;
   cardBg: string;
+  accentColor: string;
+  className?: string;
 }) => (
   <div
-    className="rounded-[1.5rem] md:rounded-[2rem] overflow-hidden h-full flex flex-col border-2 border-black/[0.07]"
+    dir={lang === "ar" ? "rtl" : "ltr"}
+    className={`flex h-full min-h-0 flex-col overflow-hidden rounded-2xl ${className ?? ""}`}
     style={{ background: cardBg }}
   >
-    <div className="flex-1 m-3 md:m-4 mb-0 min-h-[200px] md:min-h-[280px]">
-      <div className="h-full bg-white rounded-[1.25rem] overflow-hidden flex items-center justify-center">
+    <div className="flex min-h-0 flex-1 flex-col p-3 pb-0">
+      <div className="flex h-full min-h-0 w-full items-center justify-center overflow-hidden rounded-2xl bg-white">
         {product.image ? (
           <img
             src={product.image}
             alt={product.name}
-            className="max-h-[85%] max-w-[85%] object-contain"
+            className="max-h-[92%] max-w-[92%] object-contain"
           />
         ) : (
           <span className="text-sm font-bold text-muted-foreground/50">{labels[lang].noImage}</span>
         )}
       </div>
     </div>
-    <ProductCardFooter product={product} lang={lang} cardBg={cardBg} />
+    <div className="shrink-0 p-3 pt-2 text-[#1a1a1a]">
+      <h2 className="mb-0.5 text-end font-black text-lg leading-tight md:text-xl">{product.name}</h2>
+      {product.description?.trim() ? (
+        <p className="mb-2 line-clamp-2 text-end text-xs leading-relaxed opacity-65 md:text-sm">{product.description}</p>
+      ) : (
+        <div className="mb-2" />
+      )}
+      <div className="flex items-center justify-between gap-3">
+        <span className="inline-flex items-center gap-0.5 font-black text-base md:text-lg">
+          {product.price} <Riyal className="h-4 w-4" style={{ color: accentColor }} />
+        </span>
+        <span className="inline-flex items-center gap-1.5 font-bold text-base">
+          {product.allergens?.trim() ? <Ban className="h-4 w-4 opacity-45" /> : null}
+          <Flame className="h-4 w-4 text-orange-500" />
+          {product.calories}
+        </span>
+      </div>
+    </div>
   </div>
 );
