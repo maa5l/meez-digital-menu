@@ -4,7 +4,9 @@ import {
   createEmptyVenueData,
   loadCurrentVenueData,
   loadVenueForDevice,
+  loadVenueForDeviceAsync,
 } from "@/lib/venue-store";
+import { shouldUseVenueDatabase } from "@/services/venue/venue-supabase.service";
 
 const VENUE_UPDATED = "meez:venue-updated";
 
@@ -24,25 +26,42 @@ export function useMenuVenue(
 
   const [venue, setVenue] = useState<VenueData>(load);
 
-  useEffect(() => {
+  const reload = useCallback(async () => {
+    if (!ready) {
+      setVenue(createEmptyVenueData());
+      return;
+    }
+    if (isPreview) {
+      setVenue(loadCurrentVenueData());
+      return;
+    }
+    if (deviceCode && shouldUseVenueDatabase()) {
+      const fromCloud = await loadVenueForDeviceAsync(deviceCode);
+      setVenue(fromCloud);
+      return;
+    }
     setVenue(load());
-  }, [load]);
+  }, [deviceCode, isPreview, ready, load]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
 
   useEffect(() => {
     if (!ready) return;
 
-    const onUpdate = () => setVenue(load());
+    const onUpdate = () => void reload();
     window.addEventListener(VENUE_UPDATED, onUpdate);
     window.addEventListener("storage", onUpdate);
 
-    const poll = !isPreview ? setInterval(onUpdate, 2500) : undefined;
+    const poll = !isPreview ? setInterval(() => void reload(), 2500) : undefined;
 
     return () => {
       window.removeEventListener(VENUE_UPDATED, onUpdate);
       window.removeEventListener("storage", onUpdate);
       if (poll) clearInterval(poll);
     };
-  }, [load, ready, isPreview]);
+  }, [reload, ready, isPreview]);
 
   return venue;
 }

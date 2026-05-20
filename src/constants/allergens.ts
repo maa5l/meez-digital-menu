@@ -40,11 +40,29 @@ export const ALLERGEN_OPTIONS: AllergenOption[] = [
   { id: "molluscs", labelAr: "رخويات", labelEn: "Molluscs", Icon: Waves },
 ];
 
-/** يحوّل الاختيارات إلى نص — نفس حقل `allergens` الحالي (string) */
-export function formatAllergensString(ids: string[]): string | undefined {
+/** يحوّل الاختيارات إلى نص — نفس حقل `allergens` / `allergensEn` */
+export function formatAllergensString(ids: string[], lang: "ar" | "en" = "ar"): string | undefined {
   if (!ids.length) return undefined;
   const labels = ids
-    .map((id) => ALLERGEN_OPTIONS.find((a) => a.id === id)?.labelAr)
+    .map((id) => {
+      const opt = ALLERGEN_OPTIONS.find((a) => a.id === id);
+      return lang === "en" ? opt?.labelEn : opt?.labelAr;
+    })
     .filter(Boolean);
-  return labels.length ? labels.join("، ") : undefined;
+  if (!labels.length) return undefined;
+  return labels.join(lang === "en" ? ", " : "، ");
+}
+
+/** يسترجع معرّفات المسببات من النص المحفوظ */
+export function parseAllergensIds(text?: string): string[] {
+  if (!text?.trim()) return [];
+  const parts = text.split(/[,،]/).map((s) => s.trim()).filter(Boolean);
+  const ids = new Set<string>();
+  for (const part of parts) {
+    const opt = ALLERGEN_OPTIONS.find(
+      (a) => a.id === part || a.labelAr === part || a.labelEn === part,
+    );
+    if (opt) ids.add(opt.id);
+  }
+  return [...ids];
 }

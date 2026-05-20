@@ -6,6 +6,14 @@ import { GalleryHorizontal, Minus, ExternalLink, Palette, Coffee, UtensilsCrosse
 import type { ChangeEvent, ReactNode } from "react";
 import { useMenuSettings } from "@/hooks/useMenuSettings";
 import { defaultMenuSettings, type MenuSettings } from "@/lib/mockData";
+import type { MenuHeaderCustomization, MenuPalette } from "@/types/domain";
+import { getCropsPalette, getProductsPalette } from "@/lib/menu-palette";
+import {
+  getCropsHeaderCustomization,
+  getProductsHeaderCustomization,
+  patchCropsHeader,
+  patchProductsHeader,
+} from "@/lib/menu-header-settings";
 import { useVenueData } from "@/hooks/useVenueData";
 import { toast } from "sonner";
 import { processHeaderImageFile } from "@/lib/header-image";
@@ -17,7 +25,23 @@ const Theme = () => {
   const { products, crops } = venue;
   const reset = () => { update(defaultMenuSettings); toast.success("تمت إعادة الثيم للوضع الافتراضي"); };
 
-  const onUploadImage = (key: "bgImage" | "featuredImage" | "logoImage" | "headerImage") =>
+  const productsColors = getProductsPalette(settings);
+  const cropsColors = getCropsPalette(settings);
+  const cropsHeader = getCropsHeaderCustomization(settings);
+
+  const patchProductsColors = (patch: Partial<MenuPalette>) =>
+    update({
+      ...settings,
+      productsColors: { ...productsColors, ...patch },
+    });
+
+  const patchCropsColors = (patch: Partial<MenuPalette>) =>
+    update({
+      ...settings,
+      cropsColors: { ...cropsColors, ...patch },
+    });
+
+  const onUploadProductsImage = (key: "featuredImage" | "logoImage" | "headerImage") =>
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
@@ -27,7 +51,7 @@ const Theme = () => {
           const loading = toast.loading("جاري معالجة الصورة…");
           try {
             const dataUrl = await processHeaderImageFile(file);
-            update({ ...settings, headerImage: dataUrl });
+            update(patchProductsHeader(settings, { headerImage: dataUrl }));
             toast.success("تم رفع صورة الهيدر", { id: loading });
           } catch (err) {
             toast.error(err instanceof Error ? err.message : "تعذّر رفع الصورة", { id: loading });
@@ -41,7 +65,7 @@ const Theme = () => {
         const reader = new FileReader();
         reader.onload = () => {
           const result = reader.result as string;
-          update({ ...settings, [key]: result });
+          update(patchProductsHeader(settings, { [key]: result }));
           toast.success("تم رفع الصورة");
         };
         reader.onerror = () => toast.error("تعذّر قراءة الملف");
@@ -51,6 +75,56 @@ const Theme = () => {
         e.target.value = "";
       }
     };
+
+  const onUploadCropsImage = (key: "logoImage" | "headerImage") =>
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      try {
+        if (key === "headerImage") {
+          const loading = toast.loading("جاري معالجة الصورة…");
+          try {
+            const dataUrl = await processHeaderImageFile(file);
+            update(patchCropsHeader(settings, { headerImage: dataUrl }));
+            toast.success("تم رفع بانر هيدر المحاصيل", { id: loading });
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : "تعذّر رفع الصورة", { id: loading });
+            e.target.value = "";
+            return;
+          }
+          e.target.value = "";
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          update(patchCropsHeader(settings, { [key]: result }));
+          toast.success("تم رفع الصورة");
+        };
+        reader.onerror = () => toast.error("تعذّر قراءة الملف");
+        reader.readAsDataURL(file);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "تعذّر رفع الصورة");
+        e.target.value = "";
+      }
+    };
+
+  const onUploadPaletteBg = (target: "products" | "crops") => async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      if (target === "products") patchProductsColors({ bgImage: result });
+      else patchCropsColors({ bgImage: result });
+      toast.success("تم رفع صورة الخلفية");
+    };
+    reader.onerror = () => toast.error("تعذّر قراءة الملف");
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
 
   return (
     <DashboardLayout
@@ -63,9 +137,9 @@ const Theme = () => {
         <Stat icon={<UtensilsCrossed className="w-5 h-5" />} label="منيو المنتجات" value={
           settings.productTemplate === "featured" ? "هيدر مميّز + بطاقات" :
           "هيدر مميّز + تفاصيل"
-        } />
-        <Stat icon={<Coffee className="w-5 h-5" />} label="منيو المحاصيل" value={settings.cropsTemplate === "molo" ? "بطاقات بالعرض" : "مينيمال"} />
-        <Stat icon={<Palette className="w-5 h-5" />} label="اللون المميّز" value={settings.accentColor.toUpperCase()} swatch={settings.accentColor} />
+        } swatch={productsColors.accentColor} />
+        <Stat icon={<Coffee className="w-5 h-5" />} label="منيو المحاصيل" value={settings.cropsTemplate === "molo" ? "بطاقات بالعرض" : "مينيمال"} swatch={cropsColors.accentColor} />
+        <Stat icon={<Palette className="w-5 h-5" />} label="ألوان منفصلة" value="منتجات / محاصيل" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -94,10 +168,12 @@ const Theme = () => {
           </div>
 
           <HeaderCustomizeBlock
-            settings={settings}
-            update={update}
-            onLogoUpload={onUploadImage("logoImage")}
-            onHeaderImageUpload={onUploadImage("headerImage")}
+            header={getProductsHeaderCustomization(settings)}
+            textColorFallback={productsColors.textColor}
+            onPatch={(patch) => update(patchProductsHeader(settings, patch))}
+            onLogoUpload={onUploadProductsImage("logoImage")}
+            onHeaderImageUpload={onUploadProductsImage("headerImage")}
+            titlePlaceholder="مثال: مشروب الصيف"
           />
 
           <FeaturedBlock
@@ -108,10 +184,17 @@ const Theme = () => {
           />
 
           <Palette3
-            bg={settings.bgColor} text={settings.textColor} accent={settings.accentColor}
-            onChange={(k, v) => update({ ...settings, [k]: v })}
+            title="ألوان منيو المنتجات"
+            bg={productsColors.bgColor}
+            text={productsColors.textColor}
+            accent={productsColors.accentColor}
+            onChange={(k, v) => patchProductsColors({ [k]: v })}
           />
-          <CardAndBg settings={settings} update={update} onBgUpload={onUploadImage("bgImage")} />
+          <CardAndBg
+            palette={productsColors}
+            onPaletteChange={patchProductsColors}
+            onBgUpload={onUploadPaletteBg("products")}
+          />
         </Section>
 
         {/* === منيو المحاصيل === */}
@@ -153,9 +236,26 @@ const Theme = () => {
             </select>
           </div>
 
+          <HeaderCustomizeBlock
+            header={cropsHeader}
+            textColorFallback={cropsColors.textColor}
+            onPatch={(patch) => update(patchCropsHeader(settings, patch))}
+            onLogoUpload={onUploadCropsImage("logoImage")}
+            onHeaderImageUpload={onUploadCropsImage("headerImage")}
+            titlePlaceholder="مثال: محصول إثيوبيا"
+          />
+
           <Palette3
-            bg={settings.bgColor} text={settings.textColor} accent={settings.accentColor}
-            onChange={(k, v) => update({ ...settings, [k]: v })}
+            title="ألوان منيو المحاصيل"
+            bg={cropsColors.bgColor}
+            text={cropsColors.textColor}
+            accent={cropsColors.accentColor}
+            onChange={(k, v) => patchCropsColors({ [k]: v })}
+          />
+          <CardAndBg
+            palette={cropsColors}
+            onPaletteChange={patchCropsColors}
+            onBgUpload={onUploadPaletteBg("crops")}
           />
         </Section>
       </div>
@@ -165,15 +265,19 @@ const Theme = () => {
 
 /* ---------- تخصيص الهيدر (مبسّط) ---------- */
 const HeaderCustomizeBlock = ({
-  settings,
-  update,
+  header,
+  textColorFallback,
+  onPatch,
   onLogoUpload,
   onHeaderImageUpload,
+  titlePlaceholder,
 }: {
-  settings: MenuSettings;
-  update: (s: MenuSettings) => void;
+  header: MenuHeaderCustomization;
+  textColorFallback: string;
+  onPatch: (patch: Partial<MenuHeaderCustomization>) => void;
   onLogoUpload: (e: ChangeEvent<HTMLInputElement>) => void;
   onHeaderImageUpload: (e: ChangeEvent<HTMLInputElement>) => void;
+  titlePlaceholder: string;
 }) => (
   <div className="pt-4 border-t border-border space-y-3">
     <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
@@ -184,12 +288,12 @@ const HeaderCustomizeBlock = ({
       label="بانر الهيدر"
       hint={`JPG أو PNG — يُعاد القياس تلقائياً إلى ${HEADER_IMAGE_SPEC.recommendedWidth}×${HEADER_IMAGE_SPEC.recommendedHeight} بكسل (نسبة 6:1)`}
       preview={
-        settings.headerImage ? (
-          <img src={settings.headerImage} alt="" className="w-20 aspect-[6/1] rounded-lg object-contain border bg-muted" />
+        header.headerImage ? (
+          <img src={header.headerImage} alt="" className="w-20 aspect-[6/1] rounded-lg object-contain border bg-muted" />
         ) : undefined
       }
       onUpload={onHeaderImageUpload}
-      onClear={settings.headerImage ? () => update({ ...settings, headerImage: undefined }) : undefined}
+      onClear={header.headerImage ? () => onPatch({ headerImage: undefined }) : undefined}
     />
     <p className="rounded-lg border border-dashed border-border/80 bg-muted/30 px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
       <span className="font-bold text-foreground/80">ملاحظة:</span> صمّم البانر بعرض الشاشة (مثلاً آيباد أفقي). الحد الأدنى{" "}
@@ -201,24 +305,24 @@ const HeaderCustomizeBlock = ({
       label="الشعار"
       hint="اختياري"
       preview={
-        settings.logoImage ? (
-          <img src={settings.logoImage} alt="" className="h-9 w-auto max-w-[72px] object-contain border rounded-lg p-0.5" />
+        header.logoImage ? (
+          <img src={header.logoImage} alt="" className="h-9 w-auto max-w-[72px] object-contain border rounded-lg p-0.5" />
         ) : undefined
       }
       onUpload={onLogoUpload}
-      onClear={settings.logoImage ? () => update({ ...settings, logoImage: undefined }) : undefined}
+      onClear={header.logoImage ? () => onPatch({ logoImage: undefined }) : undefined}
     />
 
     <div>
       <Label className="text-xs">عنوان الهيدر (اختياري)</Label>
       <Input
-        value={settings.featuredTitle || ""}
-        onChange={(e) => update({ ...settings, featuredTitle: e.target.value || undefined })}
-        placeholder="مثال: مشروب الصيف"
+        value={header.featuredTitle || ""}
+        onChange={(e) => onPatch({ featuredTitle: e.target.value || undefined })}
+        placeholder={titlePlaceholder}
         className="mt-1 h-9 text-sm"
-        disabled={Boolean(settings.headerImage)}
+        disabled={Boolean(header.headerImage)}
       />
-      {settings.headerImage && (
+      {header.headerImage && (
         <p className="text-[10px] text-muted-foreground mt-1">معطّل — البانر يحتوي نصاً جاهزاً</p>
       )}
     </div>
@@ -226,21 +330,21 @@ const HeaderCustomizeBlock = ({
     <div className="flex flex-wrap gap-2">
       <ToggleChip
         label="زر اللغة"
-        checked={settings.showLanguageToggle !== false}
-        onChange={(v) => update({ ...settings, showLanguageToggle: v })}
+        checked={header.showLanguageToggle !== false}
+        onChange={(v) => onPatch({ showLanguageToggle: v })}
       />
     </div>
     <div className="rounded-xl border border-border bg-secondary/20 p-3 space-y-3">
       <p className="text-xs font-bold text-primary">إفصاح السعرات (إلزامي)</p>
       <ColorField
         label="لون النص والأيقونات"
-        value={settings.calorieTextColor || settings.textColor}
-        onChange={(v) => update({ ...settings, calorieTextColor: v })}
+        value={header.calorieTextColor || textColorFallback}
+        onChange={(v) => onPatch({ calorieTextColor: v })}
       />
-      {settings.calorieTextColor && (
+      {header.calorieTextColor && (
         <button
           type="button"
-          onClick={() => update({ ...settings, calorieTextColor: undefined })}
+          onClick={() => onPatch({ calorieTextColor: undefined })}
           className="text-[10px] font-bold text-muted-foreground hover:text-primary"
         >
           إعادة لون النص الافتراضي
@@ -336,26 +440,39 @@ const FeaturedBlock = ({
 
 /* ---------- Card color + background image ---------- */
 const CardAndBg = ({
-  settings, update, onBgUpload,
+  palette,
+  onPaletteChange,
+  onBgUpload,
 }: {
-  settings: MenuSettings;
-  update: (s: MenuSettings) => void;
-  onBgUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  palette: MenuPalette;
+  onPaletteChange: (patch: Partial<MenuPalette>) => void;
+  onBgUpload: (e: ChangeEvent<HTMLInputElement>) => void;
 }) => (
   <div className="pt-4 border-t border-border space-y-3">
     <div className="text-xs font-bold text-muted-foreground">الخلفية والبطاقات</div>
     <div className="grid grid-cols-2 gap-3">
-      <ColorField label="لون البطاقات" value={settings.cardColor || "#ededed"} onChange={(v) => update({ ...settings, cardColor: v })} />
+      <ColorField
+        label="لون البطاقات"
+        value={palette.cardColor || "#ededed"}
+        onChange={(v) => onPaletteChange({ cardColor: v })}
+      />
       <div>
         <Label className="text-xs">صورة خلفية المنيو</Label>
         <div className="mt-2 flex items-center gap-2">
-          {settings.bgImage && <img src={settings.bgImage} alt="" className="w-10 h-10 rounded-lg object-cover border border-border" />}
+          {palette.bgImage && (
+            <img src={palette.bgImage} alt="" className="w-10 h-10 rounded-lg object-cover border border-border" />
+          )}
           <label className="flex-1 cursor-pointer flex items-center justify-center gap-2 text-xs font-bold bg-secondary hover:bg-secondary/80 rounded-xl py-2.5 transition-colors">
-            <Upload className="w-4 h-4" /> {settings.bgImage ? "تغيير" : "رفع"}
+            <Upload className="w-4 h-4" /> {palette.bgImage ? "تغيير" : "رفع"}
             <input type="file" accept="image/*" className="hidden" onChange={onBgUpload} />
           </label>
-          {settings.bgImage && (
-            <button onClick={() => update({ ...settings, bgImage: undefined })} className="p-2 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20" aria-label="حذف">
+          {palette.bgImage && (
+            <button
+              type="button"
+              onClick={() => onPaletteChange({ bgImage: undefined })}
+              className="p-2 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20"
+              aria-label="حذف"
+            >
               <X className="w-4 h-4" />
             </button>
           )}
@@ -390,9 +507,21 @@ const Section = ({ title, desc, previewHref, previewLabel, children }: { title: 
   </div>
 );
 
-const Palette3 = ({ bg, text, accent, onChange }: { bg: string; text: string; accent: string; onChange: (k: "bgColor" | "textColor" | "accentColor", v: string) => void }) => (
+const Palette3 = ({
+  title,
+  bg,
+  text,
+  accent,
+  onChange,
+}: {
+  title: string;
+  bg: string;
+  text: string;
+  accent: string;
+  onChange: (k: "bgColor" | "textColor" | "accentColor", v: string) => void;
+}) => (
   <div className="pt-4 border-t border-border space-y-2">
-    <div className="text-xs font-bold text-muted-foreground">ألوان المنيو</div>
+    <div className="text-xs font-bold text-muted-foreground">{title}</div>
     <div className="grid grid-cols-3 gap-3">
       <ColorField label="الخلفية" value={bg} onChange={(v) => onChange("bgColor", v)} />
       <ColorField label="النص" value={text} onChange={(v) => onChange("textColor", v)} />

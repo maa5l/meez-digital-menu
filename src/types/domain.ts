@@ -1,7 +1,9 @@
 export type Category = {
   id: string;
   name: string;
-  icon: string;
+  nameEn?: string;
+  /** @deprecated لم يعد يُستخدم في الواجهة */
+  icon?: string;
 };
 
 export type CropInfo = {
@@ -17,11 +19,14 @@ export type Product = {
   id: string;
   categoryId: string;
   name: string;
+  nameEn?: string;
   description: string;
+  descriptionEn?: string;
   price: number;
   calories: number;
   image?: string;
   allergens?: string;
+  allergensEn?: string;
   cropInfo?: CropInfo;
 };
 
@@ -38,15 +43,48 @@ export type Device = {
 export type ProductTemplate = "featured" | "detail";
 export type CropsTemplate = "molo" | "pureshelf";
 
-export type MenuSettings = {
-  productTemplate: ProductTemplate;
-  cropsTemplate: CropsTemplate;
+/** ألوان منيو — منتجات أو محاصيل */
+export type MenuPalette = {
   bgColor: string;
   textColor: string;
   accentColor: string;
-  showBurnBar: boolean;
-  bgImage?: string;
   cardColor?: string;
+  bgImage?: string;
+};
+
+/** تخصيص هيدر منيو (منتجات أو محاصيل) */
+export type MenuHeaderCustomization = {
+  featuredTitle?: string;
+  featuredSubtitle?: string;
+  featuredImage?: string;
+  headerImage?: string;
+  headerBgColor?: string;
+  headerTextColor?: string;
+  logoImage?: string;
+  calorieTextColor?: string;
+  showLanguageToggle?: boolean;
+};
+
+export type MenuSettings = {
+  productTemplate: ProductTemplate;
+  cropsTemplate: CropsTemplate;
+  /** ألوان منيو المنتجات */
+  productsColors?: MenuPalette;
+  /** ألوان منيو المحاصيل */
+  cropsColors?: MenuPalette;
+  /** هيدر منيو المحاصيل (منفصل عن المنتجات) */
+  cropsHeader?: MenuHeaderCustomization;
+  /** @deprecated — يُرحَّل إلى productsColors / cropsColors */
+  bgColor?: string;
+  /** @deprecated */
+  textColor?: string;
+  /** @deprecated */
+  accentColor?: string;
+  /** @deprecated */
+  bgImage?: string;
+  /** @deprecated */
+  cardColor?: string;
+  showBurnBar: boolean;
   featuredProductId?: string;
   featuredCropId?: string;
   featuredTitle?: string;

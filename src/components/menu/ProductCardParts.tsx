@@ -1,8 +1,10 @@
 import { Riyal } from "@/components/Brand";
+import { localizeProduct, type MenuLang } from "@/lib/product-i18n";
 import type { Product } from "@/types/domain";
 import { Ban, Flame } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-type Lang = "ar" | "en";
+type Lang = MenuLang;
 
 const labels = {
   ar: {
@@ -74,20 +76,25 @@ export const ProductCardFooter = ({
 }) => {
   const t = labels[lang];
   const cropLine = cropSummary(product);
+  const localized = localizeProduct(product, lang);
+  const isEn = lang === "en";
+  const primaryAlign = isEn ? "left" : "right";
+  const secondaryAlign = isEn ? "right" : "left";
 
   return (
     <div
       className={compact ? "px-2.5 pb-2.5 pt-1" : "px-3 md:px-4 pb-3 md:pb-4 pt-1.5"}
       style={{ background: cardBg, color: "#1a1a1a" }}
+      dir={isEn ? "ltr" : "rtl"}
     >
       <div className={`grid grid-cols-2 gap-x-3 ${compact ? "gap-y-1.5" : "gap-y-2.5"}`}>
         <div className="space-y-2">
-          <InfoRow align="right" label={t.name} value={product.name} bold />
-          <InfoRow align="right" label={t.calories} value={String(product.calories)} />
+          <InfoRow align={primaryAlign} label={t.name} value={localized.name} bold rtl={!isEn} />
+          <InfoRow align={primaryAlign} label={t.calories} value={String(product.calories)} />
         </div>
         <div className="space-y-2">
           <InfoRow
-            align="left"
+            align={secondaryAlign}
             label={t.price}
             value={
               <span className="inline-flex items-center gap-0.5">
@@ -96,16 +103,22 @@ export const ProductCardFooter = ({
             }
             bold
           />
-          <InfoRow align="left" label={t.allergens} value={product.allergens?.trim() || "—"} />
+          <InfoRow align={secondaryAlign} label={t.allergens} value={localized.allergens?.trim() || "—"} />
         </div>
-        {!compact && product.description?.trim() && (
+        {!compact && localized.description?.trim() && (
           <div className="col-span-2 w-full pt-2 mt-0.5 border-t border-black/10">
-            <InfoRow align="right" rtl label={t.description} value={product.description} clamp />
+            <InfoRow align={primaryAlign} rtl={!isEn} label={t.description} value={localized.description} clamp />
           </div>
         )}
       </div>
       {cropLine && !compact && (
-        <p className="text-[10px] md:text-xs opacity-75 font-semibold mt-2 pt-2 border-t border-black/10 text-right" dir="rtl">
+        <p
+          className={cn(
+            "mt-2 border-t border-black/10 pt-2 text-[10px] font-semibold opacity-75 md:text-xs",
+            isEn ? "text-left" : "text-right",
+          )}
+          dir={isEn ? "ltr" : "rtl"}
+        >
           <span className="font-bold opacity-60">{t.crop}: </span>
           {cropLine}
         </p>
@@ -164,39 +177,61 @@ export const ProductListCard = ({
   active?: boolean;
   accentColor: string;
   onClick?: () => void;
-}) => (
+}) => {
+  const localized = localizeProduct(product, lang);
+  const isEn = lang === "en";
+
+  const textBlock = (
+    <div className="flex min-h-[72px] min-w-0 flex-1 flex-col justify-between py-0.5">
+      <h3 className="line-clamp-2 font-black text-sm leading-tight text-[#1a1a1a]">{localized.name}</h3>
+      <div className="mt-2 flex items-end justify-between gap-2">
+        <span className="inline-flex items-center gap-0.5 font-black text-sm text-[#1a1a1a]">
+          {product.price} <Riyal className="h-3.5 w-3.5" />
+        </span>
+        <span className="inline-flex items-center gap-1 font-bold text-sm text-[#1a1a1a]/85">
+          {localized.allergens?.trim() ? <Ban className="h-3.5 w-3.5 shrink-0 opacity-45" /> : null}
+          <Flame className="h-3.5 w-3.5 shrink-0 text-orange-500" />
+          {product.calories}
+        </span>
+      </div>
+    </div>
+  );
+
+  const imageBlock = (
+    <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white">
+      {product.image ? (
+        <img src={product.image} alt={localized.name} className="h-[88%] w-[88%] object-contain" />
+      ) : (
+        <span className="px-1 text-center text-[9px] font-bold text-muted-foreground/50">{labels[lang].img}</span>
+      )}
+    </div>
+  );
+
+  return (
   <button
     type="button"
     onClick={onClick}
-    dir={lang === "ar" ? "rtl" : "ltr"}
+    dir={isEn ? "ltr" : "rtl"}
     className="flex w-full gap-3 rounded-2xl p-3 text-start transition-all"
     style={{
       background: cardBg,
       boxShadow: active ? `inset 0 0 0 2px ${accentColor}` : undefined,
     }}
   >
-    <div className="flex min-h-[72px] min-w-0 flex-1 flex-col justify-between py-0.5">
-      <h3 className="line-clamp-2 font-black text-sm leading-tight text-[#1a1a1a]">{product.name}</h3>
-      <div className="mt-2 flex items-end justify-between gap-2">
-        <span className="inline-flex items-center gap-0.5 font-black text-sm text-[#1a1a1a]">
-          {product.price} <Riyal className="h-3.5 w-3.5" />
-        </span>
-        <span className="inline-flex items-center gap-1 font-bold text-sm text-[#1a1a1a]/85">
-          {product.allergens?.trim() ? <Ban className="h-3.5 w-3.5 shrink-0 opacity-45" /> : null}
-          <Flame className="h-3.5 w-3.5 shrink-0 text-orange-500" />
-          {product.calories}
-        </span>
-      </div>
-    </div>
-    <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white">
-      {product.image ? (
-        <img src={product.image} alt={product.name} className="h-[88%] w-[88%] object-contain" />
-      ) : (
-        <span className="px-1 text-center text-[9px] font-bold text-muted-foreground/50">{labels[lang].img}</span>
-      )}
-    </div>
+    {isEn ? (
+      <>
+        {textBlock}
+        {imageBlock}
+      </>
+    ) : (
+      <>
+        {imageBlock}
+        {textBlock}
+      </>
+    )}
   </button>
-);
+  );
+};
 
 export const ProductDetailCard = ({
   product,
@@ -210,42 +245,29 @@ export const ProductDetailCard = ({
   cardBg: string;
   accentColor: string;
   className?: string;
-}) => (
-  <div
-    dir={lang === "ar" ? "rtl" : "ltr"}
-    className={`flex h-full min-h-0 flex-col overflow-hidden rounded-2xl ${className ?? ""}`}
-    style={{ background: cardBg }}
-  >
-    <div className="flex min-h-0 flex-1 flex-col p-3 pb-0">
-      <div className="flex h-full min-h-0 w-full items-center justify-center overflow-hidden rounded-2xl bg-white">
-        {product.image ? (
-          <img
-            src={product.image}
-            alt={product.name}
-            className="max-h-[92%] max-w-[92%] object-contain"
-          />
-        ) : (
-          <span className="text-sm font-bold text-muted-foreground/50">{labels[lang].noImage}</span>
-        )}
+}) => {
+  const localized = localizeProduct(product, lang);
+
+  return (
+    <div
+      dir={lang === "en" ? "ltr" : "rtl"}
+      className={`flex h-full min-h-0 flex-col overflow-hidden rounded-2xl ${className ?? ""}`}
+      style={{ background: cardBg }}
+    >
+      <div className="flex min-h-0 flex-1 flex-col p-3 pb-0">
+        <div className="flex h-full min-h-0 w-full items-center justify-center overflow-hidden rounded-2xl bg-white">
+          {product.image ? (
+            <img
+              src={product.image}
+              alt={localized.name}
+              className="max-h-[92%] max-w-[92%] object-contain"
+            />
+          ) : (
+            <span className="text-sm font-bold text-muted-foreground/50">{labels[lang].noImage}</span>
+          )}
+        </div>
       </div>
+      <ProductCardFooter product={product} lang={lang} cardBg={cardBg} />
     </div>
-    <div className="shrink-0 p-3 pt-2 text-[#1a1a1a]">
-      <h2 className="mb-0.5 text-end font-black text-lg leading-tight md:text-xl">{product.name}</h2>
-      {product.description?.trim() ? (
-        <p className="mb-2 line-clamp-2 text-end text-xs leading-relaxed opacity-65 md:text-sm">{product.description}</p>
-      ) : (
-        <div className="mb-2" />
-      )}
-      <div className="flex items-center justify-between gap-3">
-        <span className="inline-flex items-center gap-0.5 font-black text-base md:text-lg">
-          {product.price} <Riyal className="h-4 w-4" style={{ color: accentColor }} />
-        </span>
-        <span className="inline-flex items-center gap-1.5 font-bold text-base">
-          {product.allergens?.trim() ? <Ban className="h-4 w-4 opacity-45" /> : null}
-          <Flame className="h-4 w-4 text-orange-500" />
-          {product.calories}
-        </span>
-      </div>
-    </div>
-  </div>
-);
+  );
+};

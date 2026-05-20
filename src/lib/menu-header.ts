@@ -1,12 +1,12 @@
-import type { MenuSettings } from "@/types/domain";
+import type { MenuHeaderCustomization } from "@/types/domain";
 
 /** ارتفاع ثابت للهيدر الكامل (إفصاح السعرات + شعار + عنوان) */
-export const MENU_PRODUCT_HEADER_HEIGHT = 136;
+export const MENU_PRODUCT_HEADER_HEIGHT = 144;
 
 /** ارتفاع شريط التصنيفات + اللغة */
 export const MENU_SUBHEADER_HEIGHT = 48;
 
-export function getMenuProductHeaderHeight(_settings?: MenuSettings): number {
+export function getMenuProductHeaderHeight(_settings?: unknown): number {
   return MENU_PRODUCT_HEADER_HEIGHT;
 }
 
@@ -17,6 +17,9 @@ export function getMenuTopChromeHeight(hasSubheader: boolean): number {
 export const headerHideTransition =
   "transition-[transform,opacity] duration-[420ms] ease-[cubic-bezier(0.4,0,0.2,1)] will-change-transform";
 
-export function getCalorieDisclaimerColor(settings: MenuSettings, fallback: string): string {
-  return settings.calorieTextColor ?? fallback;
+export function getCalorieDisclaimerColor(
+  header: Pick<MenuHeaderCustomization, "calorieTextColor">,
+  fallback: string,
+): string {
+  return header.calorieTextColor ?? fallback;
 }

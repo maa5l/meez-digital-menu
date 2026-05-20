@@ -6,11 +6,15 @@ import CropsTemplateMolo from "@/components/menu/CropsTemplateMolo";
 import CropsTemplatePureShelf from "@/components/menu/CropsTemplatePureShelf";
 import MenuEmptyState from "@/components/menu/MenuEmptyState";
 import { useMenuVenue } from "@/hooks/useMenuVenue";
-import { getDeviceMenuType } from "@/lib/venue-store";
+import { getDeviceMenuType, getDeviceMenuTypeAsync } from "@/lib/venue-store";
 import {
   getOrCreatePendingDeviceCode,
   isDeviceActivated,
+  isDeviceActivatedAsync,
 } from "@/services/device/activation";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { appEnv } from "@/config/env";
+import { getCropsPalette, getProductsPalette } from "@/lib/menu-palette";
 import { UtensilsCrossed } from "lucide-react";
 
 /**
@@ -22,11 +26,18 @@ const MenuDisplay = () => {
   const tplOverride = params.get("tpl");
   const isPreview = params.get("preview") === "1" || !!tplOverride;
   const [code] = useState(() => getOrCreatePendingDeviceCode());
-  const deviceMenuType = getDeviceMenuType(code);
+  const [deviceMenuType, setDeviceMenuType] = useState<"products" | "crops" | null>(() =>
+    getDeviceMenuType(code),
+  );
   const type =
     typeParam === "crops" || typeParam === "products"
       ? typeParam
       : deviceMenuType ?? "products";
+
+  useEffect(() => {
+    if (typeParam === "crops" || typeParam === "products") return;
+    void getDeviceMenuTypeAsync(code).then(setDeviceMenuType);
+  }, [code, typeParam]);
   const [activated, setActivated] = useState(() => isDeviceActivated(code));
 
   const venueReady = isPreview || activated;
@@ -39,14 +50,24 @@ const MenuDisplay = () => {
 
   useEffect(() => {
     if (isPreview || activated) return;
-    const check = () => {
-      if (isDeviceActivated(code)) setActivated(true);
+
+    const check = async () => {
+      if (isDeviceActivated(code)) {
+        setActivated(true);
+        return;
+      }
+      if (isSupabaseConfigured() && !appEnv.useLocalMockAuth) {
+        const remote = await isDeviceActivatedAsync(code);
+        if (remote) setActivated(true);
+      }
     };
-    const t = setInterval(check, 1500);
-    window.addEventListener("storage", check);
+
+    void check();
+    const t = setInterval(() => void check(), 1500);
+    window.addEventListener("storage", () => void check());
     return () => {
       clearInterval(t);
-      window.removeEventListener("storage", check);
+      window.removeEventListener("storage", () => void check());
     };
   }, [code, isPreview, activated]);
 
@@ -71,12 +92,13 @@ const MenuDisplay = () => {
 
   const productsEmpty = venue.products.length === 0;
   const cropsEmpty = venue.crops.length === 0;
+  const pagePalette = type === "crops" ? getCropsPalette(settings) : getProductsPalette(settings);
 
   return (
     <div
       className="h-screen overflow-hidden flex flex-col"
       dir="rtl"
-      style={{ background: settings.bgColor, color: settings.textColor }}
+      style={{ background: pagePalette.bgColor, color: pagePalette.textColor }}
     >
       {type === "crops" ? (
         cropsEmpty ? (

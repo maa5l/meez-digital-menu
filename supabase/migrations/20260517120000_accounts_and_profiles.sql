@@ -80,6 +80,12 @@ CREATE POLICY "profiles_update_own"
   USING (auth.uid() = id)
   WITH CHECK (auth.uid() = id);
 
+DROP POLICY IF EXISTS "profiles_insert_own" ON public.profiles;
+CREATE POLICY "profiles_insert_own"
+  ON public.profiles FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = id);
+
 -- ============================================================
 -- 5) إنشاء حساب يدوياً (للتطوير فقط)
 -- غيّر البريد وكلمة المرور ثم نفّذ مرة واحدة

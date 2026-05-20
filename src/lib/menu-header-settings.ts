@@ -1,0 +1,38 @@
+import type { MenuHeaderCustomization, MenuSettings } from "@/types/domain";
+
+/** إعدادات هيدر منيو المنتجات (حقول مسطّحة للتوافق) */
+export function getProductsHeaderCustomization(settings: MenuSettings): MenuHeaderCustomization {
+  return {
+    featuredTitle: settings.featuredTitle,
+    featuredSubtitle: settings.featuredSubtitle,
+    featuredImage: settings.featuredImage,
+    headerImage: settings.headerImage,
+    headerBgColor: settings.headerBgColor,
+    headerTextColor: settings.headerTextColor,
+    logoImage: settings.logoImage,
+    calorieTextColor: settings.calorieTextColor,
+    showLanguageToggle: settings.showLanguageToggle,
+  };
+}
+
+/** إعدادات هيدر منيو المحاصيل */
+export function getCropsHeaderCustomization(settings: MenuSettings): MenuHeaderCustomization {
+  return settings.cropsHeader ?? {};
+}
+
+export function patchProductsHeader(
+  settings: MenuSettings,
+  patch: Partial<MenuHeaderCustomization>,
+): MenuSettings {
+  return { ...settings, ...patch };
+}
+
+export function patchCropsHeader(
+  settings: MenuSettings,
+  patch: Partial<MenuHeaderCustomization>,
+): MenuSettings {
+  return {
+    ...settings,
+    cropsHeader: { ...getCropsHeaderCustomization(settings), ...patch },
+  };
+}

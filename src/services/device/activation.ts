@@ -4,6 +4,11 @@ import { getLocalString, setLocalString } from "@/security/storage";
 import { getSession } from "@/security/session";
 import { linkDeviceToOwner, refreshDeviceVenueSync, setDeviceMenuType } from "@/lib/venue-store";
 import { logger } from "@/lib/logger";
+import {
+  isDeviceActivatedInDatabase,
+  shouldUseVenueDatabase,
+  upsertDeviceActivationInDatabase,
+} from "@/services/venue/venue-supabase.service";
 
 const ACTIVATION_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -38,6 +43,14 @@ export function isDeviceActivated(code: string): boolean {
   return getLocalString(`${STORAGE_KEYS.DEVICE_ACTIVATED_PREFIX}${normalized}`) === "1";
 }
 
+export async function isDeviceActivatedAsync(code: string): Promise<boolean> {
+  const normalized = code.trim().toUpperCase();
+  if (!isValidDeviceCode(normalized)) return false;
+  if (isDeviceActivated(normalized)) return true;
+  if (!shouldUseVenueDatabase()) return false;
+  return isDeviceActivatedInDatabase(normalized);
+}
+
 export function activateDevice(
   code: string,
   options?: { menuType?: "products" | "crops" },
@@ -56,6 +69,14 @@ export function activateDevice(
   if (ownerId) {
     linkDeviceToOwner(normalized, ownerId);
     refreshDeviceVenueSync(normalized, ownerId);
+    if (shouldUseVenueDatabase()) {
+      void upsertDeviceActivationInDatabase(normalized, ownerId, options?.menuType).catch((err) => {
+        logger.error("device.cloud_activation_failed", {
+          code: normalized,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      });
+    }
   }
 
   logger.audit("device.activated", { code: normalized, linked: !!ownerId });

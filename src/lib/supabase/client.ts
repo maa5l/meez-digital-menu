@@ -1,7 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { appEnv } from "@/config/env";
+import type { Database } from "@/lib/supabase/database.types";
 
-export type Database = Record<string, never>;
+export type { Database } from "@/lib/supabase/database.types";
 
 let client: ReturnType<typeof createClient<Database>> | null = null;
 

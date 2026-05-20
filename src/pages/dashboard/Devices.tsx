@@ -8,6 +8,7 @@ import {
   refreshDeviceVenueSync,
   setDeviceMenuType,
   syncDeviceLinks,
+  syncDeviceActivationsToCloud,
 } from "@/lib/venue-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +47,7 @@ const Devices = () => {
       setDeviceMenuType(d.code, inferDeviceMenuType(d));
       refreshDeviceVenueSync(d.code, ownerId);
     }
+    void syncDeviceActivationsToCloud(ownerId, list);
   }, [list]);
 
   const add = () => {

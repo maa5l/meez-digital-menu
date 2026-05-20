@@ -9,7 +9,12 @@ export type {
   Crop,
 } from "@/types/domain";
 
-import type { MenuSettings, ProductTemplate } from "@/types/domain";
+import type { MenuHeaderCustomization, MenuSettings, ProductTemplate, MenuPalette } from "@/types/domain";
+import {
+  defaultCropsPalette,
+  defaultProductsPalette,
+  migrateMenuSettings,
+} from "@/lib/menu-palette";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { getLocalJson, setLocalJson, getLocalString } from "@/security/storage";
 import { menuSettingsSchema } from "@/validations/menu-settings.schema";
@@ -17,18 +22,17 @@ import { sanitizeHexColor, sanitizeImageUrl } from "@/security/sanitize";
 import { logger } from "@/lib/logger";
 
 /** إعدادات المنيو الافتراضية — بدون بيانات تجريبية */
-export const defaultMenuSettings: MenuSettings = {
+export const defaultMenuSettings: MenuSettings = migrateMenuSettings({
   productTemplate: "featured",
   cropsTemplate: "molo",
-  bgColor: "#F1EFEC",
-  textColor: "#030303",
-  accentColor: "#3068A8",
+  productsColors: { ...defaultProductsPalette },
+  cropsColors: { ...defaultCropsPalette },
   showBurnBar: true,
   showLanguageToggle: true,
-  cardColor: "#ededed",
+  cropsHeader: { showLanguageToggle: true },
   burnBarText: "تفاصيل حرق السعرات",
   burnBarTextEn: "Calorie burn details",
-};
+});
 
 const normalizeProductTemplate = (value: unknown): ProductTemplate => {
   if (value === "detail" || value === "split") return "detail";
@@ -59,17 +63,48 @@ function migrateLegacySettings(): MenuSettings | null {
   return null;
 }
 
-function sanitizeSettings(input: MenuSettings): MenuSettings {
+function sanitizeHeaderCustomization(
+  header: MenuHeaderCustomization | undefined,
+): MenuHeaderCustomization | undefined {
+  if (!header) return undefined;
   return {
-    ...input,
-    bgColor: sanitizeHexColor(input.bgColor) ?? defaultMenuSettings.bgColor,
-    textColor: sanitizeHexColor(input.textColor) ?? defaultMenuSettings.textColor,
-    accentColor: sanitizeHexColor(input.accentColor) ?? defaultMenuSettings.accentColor,
-    cardColor: input.cardColor ? (sanitizeHexColor(input.cardColor) ?? undefined) : undefined,
+    featuredTitle: header.featuredTitle?.slice(0, 120),
+    featuredSubtitle: header.featuredSubtitle?.slice(0, 200),
+    featuredImage: sanitizeImageUrl(header.featuredImage),
+    headerBgColor: header.headerBgColor ? (sanitizeHexColor(header.headerBgColor) ?? undefined) : undefined,
+    headerTextColor: header.headerTextColor ? (sanitizeHexColor(header.headerTextColor) ?? undefined) : undefined,
+    logoImage: sanitizeImageUrl(header.logoImage),
+    headerImage: sanitizeImageUrl(header.headerImage),
+    calorieTextColor: header.calorieTextColor ? (sanitizeHexColor(header.calorieTextColor) ?? undefined) : undefined,
+    showLanguageToggle: header.showLanguageToggle ?? true,
+  };
+}
+
+function sanitizePalette(palette: MenuPalette, fallback: MenuPalette): MenuPalette {
+  return {
+    bgColor: sanitizeHexColor(palette.bgColor) ?? fallback.bgColor,
+    textColor: sanitizeHexColor(palette.textColor) ?? fallback.textColor,
+    accentColor: sanitizeHexColor(palette.accentColor) ?? fallback.accentColor,
+    cardColor: palette.cardColor
+      ? (sanitizeHexColor(palette.cardColor) ?? fallback.cardColor)
+      : fallback.cardColor,
+    bgImage: sanitizeImageUrl(palette.bgImage),
+  };
+}
+
+function sanitizeSettings(input: MenuSettings): MenuSettings {
+  const migrated = migrateMenuSettings(input);
+  return migrateMenuSettings({
+    ...migrated,
+    productsColors: sanitizePalette(
+      migrated.productsColors ?? defaultProductsPalette,
+      defaultProductsPalette,
+    ),
+    cropsColors: sanitizePalette(migrated.cropsColors ?? defaultCropsPalette, defaultCropsPalette),
+    cropsHeader: sanitizeHeaderCustomization(input.cropsHeader),
     headerBgColor: input.headerBgColor ? (sanitizeHexColor(input.headerBgColor) ?? undefined) : undefined,
     headerTextColor: input.headerTextColor ? (sanitizeHexColor(input.headerTextColor) ?? undefined) : undefined,
     calorieTextColor: input.calorieTextColor ? (sanitizeHexColor(input.calorieTextColor) ?? undefined) : undefined,
-    bgImage: sanitizeImageUrl(input.bgImage),
     featuredImage: sanitizeImageUrl(input.featuredImage),
     logoImage: sanitizeImageUrl(input.logoImage),
     headerImage: sanitizeImageUrl(input.headerImage),
@@ -78,7 +113,7 @@ function sanitizeSettings(input: MenuSettings): MenuSettings {
     burnBarText: input.burnBarText?.slice(0, 80),
     burnBarTextEn: input.burnBarTextEn?.slice(0, 80),
     showLanguageToggle: input.showLanguageToggle ?? true,
-  };
+  });
 }
 
 /** @deprecated يُستخدم للترحيل فقط — الإعدادات الحالية في venue-store */

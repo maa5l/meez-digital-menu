@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Category, Product, MenuSettings } from "@/types/domain";
-import MenuLangToggle from "@/components/menu/MenuLangToggle";
+import CategoryTabs from "@/components/menu/CategoryTabs";
 import { MenuProductSubheaderBar, MenuProductTopChrome } from "@/components/menu/MenuProductTopChrome";
 import { ProductDetailCard, ProductListCard } from "@/components/menu/ProductCardParts";
 import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
 import { getMenuTopChromeHeight } from "@/lib/menu-header";
+import { getProductsPalette, palettePageStyle } from "@/lib/menu-palette";
 
 type Props = {
   settings: MenuSettings;
@@ -12,32 +13,56 @@ type Props = {
   products: Product[];
 };
 
-const TemplateProductsDetail = ({ settings, products }: Props) => {
+const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
   const [lang, setLang] = useState<"ar" | "en">("ar");
-  const featured = settings.featuredProductId
-    ? products.find((p) => p.id === settings.featuredProductId)
-    : null;
-  const initial = featured ?? products[0];
-  const [selected, setSelected] = useState<Product | undefined>(initial);
+  const [activeCat, setActiveCat] = useState(() => categories[0]?.id ?? "");
   const { scrollRef, headerVisible } = useProductTemplateScroll();
 
   useEffect(() => {
-    setSelected(featured ?? products[0]);
-  }, [featured, products]);
+    if (categories.length === 0) {
+      setActiveCat("");
+      return;
+    }
+    if (!categories.some((c) => c.id === activeCat)) {
+      setActiveCat(categories[0].id);
+    }
+  }, [categories, activeCat]);
 
-  const bgStyle: React.CSSProperties = settings.bgImage
-    ? {
-        backgroundImage: `linear-gradient(${settings.bgColor}cc, ${settings.bgColor}ee), url(${settings.bgImage})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        color: settings.textColor,
-      }
-    : { background: settings.bgColor, color: settings.textColor };
+  const visibleProducts = useMemo(
+    () =>
+      categories.length === 0
+        ? products
+        : activeCat
+          ? products.filter((p) => p.categoryId === activeCat)
+          : products,
+    [categories.length, activeCat, products],
+  );
 
-  const cardBg = settings.cardColor || "#d4d4d4";
+  const featured = settings.featuredProductId
+    ? products.find((p) => p.id === settings.featuredProductId)
+    : null;
+
+  const defaultProduct = useMemo(() => {
+    if (featured && visibleProducts.some((p) => p.id === featured.id)) return featured;
+    return visibleProducts[0];
+  }, [featured, visibleProducts]);
+
+  const [selected, setSelected] = useState<Product | undefined>(defaultProduct);
+
+  useEffect(() => {
+    setSelected((prev) => {
+      if (prev && visibleProducts.some((p) => p.id === prev.id)) return prev;
+      return defaultProduct;
+    });
+  }, [visibleProducts, defaultProduct]);
+
+  const palette = getProductsPalette(settings);
+  const bgStyle = palettePageStyle(palette);
+  const cardBg = palette.cardColor || "#d4d4d4";
   const showLang = settings.showLanguageToggle !== false;
-  const chromeH = getMenuTopChromeHeight(showLang);
-  const panelGapTop = 24;
+  const hasSubheader = categories.length > 0 || showLang;
+  const chromeH = getMenuTopChromeHeight(hasSubheader);
+  const panelGapTop = 36;
   const panelGapBottom = 24;
   const panelHeight = `calc(100dvh - ${chromeH + panelGapTop + panelGapBottom}px)`;
 
@@ -49,44 +74,45 @@ const TemplateProductsDetail = ({ settings, products }: Props) => {
         visible={headerVisible}
         scrollRef={scrollRef}
         subheader={
-          showLang ? (
+          hasSubheader ? (
             <MenuProductSubheaderBar settings={settings}>
-              <div className="flex justify-end">
-                <MenuLangToggle
-                  lang={lang}
-                  onToggle={() => setLang(lang === "ar" ? "en" : "ar")}
-                  textColor={settings.textColor}
-                  accentColor={settings.accentColor}
-                />
-              </div>
+              <CategoryTabs
+                categories={categories}
+                activeId={activeCat}
+                accentColor={palette.accentColor}
+                textColor={palette.textColor}
+                lang={lang}
+                onSelect={setActiveCat}
+                onLangToggle={() => setLang(lang === "ar" ? "en" : "ar")}
+                showLang={showLang}
+              />
             </MenuProductSubheaderBar>
           ) : undefined
         }
       >
-        {/* قائمة ~⅓ يساراً | تفاصيل ~⅔ يميناً — مثل المرجع */}
         <div
           dir="ltr"
-          className="grid min-h-0 grid-cols-1 gap-3 px-4 pb-6 md:grid-cols-[minmax(240px,34%)_1fr] md:items-stretch md:gap-4 md:px-6 md:pb-6"
+          className="grid min-h-0 grid-cols-1 gap-3 px-4 pb-6 pt-2 md:grid-cols-[minmax(240px,34%)_1fr] md:items-stretch md:gap-4 md:px-6 md:pb-6 md:pt-4"
         >
           <div
-            className="order-2 flex flex-col gap-2.5 overflow-y-auto overscroll-y-contain md:order-1 md:pt-6"
+            className="order-2 flex flex-col gap-2.5 overflow-y-auto overscroll-y-contain md:order-1 md:pt-8"
             style={{ height: panelHeight, maxHeight: panelHeight }}
           >
-            {products.map((p) => (
+            {visibleProducts.map((p) => (
               <ProductListCard
                 key={p.id}
                 product={p}
                 lang={lang}
                 cardBg={cardBg}
                 active={selected?.id === p.id}
-                accentColor={settings.accentColor}
+                accentColor={palette.accentColor}
                 onClick={() => setSelected(p)}
               />
             ))}
           </div>
 
           <div
-            className="order-1 flex w-full flex-col md:order-2 md:pt-6"
+            className="order-1 flex w-full flex-col md:order-2 md:pt-8"
             style={{ height: panelHeight, maxHeight: panelHeight }}
           >
             {selected ? (
@@ -94,7 +120,7 @@ const TemplateProductsDetail = ({ settings, products }: Props) => {
                 product={selected}
                 lang={lang}
                 cardBg={cardBg}
-                accentColor={settings.accentColor}
+                accentColor={palette.accentColor}
                 className="h-full min-h-0 w-full"
               />
             ) : (

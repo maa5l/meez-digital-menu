@@ -1,19 +1,30 @@
 import { useCallback, useEffect, useState } from "react";
 import type { VenueData } from "@/types/venue";
+import { appEnv } from "@/config/env";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 import {
   getCurrentUserId,
   loadCurrentVenueData,
+  pullVenueFromCloud,
   rememberOwnerUserId,
   refreshDeviceVenueSync,
   saveCurrentVenueData,
   resolveOwnerUserId,
+  syncDeviceActivationsToCloud,
 } from "@/lib/venue-store";
 
 const VENUE_UPDATED = "meez:venue-updated";
 
-export function useVenueData(): [VenueData, (patch: Partial<VenueData> | ((prev: VenueData) => VenueData)) => void] {
+export function useVenueData(): [
+  VenueData,
+  (patch: Partial<VenueData> | ((prev: VenueData) => VenueData)) => void,
+  { loading: boolean },
+] {
   const userId = resolveOwnerUserId();
   const [data, setData] = useState<VenueData>(() => loadCurrentVenueData());
+  const [loading, setLoading] = useState(
+    () => Boolean(userId && isSupabaseConfigured() && !appEnv.useLocalMockAuth),
+  );
 
   const reload = useCallback(() => {
     setData(loadCurrentVenueData());
@@ -24,6 +35,28 @@ export function useVenueData(): [VenueData, (patch: Partial<VenueData> | ((prev:
   }, [userId, reload]);
 
   useEffect(() => {
+    if (!userId || !isSupabaseConfigured() || appEnv.useLocalMockAuth) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+
+    pullVenueFromCloud(userId)
+      .then((venue) => {
+        if (!cancelled) setData(venue);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  useEffect(() => {
     const ownerId = getCurrentUserId();
     if (!ownerId) return;
     rememberOwnerUserId(ownerId);
@@ -31,6 +64,7 @@ export function useVenueData(): [VenueData, (patch: Partial<VenueData> | ((prev:
     for (const device of venue.devices) {
       refreshDeviceVenueSync(device.code, ownerId);
     }
+    void syncDeviceActivationsToCloud(ownerId, venue.devices);
   }, []);
 
   useEffect(() => {
@@ -55,5 +89,5 @@ export function useVenueData(): [VenueData, (patch: Partial<VenueData> | ((prev:
     [],
   );
 
-  return [data, update];
+  return [data, update, { loading }];
 }

@@ -5,7 +5,9 @@ import { Riyal } from "@/components/Brand";
 import CategoryTabs from "@/components/menu/CategoryTabs";
 import { MenuProductSubheaderBar, MenuProductTopChrome } from "@/components/menu/MenuProductTopChrome";
 import { ProductGridCard } from "@/components/menu/ProductCardParts";
+import { localizeProduct } from "@/lib/product-i18n";
 import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
+import { getProductsPalette, palettePageStyle } from "@/lib/menu-palette";
 
 type Props = {
   settings: MenuSettings;
@@ -36,16 +38,9 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
         ? products.filter((p) => p.categoryId === activeCat)
         : products;
 
-  const bgStyle: React.CSSProperties = settings.bgImage
-    ? {
-        backgroundImage: `linear-gradient(${settings.bgColor}cc, ${settings.bgColor}ee), url(${settings.bgImage})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        color: settings.textColor,
-      }
-    : { background: settings.bgColor, color: settings.textColor };
-
-  const cardBg = settings.cardColor || "#d4d4d4";
+  const palette = getProductsPalette(settings);
+  const bgStyle = palettePageStyle(palette);
+  const cardBg = palette.cardColor || "#d4d4d4";
 
   return (
     <div className="relative h-full flex flex-col min-h-0" dir={lang === "ar" ? "rtl" : "ltr"} style={bgStyle}>
@@ -60,8 +55,8 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
               <CategoryTabs
                 categories={categories}
                 activeId={activeCat}
-                accentColor={settings.accentColor}
-                textColor={settings.textColor}
+                accentColor={palette.accentColor}
+                textColor={palette.textColor}
                 lang={lang}
                 onSelect={setActiveCat}
                 onLangToggle={() => setLang(lang === "ar" ? "en" : "ar")}
@@ -71,7 +66,7 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
           ) : undefined
         }
       >
-        <div className="px-5 md:px-10 pb-8 pt-3">
+        <div className="px-5 pb-8 pt-8 md:px-10 md:pt-10">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
             {visible.map((p) => (
               <ProductGridCard
@@ -90,7 +85,7 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
         <DetailModal
           product={modal}
           lang={lang}
-          accent={settings.accentColor}
+          accent={palette.accentColor}
           onClose={() => setModal(null)}
         />
       )}
@@ -108,7 +103,9 @@ const DetailModal = ({
   lang: "ar" | "en";
   accent: string;
   onClose: () => void;
-}) => (
+}) => {
+  const localized = localizeProduct(product, lang);
+  return (
   <div
     className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
     onClick={onClose}
@@ -122,7 +119,7 @@ const DetailModal = ({
         <div className="relative bg-white flex items-center justify-center px-4 py-6 min-h-[200px] max-h-[min(52vh,440px)]">
           <img
             src={product.image}
-            alt={product.name}
+            alt={localized.name}
             className="max-w-full max-h-[min(48vh,400px)] w-auto h-auto object-contain"
           />
           <button
@@ -135,13 +132,13 @@ const DetailModal = ({
         </div>
       )}
       <div className="p-6 text-[#1a1a1a]">
-        <h2 className="font-display font-black text-2xl mb-2">{product.name}</h2>
-        <p className="text-sm opacity-70 mb-4">{product.description}</p>
+        <h2 className="font-display font-black text-2xl mb-2">{localized.name}</h2>
+        <p className="text-sm opacity-70 mb-4">{localized.description}</p>
         <div className="flex flex-wrap gap-3 text-sm">
           <Pill icon={<Riyal className="w-3.5 h-3.5" />} label={`${product.price}`} color={accent} />
           <Pill icon={<Flame className="w-3.5 h-3.5" />} label={`${product.calories}`} color={accent} />
-          {product.allergens && (
-            <Pill icon={<AlertCircle className="w-3.5 h-3.5" />} label={product.allergens} color={accent} />
+          {localized.allergens && (
+            <Pill icon={<AlertCircle className="w-3.5 h-3.5" />} label={localized.allergens} color={accent} />
           )}
         </div>
         {product.cropInfo?.beanName?.trim() && (
@@ -160,7 +157,8 @@ const DetailModal = ({
       </div>
     </div>
   </div>
-);
+  );
+};
 
 const Pill = ({
   icon,

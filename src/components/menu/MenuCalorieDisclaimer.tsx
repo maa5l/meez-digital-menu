@@ -72,30 +72,29 @@ const MenuCalorieDisclaimer = ({
 }: Props) => {
   const L = copy[lang];
   const compact = embedded || merged;
-  const textSize = compact ? "text-[6px] leading-[1.2] md:text-[7px]" : "text-[7px] leading-snug md:text-[8px]";
-  const iconSize = compact ? "h-4 w-4 md:h-[18px] md:w-[18px]" : "h-5 w-5";
-  const iconInner = compact ? "h-3.5 w-3.5 md:h-4 md:w-4" : "h-4 w-4";
+  const textSize = compact
+    ? "text-[8px] leading-tight md:text-[10px]"
+    : "text-[9px] leading-snug md:text-[11px]";
+  const iconInner = compact ? "h-4 w-4 shrink-0 md:h-5 md:w-5" : "h-5 w-5 shrink-0";
 
   const list = (
     <ul
       className={cn(
-        "grid grid-cols-3 items-start",
-        compact ? "gap-1.5 md:gap-2" : "gap-2 md:gap-4",
+        "grid grid-cols-3 items-center",
+        compact ? "gap-2 md:gap-3" : "gap-2 md:gap-4",
         className,
       )}
     >
       {L.rows.map(({ id, Icon, label, text }) => (
-        <li key={id} className="flex min-w-0 items-start gap-1 md:gap-1.5" aria-label={label}>
-          <span
-            className={cn("flex shrink-0 items-center justify-center rounded-md", iconSize)}
-            style={{ color: textColor }}
-            aria-hidden
-          >
-            <Icon className={iconInner} strokeWidth={2.25} />
+        <li
+          key={id}
+          className="flex min-w-0 items-center justify-center gap-1.5 md:gap-2"
+          aria-label={label}
+        >
+          <Icon className={iconInner} strokeWidth={2.25} style={{ color: textColor }} aria-hidden />
+          <span className={cn("min-w-0 text-center font-semibold", textSize)} style={{ color: textColor }}>
+            <span className="line-clamp-2">{text}</span>
           </span>
-          <div className={cn("min-w-0 font-medium", textSize)} style={{ color: textColor }}>
-            <span className="opacity-90 line-clamp-2">{text}</span>
-          </div>
         </li>
       ))}
     </ul>

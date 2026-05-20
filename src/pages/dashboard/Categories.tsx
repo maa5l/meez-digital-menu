@@ -3,7 +3,7 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useVenueData } from "@/hooks/useVenueData";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, FolderTree } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -20,16 +20,19 @@ const Categories = () => {
   const products = venue.products;
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [icon, setIcon] = useState("✨");
+  const [nameEn, setNameEn] = useState("");
 
   const add = () => {
     if (!name.trim()) return;
     updateVenue((v) => ({
       ...v,
-      categories: [...v.categories, { id: `c${Date.now()}`, name, icon }],
+      categories: [
+        ...v.categories,
+        { id: `c${Date.now()}`, name, nameEn: nameEn.trim() || undefined },
+      ],
     }));
     setName("");
-    setIcon("✨");
+    setNameEn("");
     setOpen(false);
   };
 
@@ -57,12 +60,18 @@ const Categories = () => {
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label>الأيقونة (إيموجي)</Label>
-                <Input value={icon} onChange={(e) => setIcon(e.target.value)} className="h-12 rounded-xl text-2xl text-center" maxLength={2} />
+                <Label>اسم التصنيف (عربي)</Label>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: المعجنات" className="h-12 rounded-xl" />
               </div>
               <div className="space-y-2">
-                <Label>اسم التصنيف</Label>
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="مثال: المعجنات" className="h-12 rounded-xl" />
+                <Label>Category name (English)</Label>
+                <Input
+                  dir="ltr"
+                  value={nameEn}
+                  onChange={(e) => setNameEn(e.target.value)}
+                  placeholder="e.g. Bakery"
+                  className="h-12 rounded-xl"
+                />
               </div>
             </div>
             <DialogFooter>
@@ -84,8 +93,8 @@ const Categories = () => {
           return (
             <div key={c.id} className="group bg-card border border-border rounded-2xl p-6 hover:shadow-warm hover:border-accent/40 transition-all">
               <div className="flex items-start justify-between mb-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-cream flex items-center justify-center text-3xl">
-                  {c.icon}
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-cream text-primary">
+                  <FolderTree className="h-7 w-7" aria-hidden />
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button variant="ghost" size="icon" className="h-9 w-9">

@@ -1,4 +1,5 @@
-import MenuProductHeader, { headerHideTransition } from "@/components/menu/MenuProductHeader";
+import MenuCropsHeader, { headerHideTransition } from "@/components/menu/MenuCropsHeader";
+import { MenuProductSubheaderBar } from "@/components/menu/MenuProductTopChrome";
 import {
   getMenuProductHeaderHeight,
   getMenuTopChromeHeight,
@@ -16,8 +17,8 @@ type Props = {
   scrollRef: React.Ref<HTMLDivElement>;
 };
 
-/** هيدر ثابت + تصنيفات/لغة مثبتة تحته مباشرة */
-export function MenuProductTopChrome({
+/** هيدر ثابت لمنيو المحاصيل + شريط فرعي (مثل المنتجات) */
+export function MenuCropsTopChrome({
   settings,
   lang,
   visible,
@@ -28,10 +29,9 @@ export function MenuProductTopChrome({
   const headerH = getMenuProductHeaderHeight(settings);
   const hasSubheader = Boolean(subheader);
   const chromeHeight = getMenuTopChromeHeight(hasSubheader);
-
   return (
     <>
-      <MenuProductHeader settings={settings} lang={lang} visible={visible} />
+      <MenuCropsHeader settings={settings} lang={lang} visible={visible} />
 
       {hasSubheader && (
         <div
@@ -60,21 +60,4 @@ export function MenuProductTopChrome({
   );
 }
 
-/** شريط التصنيفات واللغة — شفاف، تحت الهيدر */
-export function MenuProductSubheaderBar({
-  settings: _settings,
-  children,
-}: {
-  settings: MenuSettings;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className="bg-transparent px-5 py-2 md:px-10 md:py-2.5"
-      style={{ minHeight: MENU_SUBHEADER_HEIGHT }}
-      dir="ltr"
-    >
-      {children}
-    </div>
-  );
-}
+export { MENU_SUBHEADER_HEIGHT };

@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Sparkles, Loader2 } from "lucide-react";
 import { Logo } from "@/components/Brand";
 import { loginSchema, signupSchema } from "@/validations/auth.schema";
-import { signIn, signUp } from "@/services/auth/auth.service";
+import { signIn, signUp, usesSupabaseAuth } from "@/services/auth/auth.service";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { checkRateLimit } from "@/security/rate-limit";
 import { RateLimitError, getErrorMessage } from "@/lib/errors";
 import { ROUTES } from "@/config/app";
@@ -22,6 +23,7 @@ const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = (location.state as { from?: string } | null)?.from ?? ROUTES.dashboard;
+  const supabaseAuth = usesSupabaseAuth();
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +54,10 @@ const Auth = () => {
           "venueName" in parsed.data ? parsed.data.venueName : undefined,
         );
         if (needsEmailConfirmation) {
-          toast.success("تم إنشاء الحساب. راجع بريدك لتفعيل الحساب ثم سجّل الدخول.");
+          toast.success(
+            "تم إنشاء الحساب في Supabase. افتح رابط التفعيل في بريدك ثم سجّل الدخول.",
+            { duration: 8000 },
+          );
           setMode("login");
           return;
         }
@@ -137,6 +142,21 @@ const Auth = () => {
           <p className="text-muted-foreground mb-8">
             {mode === "signup" ? "14 يوم بدون بطاقة ائتمان" : "سجّل الدخول للوصول إلى لوحة التحكم"}
           </p>
+
+          {!isSupabaseConfigured() ? (
+            <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-900">
+              Supabase غير مضبوط — أضف VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY في .env.local
+            </p>
+          ) : !supabaseAuth ? (
+            <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-900">
+              وضع تجريبي محلي: الحساب يُحفظ في المتصفح فقط وليس في قاعدة البيانات. لإيقافه:{" "}
+              <code className="text-xs">VITE_USE_LOCAL_MOCK_AUTH=false</code>
+            </p>
+          ) : (
+            <p className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-900">
+              الحساب والمنيو يُحفظان في Supabase
+            </p>
+          )}
 
           <form onSubmit={onSubmit} className="space-y-5" noValidate>
             {mode === "signup" && (

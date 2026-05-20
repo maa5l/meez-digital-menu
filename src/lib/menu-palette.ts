@@ -1,0 +1,76 @@
+import type { CSSProperties } from "react";
+import type { MenuSettings } from "@/types/domain";
+
+/** ألوان منيو واحد (خلفية، نص، مميّز، بطاقات) */
+export type MenuPalette = {
+  bgColor: string;
+  textColor: string;
+  accentColor: string;
+  cardColor?: string;
+  bgImage?: string;
+};
+
+export const defaultProductsPalette: MenuPalette = {
+  bgColor: "#F1EFEC",
+  textColor: "#030303",
+  accentColor: "#3068A8",
+  cardColor: "#ededed",
+};
+
+export const defaultCropsPalette: MenuPalette = {
+  bgColor: "#1A1512",
+  textColor: "#F4EDE4",
+  accentColor: "#B8956B",
+  cardColor: "#2C241C",
+};
+
+function legacyPalette(settings: MenuSettings): MenuPalette {
+  return {
+    bgColor: settings.bgColor ?? defaultProductsPalette.bgColor,
+    textColor: settings.textColor ?? defaultProductsPalette.textColor,
+    accentColor: settings.accentColor ?? defaultProductsPalette.accentColor,
+    cardColor: settings.cardColor ?? defaultProductsPalette.cardColor,
+    bgImage: settings.bgImage,
+  };
+}
+
+/** يطبّق ترحيل الألوان القديمة إلى حزمتين منفصلتين */
+export function migrateMenuSettings(settings: MenuSettings): MenuSettings {
+  const legacy = legacyPalette(settings);
+  const hadLegacyOnly =
+    !settings.productsColors &&
+    !settings.cropsColors &&
+    Boolean(settings.bgColor || settings.textColor || settings.accentColor);
+
+  return {
+    ...settings,
+    productsColors: {
+      ...defaultProductsPalette,
+      ...(hadLegacyOnly ? legacy : {}),
+      ...settings.productsColors,
+    },
+    cropsColors: {
+      ...defaultCropsPalette,
+      ...settings.cropsColors,
+    },
+  };
+}
+
+export function getProductsPalette(settings: MenuSettings): MenuPalette {
+  return migrateMenuSettings(settings).productsColors!;
+}
+
+export function getCropsPalette(settings: MenuSettings): MenuPalette {
+  return migrateMenuSettings(settings).cropsColors!;
+}
+
+export function palettePageStyle(palette: MenuPalette): CSSProperties {
+  return palette.bgImage
+    ? {
+        backgroundImage: `linear-gradient(${palette.bgColor}cc, ${palette.bgColor}ee), url(${palette.bgImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        color: palette.textColor,
+      }
+    : { background: palette.bgColor, color: palette.textColor };
+}

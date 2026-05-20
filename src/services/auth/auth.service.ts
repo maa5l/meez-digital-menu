@@ -3,12 +3,31 @@ import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { setSession, clearSession, createMockSession } from "@/security/session";
 import type { AuthSession } from "@/types/domain";
 import { appEnv } from "@/config/env";
-import { initializeVenueForUser } from "@/lib/venue-store";
+import { initializeVenueForUser, pullVenueFromCloud } from "@/lib/venue-store";
+import { shouldUseVenueDatabase } from "@/services/venue/venue-supabase.service";
+import { ensureUserProfile } from "@/services/auth/profile-supabase.service";
+import { usesSupabaseAuth } from "@/config/env";
+import { logger } from "@/lib/logger";
+
+async function hydrateVenueForUser(userId: string, venueName?: string): Promise<void> {
+  initializeVenueForUser(userId, venueName);
+  if (shouldUseVenueDatabase()) {
+    await pullVenueFromCloud(userId);
+  }
+}
+
+async function afterSupabaseAuth(session: Session, venueName?: string): Promise<void> {
+  await ensureUserProfile(session.user, venueName);
+  await hydrateVenueForUser(
+    session.user.id,
+    venueName || (session.user.user_metadata?.venue_name as string | undefined),
+  );
+}
 
 function mapSupabaseSession(session: Session): AuthSession {
   const venueName =
     (session.user.user_metadata?.venue_name as string | undefined) ?? "";
-  initializeVenueForUser(session.user.id, venueName || undefined);
+  void hydrateVenueForUser(session.user.id, venueName || undefined);
   return {
     userId: session.user.id,
     email: session.user.email ?? "",
@@ -62,8 +81,13 @@ export async function signUp(
   if (error) throw error;
 
   if (data.session) {
+    await afterSupabaseAuth(data.session, venueName);
     syncSessionFromSupabase(data.session);
     return { needsEmailConfirmation: false };
+  }
+
+  if (data.user) {
+    logger.audit("auth.signup_pending_confirmation", { userId: data.user.id });
   }
 
   return { needsEmailConfirmation: true };
@@ -106,8 +130,11 @@ export async function signIn(email: string, password: string): Promise<void> {
   }
 
   if (!data.session) throw new Error("لم يتم إنشاء جلسة. تحقق من تفعيل البريد.");
+  await afterSupabaseAuth(data.session);
   syncSessionFromSupabase(data.session);
 }
+
+export { usesSupabaseAuth };
 
 export async function signOut(): Promise<void> {
   if (isSupabaseConfigured()) {

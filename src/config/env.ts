@@ -4,6 +4,15 @@
  */
 const env = import.meta.env;
 
+const supabaseUrl = (env.VITE_SUPABASE_URL as string | undefined) ?? "";
+const supabaseAnonKey = (env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? "";
+const hasSupabaseKeys = Boolean(
+  supabaseUrl &&
+    supabaseAnonKey &&
+    !supabaseUrl.includes("YOUR_PROJECT") &&
+    supabaseAnonKey !== "your_publishable_or_anon_key",
+);
+
 export const appEnv = {
   mode: env.MODE as "development" | "production" | "test",
   isDev: env.DEV,
@@ -12,15 +21,28 @@ export const appEnv = {
   appUrl: (env.VITE_APP_URL as string | undefined) ?? "http://localhost:8080",
   /** في التطوير: مفعّل افتراضياً. في الإنتاج: فقط عند VITE_ENABLE_MOCK_AUTH=true */
   enableMockAuth: env.PROD ? env.VITE_ENABLE_MOCK_AUTH === "true" : env.VITE_ENABLE_MOCK_AUTH !== "false",
-  /** تطوير محلي: مصادقة mock فقط (بدون Supabase Auth) — أسرع وبدون تأكيد بريد */
+  /**
+   * مصادقة محلية فقط — تُعطَّل تلقائياً عند ضبط مفاتيح Supabase
+   * ما لم يُفرض mock صراحةً بـ VITE_USE_LOCAL_MOCK_AUTH=true
+   */
   useLocalMockAuth:
-    env.DEV &&
-    env.VITE_ENABLE_MOCK_AUTH !== "false" &&
-    env.VITE_FORCE_SUPABASE_AUTH !== "true",
+    env.VITE_FORCE_SUPABASE_AUTH === "true"
+      ? false
+      : env.VITE_USE_LOCAL_MOCK_AUTH === "true"
+        ? true
+        : hasSupabaseKeys
+          ? false
+          : env.DEV && env.VITE_ENABLE_MOCK_AUTH !== "false",
+  hasSupabaseKeys,
   logLevel: (env.VITE_LOG_LEVEL as string | undefined) ?? (env.PROD ? "warn" : "debug"),
-  supabaseUrl: (env.VITE_SUPABASE_URL as string | undefined) ?? "",
-  supabaseAnonKey: (env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? "",
+  supabaseUrl,
+  supabaseAnonKey,
 } as const;
+
+/** هل التسجيل/الدخول يمر عبر Supabase Auth؟ */
+export function usesSupabaseAuth(): boolean {
+  return appEnv.hasSupabaseKeys && !appEnv.useLocalMockAuth;
+}
 
 export function requireApiBaseUrl(): string {
   if (!appEnv.apiBaseUrl) {
