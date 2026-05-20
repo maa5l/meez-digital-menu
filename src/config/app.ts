@@ -5,6 +5,7 @@ export const ROUTES = {
   home: "/",
   auth: "/auth",
   display: "/display",
+  pair: "/pair",
   menu: "/menu",
   dashboard: "/dashboard",
   dashboardCategories: "/dashboard/categories",

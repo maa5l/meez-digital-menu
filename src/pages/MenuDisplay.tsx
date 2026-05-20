@@ -8,10 +8,11 @@ import MenuEmptyState from "@/components/menu/MenuEmptyState";
 import { useMenuVenue } from "@/hooks/useMenuVenue";
 import { getDeviceMenuType, getDeviceMenuTypeAsync } from "@/lib/venue-store";
 import {
-  getOrCreatePendingDeviceCode,
   isDeviceActivated,
   isDeviceActivatedAsync,
+  setPendingDeviceCode,
 } from "@/services/device/activation";
+import { normalizeDeviceCodeParam } from "@/lib/device-pairing";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { appEnv } from "@/config/env";
 import { getCropsPalette, getProductsPalette } from "@/lib/menu-palette";
@@ -25,7 +26,12 @@ const MenuDisplay = () => {
   const typeParam = params.get("type");
   const tplOverride = params.get("tpl");
   const isPreview = params.get("preview") === "1" || !!tplOverride;
-  const [code] = useState(() => getOrCreatePendingDeviceCode());
+  const codeParam = normalizeDeviceCodeParam(params.get("code"));
+  const [code] = useState(() => {
+    if (!codeParam) return "";
+    setPendingDeviceCode(codeParam);
+    return codeParam;
+  });
   const [deviceMenuType, setDeviceMenuType] = useState<"products" | "crops" | null>(() =>
     getDeviceMenuType(code),
   );
@@ -78,13 +84,14 @@ const MenuDisplay = () => {
           <div className="w-20 h-20 rounded-3xl bg-accent/30 mx-auto flex items-center justify-center mb-6">
             <UtensilsCrossed className="w-10 h-10" />
           </div>
-          <h1 className="font-display font-black text-3xl mb-2">جهاز جديد</h1>
-          <p className="opacity-70 mb-8 text-sm">أدخل رمز التفعيل في لوحة التحكم → الأجهزة</p>
-          <div className="bg-card/10 backdrop-blur border border-accent/30 rounded-3xl p-8">
-            <div className="text-xs uppercase tracking-widest opacity-60 mb-3">رمز التفعيل</div>
-            <div className="font-mono font-black text-5xl tracking-[0.3em]">{code}</div>
-          </div>
-          <p className="text-xs opacity-50 mt-6">سيتم التفعيل تلقائياً بعد إدخال الرمز</p>
+          <h1 className="font-display font-black text-3xl mb-2">الجهاز غير مفعّل</h1>
+          <p className="opacity-70 mb-4 text-sm leading-relaxed">
+            من لوحة التحكم → <strong>الأجهزة</strong> اضغط «توليد QR» وامسح الرمز من الآيباد.
+            الرمز يظهر على شاشة الجهاز فقط بعد فتح الرابط.
+          </p>
+          <p className="text-xs opacity-50">
+            سيفتح المنيو تلقائياً بعد التفعيل ضمن حد الشاشات في اشتراكك.
+          </p>
         </div>
       </div>
     );

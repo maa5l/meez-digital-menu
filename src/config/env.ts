@@ -9,7 +9,9 @@ const supabaseAnonKey = (env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? ""
 const hasSupabaseKeys = Boolean(
   supabaseUrl &&
     supabaseAnonKey &&
+    supabaseAnonKey.length >= 20 &&
     !supabaseUrl.includes("YOUR_PROJECT") &&
+    !supabaseAnonKey.includes("your_anon_key") &&
     supabaseAnonKey !== "your_publishable_or_anon_key",
 );
 

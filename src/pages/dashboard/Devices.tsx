@@ -13,7 +13,25 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Copy, Trash2, MonitorSmartphone, Wifi, WifiOff, Coffee, Sprout } from "lucide-react";
+import {
+  Plus,
+  Copy,
+  Trash2,
+  MonitorSmartphone,
+  Wifi,
+  WifiOff,
+  Coffee,
+  Sprout,
+  QrCode,
+  Link2,
+  RefreshCw,
+} from "lucide-react";
+import DevicePairingQr from "@/components/device/DevicePairingQr";
+import { getDevicePairingUrl } from "@/lib/device-pairing";
+import {
+  createPairingSession,
+  fetchPairingSessionCode,
+} from "@/services/device/pairing-session.service";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +53,12 @@ const Devices = () => {
   const [name, setName] = useState("");
   const [menuType, setMenuType] = useState<"products" | "crops">("products");
   const [activationCode, setActivationCode] = useState("");
+  const [pairing, setPairing] = useState<{
+    sessionId: string;
+    code: string | null;
+    menuType: "products" | "crops";
+  } | null>(null);
+  const [pairingLoading, setPairingLoading] = useState(false);
 
   useEffect(() => {
     const ownerId = getCurrentUserId();
@@ -61,6 +85,10 @@ const Devices = () => {
     }
     if (list.length >= subscription.maxScreens) {
       toast.error("وصلت للحد الأقصى. رقّ اشتراكك لإضافة شاشات أخرى.");
+      return;
+    }
+    if (list.some((d) => d.code === activationCode.trim().toUpperCase())) {
+      toast.error("هذا الرمز مفعّل مسبقاً");
       return;
     }
     const parsed = deviceActivationCodeSchema.safeParse({ code: activationCode });
@@ -99,7 +127,8 @@ const Devices = () => {
     setName("");
     setActivationCode("");
     setMenuType("products");
-    toast.success("تم تفعيل الجهاز");
+    setPairing(null);
+    toast.success("تم تفعيل الجهاز — ستفتح المنيو على الآيباد تلقائياً");
     setOpen(false);
   };
 
@@ -109,14 +138,68 @@ const Devices = () => {
       devices: v.devices.filter((d) => d.id !== id),
       subscription: { ...v.subscription, screens: Math.max(0, v.devices.length - 1) },
     }));
-  const copy = (code: string) => {
-    navigator.clipboard.writeText(code);
-    toast.success("تم نسخ الرمز");
+  const copy = (text: string, label = "تم النسخ") => {
+    void navigator.clipboard.writeText(text);
+    toast.success(label);
   };
 
   const used = list.length;
   const max = subscription.maxScreens;
-  const pct = (used / max) * 100;
+  const canAddScreen = used < max;
+  const pct = max > 0 ? (used / max) * 100 : 0;
+
+  const generatePairing = async () => {
+    if (!canAddScreen) {
+      toast.error(`وصلت للحد الأقصى (${max} شاشة). رقّ اشتراكك لإضافة المزيد.`);
+      return;
+    }
+    const ownerId = getCurrentUserId();
+    if (!ownerId) {
+      toast.error("سجّل الدخول أولاً");
+      return;
+    }
+
+    setPairingLoading(true);
+    try {
+      const sessionId = await createPairingSession(ownerId);
+      setPairing({ sessionId, code: null, menuType: "products" });
+      toast.success("امسح QR من الآيباد — سيظهر الرمز على الشاشة");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setPairingLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!pairing || pairing.code) return;
+    const ownerId = getCurrentUserId();
+    if (!ownerId) return;
+
+    const poll = async () => {
+      const code = await fetchPairingSessionCode(pairing.sessionId, ownerId);
+      if (code) {
+        setPairing((prev) => (prev ? { ...prev, code } : prev));
+      }
+    };
+
+    void poll();
+    const interval = setInterval(() => void poll(), 1500);
+    return () => clearInterval(interval);
+  }, [pairing?.sessionId, pairing?.code]);
+
+  const openActivateWithPairing = () => {
+    if (!pairing?.code) return;
+    if (!canAddScreen) {
+      toast.error(`وصلت للحد الأقصى (${max} شاشة)`);
+      return;
+    }
+    setActivationCode(pairing.code);
+    setMenuType(pairing.menuType);
+    setOpen(true);
+  };
+
+  const pairingUrl = pairing ? getDevicePairingUrl(pairing.sessionId) : "";
 
   return (
     <DashboardLayout
@@ -125,7 +208,7 @@ const Devices = () => {
       action={
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button variant="hero" size="lg">
+            <Button variant="hero" size="lg" disabled={!canAddScreen}>
               <Plus className="w-4 h-4" />
               جهاز جديد
             </Button>
@@ -187,6 +270,111 @@ const Devices = () => {
         </Dialog>
       }
     >
+      <div className="bg-card rounded-2xl border border-border p-6 mb-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="font-display font-bold text-xl text-primary flex items-center gap-2">
+              <QrCode className="w-5 h-5 text-accent" />
+              ربط آيباد جديد
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+              امسح QR من الآيباد — <strong className="text-foreground">الرمز يظهر على شاشة الجهاز فقط</strong>.
+              بعدها فعّله هنا (متاح {max - used} من {max} شاشة).
+            </p>
+          </div>
+          <Button
+            variant="hero"
+            onClick={() => void generatePairing()}
+            className="shrink-0"
+            disabled={!canAddScreen || pairingLoading}
+          >
+            <RefreshCw className={`w-4 h-4 ${pairingLoading ? "animate-spin" : ""}`} />
+            {pairing ? "جلسة جديدة" : "توليد QR"}
+          </Button>
+        </div>
+
+        {pairing && (
+          <div className="mt-6 grid md:grid-cols-[auto_1fr] gap-6 items-start border-t border-border pt-6">
+            <div className="flex flex-col items-center gap-3">
+              <DevicePairingQr url={pairingUrl} size={180} />
+              <p className="text-[10px] text-muted-foreground text-center">امسح من كاميرا الآيباد</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-secondary/50 rounded-xl p-4">
+                <div className="text-xs text-muted-foreground mb-1">رمز التفعيل</div>
+                {pairing.code ? (
+                  <div className="font-mono font-black text-3xl tracking-[0.2em] text-primary" dir="ltr">
+                    {pairing.code}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    في انتظار فتح الرابط على الآيباد…
+                  </p>
+                )}
+              </div>
+
+              <div className="bg-secondary/50 rounded-xl p-4">
+                <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                  <Link2 className="w-3.5 h-3.5" />
+                  رابط الآيباد
+                </div>
+                <p className="font-mono text-xs text-primary break-all leading-relaxed" dir="ltr">
+                  {pairingUrl}
+                </p>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <Button variant="outline" size="sm" onClick={() => copy(pairingUrl, "تم نسخ الرابط")}>
+                    <Copy className="w-3.5 h-3.5" />
+                    نسخ الرابط
+                  </Button>
+                  {pairing.code && (
+                    <Button variant="outline" size="sm" onClick={() => copy(pairing.code!, "تم نسخ الرمز")}>
+                      نسخ الرمز
+                    </Button>
+                  )}
+                  <Button
+                    variant="hero"
+                    size="sm"
+                    onClick={openActivateWithPairing}
+                    disabled={!pairing.code || !canAddScreen}
+                  >
+                    تفعيل هذا الرمز
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 max-w-xs">
+                <button
+                  type="button"
+                  onClick={() => setPairing((p) => (p ? { ...p, menuType: "products" } : p))}
+                  className={`p-3 rounded-xl border-2 text-right text-xs transition-all ${
+                    pairing.menuType === "products"
+                      ? "border-accent bg-accent/10"
+                      : "border-border hover:border-accent/40"
+                  }`}
+                >
+                  <Coffee className="w-4 h-4 mb-1 text-accent" />
+                  منيو المنتجات
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPairing((p) => (p ? { ...p, menuType: "crops" } : p))}
+                  className={`p-3 rounded-xl border-2 text-right text-xs transition-all ${
+                    pairing.menuType === "crops"
+                      ? "border-accent bg-accent/10"
+                      : "border-border hover:border-accent/40"
+                  }`}
+                >
+                  <Sprout className="w-4 h-4 mb-1 text-accent" />
+                  منيو المحاصيل
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Usage bar */}
       <div className="bg-card rounded-2xl border border-border p-6 mb-6">
         <div className="flex items-center justify-between mb-3">

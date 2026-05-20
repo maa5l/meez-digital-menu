@@ -30,5 +30,5 @@ export function getSupabase() {
 }
 
 export function isSupabaseConfigured(): boolean {
-  return Boolean(appEnv.supabaseUrl && appEnv.supabaseAnonKey);
+  return appEnv.hasSupabaseKeys;
 }

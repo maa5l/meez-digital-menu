@@ -45,6 +45,16 @@ export function createEmptyVenueData(): VenueData {
   };
 }
 
+/** لا منتجات ولا تصنيفات ولا أجهزة — منشأة جديدة فعلياً */
+export function isVenueEffectivelyEmpty(data: VenueData): boolean {
+  return (
+    data.products.length === 0 &&
+    data.categories.length === 0 &&
+    data.crops.length === 0 &&
+    data.devices.length === 0
+  );
+}
+
 function venueKey(userId: string): string {
   return `${VENUE_PREFIX}${userId}`;
 }
@@ -145,7 +155,7 @@ export function saveVenueData(userId: string, data: VenueData): void {
   }
 }
 
-/** مزامنة من السحابة — الأحدث بين المحلي والبعيد يفوز */
+/** مزامنة من السحابة — البعيد يفوز إذا المحلي فارغ (مثلاً أول زيارة من Vercel) */
 export async function pullVenueFromCloud(userId: string): Promise<VenueData> {
   const local = loadVenueData(userId);
   if (!shouldUseVenueDatabase()) return local;
@@ -153,18 +163,30 @@ export async function pullVenueFromCloud(userId: string): Promise<VenueData> {
   try {
     const remote = await fetchVenueFromDatabase(userId);
     if (!remote || remote.version !== 1) {
-      if (local.products.length > 0 || local.categories.length > 0) {
+      if (!isVenueEffectivelyEmpty(local)) {
         await saveVenueToDatabase(userId, local);
       }
       return local;
     }
 
-    const remoteTime = Date.parse(remote.updatedAt) || 0;
+    const remoteNorm = normalizeVenue(remote);
+
+    if (isVenueEffectivelyEmpty(local) && !isVenueEffectivelyEmpty(remoteNorm)) {
+      saveVenueDataLocal(userId, remoteNorm);
+      return remoteNorm;
+    }
+
+    if (!isVenueEffectivelyEmpty(local) && isVenueEffectivelyEmpty(remoteNorm)) {
+      await saveVenueToDatabase(userId, local);
+      return local;
+    }
+
+    const remoteTime = Date.parse(remoteNorm.updatedAt) || 0;
     const localTime = Date.parse(local.updatedAt) || 0;
 
     if (remoteTime >= localTime) {
-      saveVenueDataLocal(userId, remote);
-      return remote;
+      saveVenueDataLocal(userId, remoteNorm);
+      return remoteNorm;
     }
 
     await saveVenueToDatabase(userId, local);

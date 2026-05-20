@@ -6,6 +6,7 @@ import { PublicOnlyRoute } from "@/middleware/PublicOnlyRoute";
 const Index = lazy(() => import("@/pages/Index"));
 const Auth = lazy(() => import("@/pages/Auth"));
 const DeviceCode = lazy(() => import("@/pages/DeviceCode"));
+const DevicePairing = lazy(() => import("@/pages/DevicePairing"));
 const MenuDisplay = lazy(() => import("@/pages/MenuDisplay"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const Overview = lazy(() => import("@/pages/dashboard/Overview"));
@@ -40,6 +41,7 @@ export function AppRoutes() {
             }
           />
           <Route path="/display" element={<DeviceCode />} />
+          <Route path="/pair" element={<DevicePairing />} />
           <Route path="/menu" element={<MenuDisplay />} />
 
           <Route

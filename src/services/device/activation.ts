@@ -27,14 +27,35 @@ export function getPendingDeviceCode(): string | null {
   return getLocalString(STORAGE_KEYS.DEVICE_PENDING_CODE);
 }
 
+export function setPendingDeviceCode(code: string): string {
+  const normalized = code.trim().toUpperCase();
+  if (!isValidDeviceCode(normalized)) {
+    throw new Error("رمز التفعيل غير صالح");
+  }
+  setLocalString(STORAGE_KEYS.DEVICE_PENDING_CODE, normalized);
+  return normalized;
+}
+
 export function getOrCreatePendingDeviceCode(): string {
   const existing = getPendingDeviceCode();
   if (existing && isValidDeviceCode(existing)) return existing.toUpperCase();
 
+  return setPendingDeviceCode(generateDeviceCode());
+}
+
+/** رمز جديد للربط من لوحة التحكم (لا يعتمد على تخزين الآيباد) */
+export function createPairingCode(): string {
   const code = generateDeviceCode();
-  setLocalString(STORAGE_KEYS.DEVICE_PENDING_CODE, code);
-  logger.audit("device.code_generated");
+  logger.audit("device.pairing_code_created", { code });
   return code;
+}
+
+export function resolveDeviceCode(codeParam?: string | null): string {
+  if (codeParam) {
+    const normalized = setPendingDeviceCode(codeParam);
+    return normalized;
+  }
+  return getOrCreatePendingDeviceCode();
 }
 
 export function isDeviceActivated(code: string): boolean {

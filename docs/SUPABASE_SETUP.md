@@ -17,14 +17,30 @@
 
 ## إعداد `.env.local`
 
+من Supabase → **Project Settings → API**:
+
+| الحقل في Supabase | متغير التطبيق |
+|-------------------|----------------|
+| Project URL | `VITE_SUPABASE_URL` |
+| **anon public** (JWT يبدأ بـ `eyJ...`) | `VITE_SUPABASE_ANON_KEY` |
+
 ```env
 VITE_SUPABASE_URL=https://feorprugthydhyytvebe.supabase.co
-VITE_SUPABASE_ANON_KEY=your_publishable_or_anon_key
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
-# لتفعيل Supabase Auth بدل الحساب التجريبي المحلي:
 VITE_ENABLE_MOCK_AUTH=false
-VITE_FORCE_SUPABASE_AUTH=true
 ```
+
+> على **Vercel** استخدم مفتاح **anon public** (`eyJ...`) وليس `sb_publishable_...` إذا رفض المنصة القيمة.  
+> بعد أي تعديل على `.env.local` أعد تشغيل `npm run dev`.
+
+### Vercel — أخطاء شائعة
+
+| الرسالة | الحل |
+|---------|------|
+| `already exists` | عدّل المتغير الحالي (Edit) بدل إنشاء نسخة ثانية |
+| `is invalid` | احذف المتغير؛ الصق مفتاح `eyJ...` كاملاً بدون `"` أو مسافات |
+| اسم غير صالح | الاسم فقط: `VITE_SUPABASE_ANON_KEY` (شرطات سفلية `_` وليس `-`) |
 
 ## تطبيق الـ migrations (مرة واحدة)
 

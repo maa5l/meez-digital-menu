@@ -3,17 +3,25 @@ import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { setSession, clearSession, createMockSession } from "@/security/session";
 import type { AuthSession } from "@/types/domain";
 import { appEnv } from "@/config/env";
-import { initializeVenueForUser, pullVenueFromCloud } from "@/lib/venue-store";
+import {
+  initializeVenueForUser,
+  isVenueEffectivelyEmpty,
+  pullVenueFromCloud,
+} from "@/lib/venue-store";
 import { shouldUseVenueDatabase } from "@/services/venue/venue-supabase.service";
 import { ensureUserProfile } from "@/services/auth/profile-supabase.service";
 import { usesSupabaseAuth } from "@/config/env";
 import { logger } from "@/lib/logger";
 
 async function hydrateVenueForUser(userId: string, venueName?: string): Promise<void> {
-  initializeVenueForUser(userId, venueName);
   if (shouldUseVenueDatabase()) {
-    await pullVenueFromCloud(userId);
+    const venue = await pullVenueFromCloud(userId);
+    if (isVenueEffectivelyEmpty(venue)) {
+      initializeVenueForUser(userId, venueName);
+    }
+    return;
   }
+  initializeVenueForUser(userId, venueName);
 }
 
 async function afterSupabaseAuth(session: Session, venueName?: string): Promise<void> {
@@ -25,9 +33,6 @@ async function afterSupabaseAuth(session: Session, venueName?: string): Promise<
 }
 
 function mapSupabaseSession(session: Session): AuthSession {
-  const venueName =
-    (session.user.user_metadata?.venue_name as string | undefined) ?? "";
-  void hydrateVenueForUser(session.user.id, venueName || undefined);
   return {
     userId: session.user.id,
     email: session.user.email ?? "",
@@ -50,6 +55,14 @@ export async function getActiveSession(): Promise<AuthSession | null> {
   if (isSupabaseConfigured() && !appEnv.useLocalMockAuth) {
     const { data, error } = await getSupabase().auth.getSession();
     if (error) throw error;
+    if (data.session) {
+      const venueName =
+        (data.session.user.user_metadata?.venue_name as string | undefined) ?? "";
+      await hydrateVenueForUser(
+        data.session.user.id,
+        venueName || undefined,
+      );
+    }
     return syncSessionFromSupabase(data.session);
   }
   const { getSession } = await import("@/security/session");
