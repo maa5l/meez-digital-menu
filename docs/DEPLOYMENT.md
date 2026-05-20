@@ -1,5 +1,27 @@
 # Deployment
 
+## Vercel (الواجهة — موصى به)
+
+التطبيق يتصل بـ **Supabase** من المتصفح؛ لا حاجة لنشر `backend/` (FastAPI) على Vercel مع الواجهة الحالية.
+
+1. استورد المستودع من GitHub.
+2. **Application Preset:** اختر **Vite** (وليس Services).
+3. **Root Directory:** `./`
+4. **Environment Variables** (Production):
+
+| المتغير | مثال |
+|---------|------|
+| `VITE_SUPABASE_URL` | `https://xxxx.supabase.co` |
+| `VITE_SUPABASE_ANON_KEY` | مفتاح anon من Supabase |
+| `VITE_APP_URL` | `https://your-app.vercel.app` |
+| `VITE_ENABLE_MOCK_AUTH` | `false` |
+
+5. اضغط **Deploy**.
+
+ملف `vercel.json` في الجذر يوجّه كل المسارات إلى `index.html` (React Router).
+
+> إذا ظهرت رسالة «vercel.json required for multiple services»، غيّر الإعداد من **Services** إلى **Vite**.
+
 ## Docker (Frontend)
 
 ```bash
