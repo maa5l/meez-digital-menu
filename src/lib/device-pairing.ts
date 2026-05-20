@@ -1,17 +1,17 @@
-import { appEnv } from "@/config/env";
+import { resolveAppOrigin } from "@/config/env";
 import { ROUTES } from "@/config/app";
 import { isValidDeviceCode } from "@/services/device/activation";
 import { isPairingSessionId } from "@/services/device/pairing-session.service";
 
 /** رابط فتح شاشة الربط على الآيباد (جلسة فقط — الرمز يُولَّد على الجهاز) */
-export function getDevicePairingUrl(sessionId: string, baseUrl = appEnv.appUrl): string {
-  const origin = baseUrl.replace(/\/$/, "");
+export function getDevicePairingUrl(sessionId: string, baseUrl?: string): string {
+  const origin = (baseUrl ?? resolveAppOrigin()).replace(/\/$/, "");
   return `${origin}${ROUTES.pair}?sid=${encodeURIComponent(sessionId)}`;
 }
 
 /** رابط المنيو بعد التفعيل */
-export function getDeviceMenuUrl(code: string, baseUrl = appEnv.appUrl): string {
-  const origin = baseUrl.replace(/\/$/, "");
+export function getDeviceMenuUrl(code: string, baseUrl?: string): string {
+  const origin = (baseUrl ?? resolveAppOrigin()).replace(/\/$/, "");
   return `${origin}${ROUTES.menu}?code=${encodeURIComponent(code.trim().toUpperCase())}`;
 }
 

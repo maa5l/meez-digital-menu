@@ -8,6 +8,7 @@ import { Logo } from "@/components/Brand";
 import { loginSchema, signupSchema } from "@/validations/auth.schema";
 import { signIn, signUp, usesSupabaseAuth } from "@/services/auth/auth.service";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
+import { appEnv } from "@/config/env";
 import { checkRateLimit } from "@/security/rate-limit";
 import { RateLimitError, getErrorMessage } from "@/lib/errors";
 import { ROUTES } from "@/config/app";
@@ -69,10 +70,19 @@ const Auth = () => {
       navigate(redirectTo, { replace: true });
     } catch (error) {
       const msg = getErrorMessage(error);
-      if (msg.toLowerCase().includes("invalid login")) {
-        setFieldError("البريد أو كلمة المرور غير صحيحة");
-      } else if (msg.toLowerCase().includes("email not confirmed")) {
+      const lower = msg.toLowerCase();
+      if (lower.includes("invalid login") || lower.includes("invalid_credentials")) {
+        setFieldError(
+          supabaseAuth
+            ? "البريد أو كلمة المرور غير صحيحة. إن سجّلت محلياً بوضع تجريبي، أنشئ حساباً من هنا أو استخدم نفس بريد Supabase."
+            : "البريد أو كلمة المرور غير صحيحة",
+        );
+      } else if (lower.includes("email not confirmed")) {
         setFieldError("فعّل حسابك من رابط البريد الإلكتروني أولاً");
+      } else if (lower.includes("invalid api key") || lower.includes("jwt")) {
+        setFieldError("مفتاح Supabase على Vercel غير صحيح. راجع VITE_SUPABASE_ANON_KEY وأعد النشر.");
+      } else if (msg.includes("المصادقة غير متاحة")) {
+        setFieldError(msg);
       } else {
         setFieldError(msg);
       }
@@ -144,8 +154,10 @@ const Auth = () => {
           </p>
 
           {!isSupabaseConfigured() ? (
-            <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-900">
-              Supabase غير مضبوط — أضف VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY في .env.local
+            <p className="mb-4 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
+              {appEnv.isProd
+                ? "Supabase غير مضبوط على Vercel — أضف VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY (مفتاح eyJ…) ثم Redeploy."
+                : "Supabase غير مضبوط — أضف VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY في .env.local"}
             </p>
           ) : !supabaseAuth ? (
             <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-900">

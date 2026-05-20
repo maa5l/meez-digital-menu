@@ -2,7 +2,7 @@ import type { Session } from "@supabase/supabase-js";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { setSession, clearSession, createMockSession } from "@/security/session";
 import type { AuthSession } from "@/types/domain";
-import { appEnv } from "@/config/env";
+import { appEnv, resolveAppOrigin } from "@/config/env";
 import {
   initializeVenueForUser,
   isVenueEffectivelyEmpty,
@@ -87,7 +87,7 @@ export async function signUp(
     password,
     options: {
       data: { venue_name: venueName ?? "" },
-      emailRedirectTo: `${appEnv.appUrl}/auth`,
+      emailRedirectTo: `${resolveAppOrigin()}/auth`,
     },
   });
 
@@ -125,7 +125,9 @@ function isEmailNotConfirmed(error: unknown): boolean {
 export async function signIn(email: string, password: string): Promise<void> {
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
     if (!appEnv.enableMockAuth && appEnv.isProd) {
-      throw new Error("المصادقة غير متاحة");
+      throw new Error(
+        "المصادقة غير متاحة على السيرفر. أضف VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY في Vercel ثم Redeploy.",
+      );
     }
     const session = createMockSession(email);
     setSession(session);

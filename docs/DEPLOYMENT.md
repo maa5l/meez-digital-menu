@@ -13,8 +13,12 @@
 |------|--------|
 | `VITE_SUPABASE_URL` | `https://feorprugthydhyytvebe.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | مفتاح **anon public** من Supabase (JWT يبدأ بـ `eyJ` — انظر أدناه) |
-| `VITE_APP_URL` | `https://your-app.vercel.app` |
+| `VITE_APP_URL` | `https://your-app.vercel.app` (اختياري — QR يستخدم نطاق الصفحة تلقائياً) |
 | `VITE_ENABLE_MOCK_AUTH` | `false` |
+
+**Supabase → Authentication → URL Configuration:**  
+أضف رابط Vercel في **Site URL** و**Redirect URLs**، مثل:  
+`https://your-app.vercel.app` و `https://your-app.vercel.app/auth`
 
 **إذا ظهر:** `already exists` → لا تنشئ متغيراً جديداً؛ اضغط **Edit** على الموجود.  
 **إذا ظهر:** `is invalid` → احذف المتغير وأعد إضافته بمفتاح `eyJ...` بدون علامات اقتباس أو مسافات.

@@ -46,6 +46,24 @@ export function usesSupabaseAuth(): boolean {
   return appEnv.hasSupabaseKeys && !appEnv.useLocalMockAuth;
 }
 
+/**
+ * أصل التطبيق للروابط والـ QR — في المتصفح يستخدم النطاق الحالي
+ * (يصلح QR على Vercel حتى لو VITE_APP_URL = localhost).
+ */
+export function resolveAppOrigin(): string {
+  if (typeof window !== "undefined") {
+    const configured = appEnv.appUrl.replace(/\/$/, "");
+    const current = window.location.origin;
+    const configuredIsLocal = /localhost|127\.0\.0\.1/i.test(configured);
+    if (configuredIsLocal) return current;
+    if (configured.startsWith("http") && configured !== current) {
+      return configured;
+    }
+    return current;
+  }
+  return appEnv.appUrl.replace(/\/$/, "");
+}
+
 export function requireApiBaseUrl(): string {
   if (!appEnv.apiBaseUrl) {
     throw new Error("VITE_API_BASE_URL is not configured");
