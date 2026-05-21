@@ -46,6 +46,21 @@ export function createEmptyVenueData(): VenueData {
 }
 
 /** لا منتجات ولا تصنيفات ولا أجهزة — منشأة جديدة فعلياً */
+/** مزامنة اسم المنشأة من profiles إلى عنوان المنيو */
+export function syncVenueNameFromProfile(venue: VenueData, venueName: string | null | undefined): VenueData {
+  const name = venueName?.trim();
+  if (!name) return venue;
+  const current = venue.menuSettings.featuredTitle?.trim();
+  if (current === name) return venue;
+  return {
+    ...venue,
+    menuSettings: {
+      ...venue.menuSettings,
+      featuredTitle: name,
+    },
+  };
+}
+
 export function isVenueEffectivelyEmpty(data: VenueData): boolean {
   return (
     data.products.length === 0 &&

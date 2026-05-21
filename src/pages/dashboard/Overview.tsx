@@ -1,5 +1,6 @@
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useVenueData } from "@/hooks/useVenueData";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { FolderTree, UtensilsCrossed, MonitorSmartphone, TrendingUp, ArrowUpRight } from "lucide-react";
 import { Riyal } from "@/components/Brand";
 import { Link } from "react-router-dom";
@@ -7,7 +8,10 @@ import { Button } from "@/components/ui/button";
 
 const Overview = () => {
   const [venue] = useVenueData();
+  const { profile } = useUserProfile();
   const { categories, products, devices, subscription } = venue;
+  const displayName =
+    profile?.venueName?.trim() || venue.menuSettings.featuredTitle?.trim() || "منشأتك";
 
   const stats = [
     { label: "التصنيفات", value: categories.length, icon: FolderTree, color: "bg-blue-500/10 text-blue-600" },
@@ -21,7 +25,10 @@ const Overview = () => {
   ];
 
   return (
-    <DashboardLayout title="نظرة عامة" subtitle="مرحبًا بك مجددًا — إليك ما يجري في منشأتك">
+    <DashboardLayout
+      title="نظرة عامة"
+      subtitle={`مرحبًا بك في ${displayName} — إليك ما يجري في منشأتك`}
+    >
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {stats.map((s) => (
           <div key={s.label} className="bg-card rounded-2xl p-6 border border-border hover:shadow-soft transition-all">
@@ -88,8 +95,8 @@ const Overview = () => {
             <Link to="/dashboard/categories" className="block p-3 rounded-xl hover:bg-secondary transition-colors font-semibold text-primary">
               + أنشئ تصنيف
             </Link>
-            <Link to="/dashboard/devices" className="block p-3 rounded-xl hover:bg-secondary transition-colors font-semibold text-primary">
-              + ولّد رمز جهاز
+            <Link to="/dashboard/link-device" className="block p-3 rounded-xl hover:bg-secondary transition-colors font-semibold text-primary">
+              + كود تحقق لشاشة جديدة
             </Link>
             <Link to="/menu?preview=1" className="block p-3 rounded-xl hover:bg-secondary transition-colors font-semibold text-accent">
               ↗ عاين المنيو

@@ -72,6 +72,30 @@ export async function isDeviceActivatedAsync(code: string): Promise<boolean> {
   return isDeviceActivatedInDatabase(normalized);
 }
 
+export type DeviceRegistrationStatus = "checking" | "not_registered" | "registered";
+
+/**
+ * تحقق على شاشة الآيباد فقط — لا يعتمد على تخزين لوحة التحكم (نفس المتصفح).
+ * مع Supabase: التسجيل من قاعدة البيانات فقط.
+ */
+export async function checkDeviceRegistrationOnKiosk(
+  code: string,
+): Promise<DeviceRegistrationStatus> {
+  const normalized = code.trim().toUpperCase();
+  if (!isValidDeviceCode(normalized)) return "not_registered";
+
+  if (shouldUseVenueDatabase()) {
+    const inDb = await isDeviceActivatedInDatabase(normalized);
+    return inDb ? "registered" : "not_registered";
+  }
+
+  return isDeviceActivated(normalized) ? "registered" : "not_registered";
+}
+
+export async function isDeviceActivatedOnKiosk(code: string): Promise<boolean> {
+  return (await checkDeviceRegistrationOnKiosk(code)) === "registered";
+}
+
 export function activateDevice(
   code: string,
   options?: { menuType?: "products" | "crops" },

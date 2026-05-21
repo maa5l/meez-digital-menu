@@ -3,10 +3,10 @@ import { ROUTES } from "@/config/app";
 import { isValidDeviceCode } from "@/services/device/activation";
 import { isPairingSessionId } from "@/services/device/pairing-session.service";
 
-/** رابط فتح شاشة الربط على الآيباد (جلسة فقط — الرمز يُولَّد على الجهاز) */
-export function getDevicePairingUrl(sessionId: string, baseUrl?: string): string {
+/** رابط شاشة الجهاز مع كود التحقق */
+export function getDevicePairingUrlWithCode(code: string, baseUrl?: string): string {
   const origin = (baseUrl ?? resolveAppOrigin()).replace(/\/$/, "");
-  return `${origin}${ROUTES.pair}?sid=${encodeURIComponent(sessionId)}`;
+  return `${origin}${ROUTES.pair}?code=${encodeURIComponent(code.trim().toUpperCase())}`;
 }
 
 /** رابط المنيو بعد التفعيل */

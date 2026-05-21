@@ -164,11 +164,7 @@ const Auth = () => {
               وضع تجريبي محلي: الحساب يُحفظ في المتصفح فقط وليس في قاعدة البيانات. لإيقافه:{" "}
               <code className="text-xs">VITE_USE_LOCAL_MOCK_AUTH=false</code>
             </p>
-          ) : (
-            <p className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-900">
-              الحساب والمنيو يُحفظان في Supabase
-            </p>
-          )}
+          ) : null}
 
           <form onSubmit={onSubmit} className="space-y-5" noValidate>
             {mode === "signup" && (

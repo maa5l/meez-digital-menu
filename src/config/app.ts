@@ -12,6 +12,7 @@ export const ROUTES = {
   dashboardProducts: "/dashboard/products",
   dashboardCrops: "/dashboard/crops",
   dashboardDevices: "/dashboard/devices",
+  dashboardLinkDevice: "/dashboard/link-device",
   dashboardTheme: "/dashboard/theme",
   dashboardSubscription: "/dashboard/subscription",
   dashboardSettings: "/dashboard/settings",

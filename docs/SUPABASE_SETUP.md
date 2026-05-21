@@ -7,8 +7,8 @@
 
 | الجدول / الدالة | المحتوى |
 |-----------------|---------|
-| `profiles` | المستخدمون (مرتبط بـ Supabase Auth) |
-| `venues` | بيانات المنشأة كاملة: تصنيفات، منتجات، محاصيل، أجهزة، ثيم، اشتراك |
+| `profiles` | الحساب: بريد، اسم المالك، اسم المنشأة، جوال (مرتبط بـ Auth) |
+| `venues` | بيانات المنشأة كاملة: تصنيفات، منتجات، محاصيل، أجهزة، ثيم، اشتراك (`owner_id` → `profiles`) |
 | `device_activations` | ربط رمز الشاشة بصاحب الحساب |
 | `get_venue_for_device(code)` | جلب منيو الشاشة بدون تسجيل دخول |
 | `is_device_activated(code)` | التحقق من تفعيل الجهاز |
@@ -52,8 +52,13 @@ VITE_ENABLE_MOCK_AUTH=false
    - `supabase/migrations/20260519233000_venues_and_device_activations.sql`
    - `supabase/migrations/20260520010000_profiles_insert_policy.sql`
    - `supabase/migrations/20260520020000_ensure_profile_rpc.sql`
+   - `supabase/migrations/20260520120000_device_pairing_sessions.sql`
+   - `supabase/migrations/20260520130000_profiles_phone_and_venue_link.sql`
+   - `supabase/migrations/20260520140000_verification_code_flow.sql`
 
-**أو ملف واحد سريع عند الخطأ:** `supabase/FIX_PROFILES.sql`
+**أو ملف واحد سريع عند الخطأ:** `supabase/FIX_PROFILES.sql`  
+**عند `PGRST204` وعمود phone:** `supabase/FIX_PROFILES_PHONE.sql`  
+**عند «تعذّر إنشاء كود التحقق» أو `profiles does not exist`:** نفّذ **`supabase/FIX_VERIFICATION_CODE.sql`** (ملف واحد يُنشئ كل الجداول)
 
 ### الطريقة 2 — CLI
 
@@ -71,9 +76,10 @@ npm run supabase:db:push
 ## سلوك التطبيق
 
 1. **لوحة التحكم:** كل حفظ → `venues` في Supabase + cache محلي
-2. **تسجيل الدخول:** سحب أحدث بيانات من السحابة
-3. **تفعيل جهاز:** من الأجهزة → يُسجَّل في `device_activations`
-4. **شاشة المنيو:** تقرأ عبر `get_venue_for_device` كل ~2.5 ثانية
+2. **الإعدادات:** تحديث `profiles` + مزامنة اسم المنشأة مع `venues.data`
+3. **تسجيل الدخول:** إنشاء/تحديث `profiles` + `venues` ثم سحب أحدث بيانات
+4. **تفعيل جهاز:** من الأجهزة → يُسجَّل في `device_activations`
+5. **شاشة المنيو:** تقرأ عبر `get_venue_for_device` كل ~2.5 ثانية
 
 ## أوامر مفيدة
 

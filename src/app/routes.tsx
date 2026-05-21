@@ -14,6 +14,7 @@ const Categories = lazy(() => import("@/pages/dashboard/Categories"));
 const Products = lazy(() => import("@/pages/dashboard/Products"));
 const Crops = lazy(() => import("@/pages/dashboard/Crops"));
 const Devices = lazy(() => import("@/pages/dashboard/Devices"));
+const LinkDevice = lazy(() => import("@/pages/dashboard/LinkDevice"));
 const Theme = lazy(() => import("@/pages/dashboard/Theme"));
 const Subscription = lazy(() => import("@/pages/dashboard/Subscription"));
 const Settings = lazy(() => import("@/pages/dashboard/Settings"));
@@ -81,6 +82,14 @@ export function AppRoutes() {
             element={
               <ProtectedRoute>
                 <Devices />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/link-device"
+            element={
+              <ProtectedRoute>
+                <LinkDevice />
               </ProtectedRoute>
             }
           />

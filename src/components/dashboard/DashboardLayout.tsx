@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { LayoutDashboard, FolderTree, UtensilsCrossed, MonitorSmartphone, CreditCard, LogOut, Settings, Coffee, Palette } from "lucide-react";
+import { LayoutDashboard, FolderTree, UtensilsCrossed, MonitorSmartphone, CreditCard, LogOut, Settings, Coffee, Palette, Tablet } from "lucide-react";
+import { isIpadTrialMode } from "@/config/ipad-trial";
 import { Logo } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/services/auth/auth.service";
@@ -13,6 +14,11 @@ const navItems = [
   { to: "/dashboard/crops", label: "محاصيل البن", icon: Coffee },
   { to: "/dashboard/theme", label: "الثيم", icon: Palette },
   { to: "/dashboard/devices", label: "الأجهزة", icon: MonitorSmartphone },
+  {
+    to: "/dashboard/link-device",
+    label: isIpadTrialMode ? "تطبيق الآيباد" : "كود التحقق",
+    icon: Tablet,
+  },
   { to: "/dashboard/subscription", label: "الاشتراك", icon: CreditCard },
   { to: "/dashboard/settings", label: "الإعدادات", icon: Settings },
 ];

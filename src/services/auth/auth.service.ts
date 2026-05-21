@@ -6,10 +6,17 @@ import { appEnv, resolveAppOrigin } from "@/config/env";
 import {
   initializeVenueForUser,
   isVenueEffectivelyEmpty,
+  loadVenueData,
   pullVenueFromCloud,
+  saveVenueData,
+  syncVenueNameFromProfile,
 } from "@/lib/venue-store";
 import { shouldUseVenueDatabase } from "@/services/venue/venue-supabase.service";
-import { ensureUserProfile } from "@/services/auth/profile-supabase.service";
+import {
+  ensureUserProfile,
+  ensureVenueRecordForOwner,
+  fetchUserProfile,
+} from "@/services/auth/profile-supabase.service";
 import { usesSupabaseAuth } from "@/config/env";
 import { logger } from "@/lib/logger";
 
@@ -24,12 +31,22 @@ async function hydrateVenueForUser(userId: string, venueName?: string): Promise<
   initializeVenueForUser(userId, venueName);
 }
 
+async function syncAccountWithVenue(userId: string): Promise<void> {
+  const profile = await fetchUserProfile(userId);
+  if (!profile) return;
+  const venue = loadVenueData(userId);
+  const next = syncVenueNameFromProfile(venue, profile.venueName);
+  if (next !== venue) saveVenueData(userId, next);
+}
+
 async function afterSupabaseAuth(session: Session, venueName?: string): Promise<void> {
   await ensureUserProfile(session.user, venueName);
+  await ensureVenueRecordForOwner();
   await hydrateVenueForUser(
     session.user.id,
     venueName || (session.user.user_metadata?.venue_name as string | undefined),
   );
+  await syncAccountWithVenue(session.user.id);
 }
 
 function mapSupabaseSession(session: Session): AuthSession {
@@ -62,6 +79,7 @@ export async function getActiveSession(): Promise<AuthSession | null> {
         data.session.user.id,
         venueName || undefined,
       );
+      await syncAccountWithVenue(data.session.user.id);
     }
     return syncSessionFromSupabase(data.session);
   }
