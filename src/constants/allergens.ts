@@ -53,6 +53,11 @@ export function formatAllergensString(ids: string[], lang: "ar" | "en" = "ar"): 
   return labels.join(lang === "en" ? ", " : "، ");
 }
 
+/** يجمع معرّفات المسببات من الحقلين العربي والإنجليزي */
+export function resolveAllergenIds(allergens?: string, allergensEn?: string): string[] {
+  return [...new Set([...parseAllergensIds(allergens), ...parseAllergensIds(allergensEn)])];
+}
+
 /** يسترجع معرّفات المسببات من النص المحفوظ */
 export function parseAllergensIds(text?: string): string[] {
   if (!text?.trim()) return [];

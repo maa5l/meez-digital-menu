@@ -2,10 +2,12 @@ import { useState } from "react";
 import type { Crop, MenuSettings } from "@/types/domain";
 import { Sparkles } from "lucide-react";
 import CropDetailModal from "@/components/menu/CropDetailModal";
+import { CropFieldsGrid, CropListItemLabel, CropNotes, CropTitle } from "@/components/menu/CropDisplay";
 import CropsLangToggle from "@/components/menu/CropsLangToggle";
 import { MenuCropsTopChrome } from "@/components/menu/MenuCropsTopChrome";
 import { MenuProductSubheaderBar } from "@/components/menu/MenuProductTopChrome";
 import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
+import { cropFieldLabels } from "@/lib/crop-i18n";
 import { getCropsHeaderCustomization } from "@/lib/menu-header-settings";
 import { getCropsPalette, palettePageStyle } from "@/lib/menu-palette";
 
@@ -73,28 +75,15 @@ const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; c
                 <div className="absolute inset-0 bg-black/40" />
               </>
             )}
-            <div className="relative text-center">
-              <h2 className="font-display font-black text-2xl md:text-4xl leading-tight">{active.beanName}</h2>
-              <p className="text-lg md:text-2xl opacity-80 mt-1">{active.beanNameEn}</p>
+            <div className="relative">
+              <CropTitle crop={active} lang={lang} />
             </div>
 
-            <div className="relative flex-1 grid grid-cols-2 gap-x-12 gap-y-8 content-center mt-8 max-w-3xl mx-auto w-full">
-              <BigField
-                labelAr="اسم المحصول"
-                labelEn="Crop name"
-                valueAr={active.beanName}
-                valueEn={active.beanNameEn || active.beanName}
-              />
-              <BigField labelAr="البلد" labelEn="Country" valueAr={active.country} valueEn={active.countryEn} />
-              <BigField labelAr="المعالجة" labelEn="Process" valueAr={active.process} valueEn={active.processEn} />
-              <BigField labelAr="السلالة" labelEn="Variety" valueAr={active.variety} valueEn={active.variety} />
-              <BigField labelAr="الارتفاع" labelEn="Altitude" valueAr={active.altitude} valueEn={active.altitude} />
+            <div className="relative flex-1 flex flex-col justify-center mt-8">
+              <CropFieldsGrid crop={active} lang={lang} />
             </div>
 
-            <div className="relative text-center mt-6">
-              <div className="font-bold text-lg md:text-xl">{active.notes}</div>
-              <div className="text-base opacity-70">{active.notesEn}</div>
-            </div>
+            <CropNotes crop={active} lang={lang} borderColor={fg} className="relative" />
           </article>
 
           <aside className="flex flex-col gap-3">
@@ -109,15 +98,19 @@ const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; c
                     setActive(c);
                     setModal(c);
                   }}
-                  className="text-right rounded-2xl px-5 py-4 transition-all relative w-full"
+                  className="rounded-2xl px-5 py-4 transition-all relative w-full text-center"
                   style={{
                     background: isActive ? palette.accentColor : `${palette.textColor}15`,
                     color: isActive ? "#fff" : palette.textColor,
                   }}
                 >
-                  <div className="font-display font-black text-sm md:text-base leading-tight">{c.beanName}</div>
-                  <div className="text-xs md:text-sm opacity-80 mt-0.5">{c.beanNameEn}</div>
-                  {isFeatured && <Sparkles className="w-3.5 h-3.5 absolute top-3 left-3 opacity-90" />}
+                  <CropListItemLabel crop={c} lang={lang} />
+                  {isFeatured && (
+                    <Sparkles
+                      className="w-3.5 h-3.5 absolute top-3 end-3 opacity-90"
+                      aria-label={cropFieldLabels[lang].featured}
+                    />
+                  )}
                 </button>
               );
             })}
@@ -137,24 +130,5 @@ const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; c
     </div>
   );
 };
-
-const BigField = ({
-  labelAr,
-  labelEn,
-  valueAr,
-  valueEn,
-}: {
-  labelAr: string;
-  labelEn: string;
-  valueAr: string;
-  valueEn: string;
-}) => (
-  <div>
-    <div className="text-sm opacity-70">{labelEn}</div>
-    <div className="font-bold text-lg md:text-xl mt-0.5">{valueEn}</div>
-    <div className="text-sm opacity-70 mt-2">{labelAr}</div>
-    <div className="font-bold text-lg md:text-xl mt-0.5">{valueAr}</div>
-  </div>
-);
 
 export default CropsTemplatePureShelf;

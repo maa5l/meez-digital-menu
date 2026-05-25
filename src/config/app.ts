@@ -15,6 +15,7 @@ export const ROUTES = {
   dashboardLinkDevice: "/dashboard/link-device",
   dashboardTheme: "/dashboard/theme",
   dashboardSubscription: "/dashboard/subscription",
+  dashboardPayment: "/dashboard/subscription/pay",
   dashboardSettings: "/dashboard/settings",
 } as const;
 

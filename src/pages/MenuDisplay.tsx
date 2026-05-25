@@ -6,26 +6,31 @@ import CropsTemplateMolo from "@/components/menu/CropsTemplateMolo";
 import CropsTemplatePureShelf from "@/components/menu/CropsTemplatePureShelf";
 import MenuEmptyState from "@/components/menu/MenuEmptyState";
 import { IpadTrialScreen } from "@/components/device/IpadTrialScreen";
+import { KioskSubscriptionBlocked } from "@/components/subscription/KioskSubscriptionBlocked";
 import { useMenuVenue } from "@/hooks/useMenuVenue";
 import { getDeviceMenuType, getDeviceMenuTypeAsync } from "@/lib/venue-store";
 import {
-  checkDeviceRegistrationOnKiosk,
   getPendingDeviceCode,
   setPendingDeviceCode,
-  type DeviceRegistrationStatus,
 } from "@/services/device/activation";
+import {
+  evaluateKioskGate,
+  KIOSK_SUBSCRIPTION_POLL_MS,
+  type KioskGateResult,
+} from "@/services/device/kiosk-access";
+import { recordDeviceHeartbeat } from "@/services/subscription/subscription-enforcement";
 import { normalizeDeviceCodeParam } from "@/lib/device-pairing";
 import { ROUTES } from "@/config/app";
 import { getCropsPalette, getProductsPalette } from "@/lib/menu-palette";
 
 /**
- * شاشة عرض المنيو — لا تُعرض إلا بعد تسجيل الجهاز في قاعدة البيانات.
+ * شاشة عرض المنيو — التفعيل + الاشتراك يُفرضان من الخادم (check_kiosk_access).
  */
 const MenuDisplay = () => {
   const [params] = useSearchParams();
   const typeParam = params.get("type");
   const tplOverride = params.get("tpl");
-  const isPreview = params.get("preview") === "1" || !!tplOverride;
+  const wantsPreview = params.get("preview") === "1" || !!tplOverride;
   const codeFromParam = normalizeDeviceCodeParam(params.get("code"));
 
   const [code] = useState(() => {
@@ -36,9 +41,13 @@ const MenuDisplay = () => {
     return getPendingDeviceCode() ?? "";
   });
 
-  const [registrationStatus, setRegistrationStatus] =
-    useState<DeviceRegistrationStatus>(isPreview ? "registered" : "checking");
-  const [activated, setActivated] = useState(isPreview);
+  const isPreview = wantsPreview;
+
+  const [gate, setGate] = useState<KioskGateResult>({
+    allowed: false,
+    registered: false,
+    registrationStatus: "checking",
+  });
 
   const [deviceMenuType, setDeviceMenuType] = useState<"products" | "crops" | null>(() =>
     code ? getDeviceMenuType(code) : null,
@@ -60,37 +69,53 @@ const MenuDisplay = () => {
     let cancelled = false;
 
     const verify = async () => {
-      setRegistrationStatus("checking");
-      const status = await checkDeviceRegistrationOnKiosk(code);
+      setGate((g) => ({ ...g, registrationStatus: "checking" }));
+      const result = await evaluateKioskGate(code);
       if (cancelled) return;
-      setRegistrationStatus(status);
-      setActivated(status === "registered");
+      setGate(result);
+      if (result.allowed) {
+        void recordDeviceHeartbeat(code);
+      }
     };
 
     void verify();
-    const interval = setInterval(() => void verify(), 2000);
+    const interval = setInterval(() => void verify(), KIOSK_SUBSCRIPTION_POLL_MS);
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
   }, [code, isPreview]);
 
+  const venueReady = isPreview || gate.allowed;
+  const venue = useMenuVenue(venueReady ? code : null, isPreview, venueReady);
+
   if (!isPreview && !code) {
     return <Navigate to={ROUTES.pair} replace />;
   }
 
-  if (!isPreview && !activated && code) {
+  if (!isPreview && gate.registrationStatus === "checking") {
+    return (
+      <KioskSubscriptionBlocked
+        code={code}
+        check={gate}
+        registrationStatus="checking"
+      />
+    );
+  }
+
+  if (!isPreview && !gate.registered) {
     return (
       <IpadTrialScreen
         code={code}
-        registrationStatus={registrationStatus}
+        registrationStatus="not_registered"
         subtitle="المنيو يظهر بعد تفعيل هذا الرمز من لوحة التحكم"
       />
     );
   }
 
-  const venueReady = isPreview || activated;
-  const venue = useMenuVenue(venueReady ? code : null, isPreview, venueReady);
+  if (!isPreview && gate.registered && !gate.allowed) {
+    return <KioskSubscriptionBlocked code={code} check={gate} />;
+  }
   const settings = venue.menuSettings;
   const cropsTpl =
     tplOverride === "pureshelf" || tplOverride === "molo"
@@ -101,12 +126,23 @@ const MenuDisplay = () => {
   const cropsEmpty = venue.crops.length === 0;
   const pagePalette = type === "crops" ? getCropsPalette(settings) : getProductsPalette(settings);
 
+  const showGraceBanner =
+    !isPreview && gate.access?.status === "grace_period";
+
   return (
     <div
       className="h-screen overflow-hidden flex flex-col"
       dir="rtl"
       style={{ background: pagePalette.bgColor, color: pagePalette.textColor }}
     >
+      {showGraceBanner && (
+        <div
+          className="shrink-0 px-4 py-2 text-center text-sm font-semibold bg-amber-500/90 text-primary"
+          role="status"
+        >
+          فترة سماح — أكمل الدفع من لوحة التحكم لتجنب إيقاف الشاشة
+        </div>
+      )}
       {type === "crops" ? (
         cropsEmpty ? (
           <MenuEmptyState settings={settings} type="crops" />

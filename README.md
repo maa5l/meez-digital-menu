@@ -19,8 +19,17 @@ npm run dev
 | `npm run lint` | فحص الكود |
 | `npm run test` | الاختبارات |
 
+## تطبيق الآيباد (App Store)
+
+مشروع مستقل لشاشة التفعيل فقط: [`meez-app/`](meez-app/) — تطبيق **ميز** لـ iOS (Capacitor).
+
+```bash
+cd meez-app && npm install && npm run dev   # http://localhost:8081
+```
+
 ## التوثيق
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md)
+- [`meez-app/README.md`](meez-app/README.md)
 - [`SECURITY.md`](SECURITY.md)

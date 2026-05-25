@@ -6,6 +6,8 @@ import { Logo } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/services/auth/auth.service";
 import { ROUTES } from "@/config/app";
+import { useSubscription, useSyncVenueSubscription } from "@/hooks/useSubscription";
+import { SubscriptionBanner } from "@/components/subscription/SubscriptionBanner";
 
 const navItems = [
   { to: "/dashboard", label: "نظرة عامة", icon: LayoutDashboard, end: true },
@@ -23,8 +25,23 @@ const navItems = [
   { to: "/dashboard/settings", label: "الإعدادات", icon: Settings },
 ];
 
-const DashboardLayout = ({ children, title, subtitle, action }: { children: ReactNode; title: string; subtitle?: string; action?: ReactNode }) => {
+const DashboardLayout = ({
+  children,
+  title,
+  subtitle,
+  action,
+  hideSubscriptionBanner = false,
+}: {
+  children: ReactNode;
+  title: string;
+  subtitle?: string;
+  action?: ReactNode;
+  /** إخفاء banner العام (صفحة الاشتراك تعرض تنبيهاتها الخاصة) */
+  hideSubscriptionBanner?: boolean;
+}) => {
   const navigate = useNavigate();
+  const { access } = useSubscription();
+  useSyncVenueSubscription();
 
   return (
     <div className="min-h-screen bg-secondary/40 flex" dir="rtl">
@@ -55,11 +72,6 @@ const DashboardLayout = ({ children, title, subtitle, action }: { children: Reac
         </nav>
 
         <div className="p-4 border-t border-border">
-          <div className="bg-gradient-hero rounded-2xl p-4 text-primary-foreground mb-3">
-            <div className="text-xs text-primary-foreground/70 mb-1">تنتهي التجربة خلال</div>
-            <div className="font-display font-black text-2xl mb-2">21 يوم</div>
-            <Button variant="hero" size="sm" className="w-full">رقّي الاشتراك</Button>
-          </div>
           <button
             onClick={async () => {
               await signOut();
@@ -75,6 +87,9 @@ const DashboardLayout = ({ children, title, subtitle, action }: { children: Reac
 
       {/* Main */}
       <main className="flex-1 lg:mr-72 p-6 md:p-10">
+        {!hideSubscriptionBanner && access.banner !== "trial" && (
+          <SubscriptionBanner access={access} />
+        )}
         <div className="flex items-start justify-between flex-wrap gap-4 mb-8">
           <div>
             <h1 className="font-display font-black text-3xl md:text-4xl text-primary">{title}</h1>

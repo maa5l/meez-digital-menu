@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --primary: 19 42% 33%;
+    --primary-foreground: 41 41% 94%;
+    --accent: 27 35% 56%;
+    --accent-foreground: 21 36% 19%;
+    --gradient-hero: linear-gradient(
+      135deg,
+      hsl(19 42% 33%) 0%,
+      hsl(20 45% 24%) 50%,
+      hsl(21 36% 19%) 100%
+    );
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+}
+
+@layer utilities {
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

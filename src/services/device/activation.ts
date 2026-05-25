@@ -4,11 +4,7 @@ import { getLocalString, setLocalString } from "@/security/storage";
 import { getSession } from "@/security/session";
 import { linkDeviceToOwner, refreshDeviceVenueSync, setDeviceMenuType } from "@/lib/venue-store";
 import { logger } from "@/lib/logger";
-import {
-  isDeviceActivatedInDatabase,
-  shouldUseVenueDatabase,
-  upsertDeviceActivationInDatabase,
-} from "@/services/venue/venue-supabase.service";
+import { isDeviceActivatedInDatabase, shouldUseVenueDatabase } from "@/services/venue/venue-supabase.service";
 
 const ACTIVATION_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -114,14 +110,6 @@ export function activateDevice(
   if (ownerId) {
     linkDeviceToOwner(normalized, ownerId);
     refreshDeviceVenueSync(normalized, ownerId);
-    if (shouldUseVenueDatabase()) {
-      void upsertDeviceActivationInDatabase(normalized, ownerId, options?.menuType).catch((err) => {
-        logger.error("device.cloud_activation_failed", {
-          code: normalized,
-          message: err instanceof Error ? err.message : String(err),
-        });
-      });
-    }
   }
 
   logger.audit("device.activated", { code: normalized, linked: !!ownerId });

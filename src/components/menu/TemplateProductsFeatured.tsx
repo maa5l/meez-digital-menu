@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import type { Category, Product, MenuSettings } from "@/types/domain";
-import { X, Flame, AlertCircle } from "lucide-react";
-import { Riyal } from "@/components/Brand";
+import { X } from "lucide-react";
 import CategoryTabs from "@/components/menu/CategoryTabs";
 import { MenuProductSubheaderBar, MenuProductTopChrome } from "@/components/menu/MenuProductTopChrome";
-import { ProductGridCard } from "@/components/menu/ProductCardParts";
+import { ProductGridCard, ProductModalDetails } from "@/components/menu/ProductCardParts";
 import { localizeProduct } from "@/lib/product-i18n";
 import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
 import { getProductsPalette, palettePageStyle } from "@/lib/menu-palette";
@@ -82,12 +81,7 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
       </MenuProductTopChrome>
 
       {modal && (
-        <DetailModal
-          product={modal}
-          lang={lang}
-          accent={palette.accentColor}
-          onClose={() => setModal(null)}
-        />
+        <DetailModal product={modal} lang={lang} onClose={() => setModal(null)} />
       )}
     </div>
   );
@@ -96,12 +90,10 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
 const DetailModal = ({
   product,
   lang,
-  accent,
   onClose,
 }: {
   product: Product;
   lang: "ar" | "en";
-  accent: string;
   onClose: () => void;
 }) => {
   const localized = localizeProduct(product, lang);
@@ -116,11 +108,11 @@ const DetailModal = ({
       onClick={(e) => e.stopPropagation()}
     >
       {product.image && (
-        <div className="relative bg-white flex items-center justify-center px-4 py-6 min-h-[200px] max-h-[min(52vh,440px)]">
+        <div className="relative mx-auto aspect-square w-full max-w-md overflow-hidden bg-white">
           <img
             src={product.image}
             alt={localized.name}
-            className="max-w-full max-h-[min(48vh,400px)] w-auto h-auto object-contain"
+            className="h-full w-full object-cover object-center"
           />
           <button
             type="button"
@@ -131,50 +123,12 @@ const DetailModal = ({
           </button>
         </div>
       )}
-      <div className="p-6 text-[#1a1a1a]">
-        <h2 className="font-display font-black text-2xl mb-2">{localized.name}</h2>
-        <p className="text-sm opacity-70 mb-4">{localized.description}</p>
-        <div className="flex flex-wrap gap-3 text-sm">
-          <Pill icon={<Riyal className="w-3.5 h-3.5" />} label={`${product.price}`} color={accent} />
-          <Pill icon={<Flame className="w-3.5 h-3.5" />} label={`${product.calories}`} color={accent} />
-          {localized.allergens && (
-            <Pill icon={<AlertCircle className="w-3.5 h-3.5" />} label={localized.allergens} color={accent} />
-          )}
-        </div>
-        {product.cropInfo?.beanName?.trim() && (
-          <div className="mt-4 pt-4 border-t border-black/10 text-sm">
-            <div className="text-xs font-bold opacity-50 mb-1">
-              {lang === "ar" ? "اسم المحصول" : "Crop name"}
-            </div>
-            <p className="font-bold">{product.cropInfo.beanName}</p>
-            {(product.cropInfo.country || product.cropInfo.process) && (
-              <p className="text-xs opacity-60 mt-1">
-                {[product.cropInfo.country, product.cropInfo.process].filter(Boolean).join(" · ")}
-              </p>
-            )}
-          </div>
-        )}
+      <div className="p-6">
+        <ProductModalDetails product={product} lang={lang} />
       </div>
     </div>
   </div>
   );
 };
-
-const Pill = ({
-  icon,
-  label,
-  color,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  color: string;
-}) => (
-  <span
-    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-sm"
-    style={{ background: `${color}1A`, color }}
-  >
-    {icon} {label}
-  </span>
-);
 
 export default TemplateProductsFeatured;

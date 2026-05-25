@@ -1,7 +1,7 @@
 import type { MenuHeaderCustomization } from "@/types/domain";
 
 /** ارتفاع ثابت للهيدر الكامل (إفصاح السعرات + شعار + عنوان) */
-export const MENU_PRODUCT_HEADER_HEIGHT = 144;
+export const MENU_PRODUCT_HEADER_HEIGHT = 288;
 
 /** ارتفاع شريط التصنيفات + اللغة */
 export const MENU_SUBHEADER_HEIGHT = 48;

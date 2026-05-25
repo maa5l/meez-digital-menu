@@ -5,18 +5,16 @@ import { IpadTrialScreen } from "@/components/device/IpadTrialScreen";
 import { isIpadTrialMode } from "@/config/ipad-trial";
 import { AlertCircle, Loader2 } from "lucide-react";
 import {
-  checkDeviceRegistrationOnKiosk,
   getOrCreatePendingDeviceCode,
   getPendingDeviceCode,
   setPendingDeviceCode,
-  type DeviceRegistrationStatus,
 } from "@/services/device/activation";
 import { normalizeDeviceCodeParam } from "@/lib/device-pairing";
 import { ROUTES } from "@/config/app";
+import { getPublicSiteHref, getPublicSiteLabel } from "@/config/ipad-trial";
+import { useDeviceRegistrationWatch } from "@/hooks/useDeviceRegistrationWatch";
 
-/**
- * شاشة الآيباد — رمز التفعيل وحالة التسجيل. المنيو يفتح فقط بعد التسجيل في قاعدة البيانات.
- */
+/** شاشة الآيباد — رمز التفعيل فقط؛ المنيو يفتح صامتاً بعد التسجيل */
 const DevicePairing = () => {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -24,8 +22,6 @@ const DevicePairing = () => {
   const codeFromUrl = normalizeDeviceCodeParam(params.get("code"));
   const [code, setCode] = useState<string | null>(codeFromUrl);
   const [error, setError] = useState<string | null>(null);
-  const [registrationStatus, setRegistrationStatus] =
-    useState<DeviceRegistrationStatus>("checking");
 
   const menuHref = useMemo(
     () => (code ? `${ROUTES.menu}?code=${encodeURIComponent(code)}` : ROUTES.pair),
@@ -60,28 +56,10 @@ const DevicePairing = () => {
     setCode(null);
   }, [codeFromUrl]);
 
-  useEffect(() => {
-    if (!code || isPreview) return;
-
-    let cancelled = false;
-
-    const verify = async () => {
-      setRegistrationStatus("checking");
-      const status = await checkDeviceRegistrationOnKiosk(code);
-      if (cancelled) return;
-      setRegistrationStatus(status);
-      if (status === "registered") {
-        navigate(menuHref, { replace: true });
-      }
-    };
-
-    void verify();
-    const interval = setInterval(() => void verify(), 2000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [code, isPreview, menuHref, navigate]);
+  useDeviceRegistrationWatch(code, {
+    enabled: Boolean(code) && !isPreview,
+    onRegistered: () => navigate(menuHref, { replace: true }),
+  });
 
   if (error && !code) {
     return (
@@ -110,7 +88,6 @@ const DevicePairing = () => {
     return (
       <IpadTrialScreen
         code={code}
-        registrationStatus={isPreview ? "not_registered" : registrationStatus}
         preview={isPreview}
         subtitle={
           isPreview
@@ -132,11 +109,16 @@ const DevicePairing = () => {
         <div className="font-mono font-black text-5xl tracking-[0.35em] mb-6" dir="ltr">
           {code}
         </div>
-        <p className="text-sm opacity-70">
-          {registrationStatus === "registered"
-            ? "الجهاز مسجّل — جاري فتح المنيو…"
-            : "في انتظار التفعيل من لوحة التحكم"}
-        </p>
+        <p className="text-sm opacity-70 mb-8">فعّل هذا الرمز من لوحة التحكم</p>
+        <a
+          href={getPublicSiteHref()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block text-lg font-semibold text-accent hover:underline underline-offset-4"
+          dir="ltr"
+        >
+          {getPublicSiteLabel()}
+        </a>
       </div>
     </div>
   );

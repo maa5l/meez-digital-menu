@@ -1,6 +1,5 @@
 import { appEnv } from "@/config/env";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
-import type { Database } from "@/lib/supabase/database.types";
 import type { VenueData } from "@/types/venue";
 import { logger } from "@/lib/logger";
 
@@ -10,6 +9,23 @@ export function shouldUseVenueDatabase(): boolean {
 
 function normalizeCode(code: string): string {
   return code.trim().toUpperCase();
+}
+
+export async function fetchVenueUpdatedAtForOwner(ownerId: string): Promise<string | null> {
+  if (!shouldUseVenueDatabase()) return null;
+
+  const { data, error } = await getSupabase()
+    .from("venues")
+    .select("updated_at")
+    .eq("owner_id", ownerId)
+    .maybeSingle();
+
+  if (error) {
+    logger.error("venue.updated_at_failed", { ownerId, message: error.message });
+    throw error;
+  }
+
+  return data?.updated_at ?? null;
 }
 
 export async function fetchVenueFromDatabase(ownerId: string): Promise<VenueData | null> {
@@ -30,21 +46,42 @@ export async function fetchVenueFromDatabase(ownerId: string): Promise<VenueData
   return data.data as VenueData;
 }
 
-export async function saveVenueToDatabase(ownerId: string, venue: VenueData): Promise<void> {
-  if (!shouldUseVenueDatabase()) return;
+/** طلب خفيف — يعيد وقت آخر تحديث فقط (للكيوسك) */
+export async function fetchVenueUpdatedAtForDevice(code: string): Promise<string | null> {
+  if (!shouldUseVenueDatabase()) return null;
 
-  const payload: Database["public"]["Tables"]["venues"]["Insert"] = {
-    owner_id: ownerId,
-    data: venue as unknown as Database["public"]["Tables"]["venues"]["Insert"]["data"],
-  };
-
-  const { error } = await getSupabase().from("venues").upsert(payload, { onConflict: "owner_id" });
+  const { data, error } = await getSupabase().rpc("get_venue_updated_at_for_device", {
+    device_code: normalizeCode(code),
+  });
 
   if (error) {
-    logger.error("venue.save_failed", { ownerId, message: error.message });
+    logger.error("venue.device_updated_at_failed", { code, message: error.message });
     throw error;
   }
 
+  return typeof data === "string" ? data : null;
+}
+
+/** حفظ المنيو — RPC فقط (update_venue_data) مع فحص الاشتراك */
+export async function saveVenueToDatabase(ownerId: string, venue: VenueData): Promise<void> {
+  if (!shouldUseVenueDatabase()) return;
+
+  const session = await getSupabase().auth.getSession();
+  if (session.data.session?.user?.id !== ownerId) {
+    throw new Error("owner_mismatch");
+  }
+
+  const { updateVenueDataRpc } = await import("@/services/core/platform-security");
+  const { markVenueRemoteSynced } = await import("@/lib/venue-store");
+  const result = await updateVenueDataRpc(venue);
+
+  if (!result.ok) {
+    const msg = result.error ?? "venue_update_denied";
+    logger.error("venue.save_failed", { ownerId, message: msg });
+    throw new Error(msg);
+  }
+
+  markVenueRemoteSynced(ownerId, result.updatedAt ?? null);
   logger.audit("venue.saved_cloud", { ownerId });
 }
 
@@ -97,43 +134,24 @@ export async function getDeviceMenuTypeFromDatabase(
   return null;
 }
 
+/** @deprecated استخدم registerDeviceWithLicense — الكتابة المباشرة ممنوعة */
 export async function upsertDeviceActivationInDatabase(
-  code: string,
-  ownerId: string,
-  menuType?: "products" | "crops",
+  _code: string,
+  _ownerId: string,
+  _menuType?: "products" | "crops",
 ): Promise<void> {
   if (!shouldUseVenueDatabase()) return;
-
-  const { error } = await getSupabase()
-    .from("device_activations")
-    .upsert(
-      {
-        code: normalizeCode(code),
-        owner_id: ownerId,
-        menu_type: menuType ?? null,
-        activated_at: new Date().toISOString(),
-      },
-      { onConflict: "code" },
-    );
-
-  if (error) {
-    logger.error("device.activation_save_failed", { code, message: error.message });
-    throw error;
-  }
-
-  logger.audit("device.activation_saved_cloud", { code });
+  logger.warn("device.direct_write_blocked", { hint: "use register_device_with_license RPC" });
 }
 
+/** إلغاء تفعيل الجهاز عبر RPC (لا حذف — الكود لا يُعاد استخدامه) */
 export async function removeDeviceActivationFromDatabase(code: string): Promise<void> {
   if (!shouldUseVenueDatabase()) return;
 
-  const { error } = await getSupabase()
-    .from("device_activations")
-    .delete()
-    .eq("code", normalizeCode(code));
-
-  if (error) {
-    logger.error("device.activation_delete_failed", { code, message: error.message });
-    throw error;
+  const { deactivateDeviceRpc } = await import("@/services/core/platform-security");
+  const result = await deactivateDeviceRpc(code);
+  if (!result.ok) {
+    logger.error("device.activation_deactivate_failed", { code, message: result.error });
+    throw new Error(result.error ?? "deactivate_failed");
   }
 }

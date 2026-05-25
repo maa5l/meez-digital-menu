@@ -2,10 +2,12 @@ import { useState } from "react";
 import type { Crop, MenuSettings } from "@/types/domain";
 import { Sparkles } from "lucide-react";
 import CropDetailModal from "@/components/menu/CropDetailModal";
+import { CropFieldsGrid, CropNotes, CropTitle } from "@/components/menu/CropDisplay";
 import CropsLangToggle from "@/components/menu/CropsLangToggle";
 import { MenuCropsTopChrome } from "@/components/menu/MenuCropsTopChrome";
 import { MenuProductSubheaderBar } from "@/components/menu/MenuProductTopChrome";
 import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
+import { cropFieldLabels } from "@/lib/crop-i18n";
 import { getCropsHeaderCustomization } from "@/lib/menu-header-settings";
 import { getCropsPalette, palettePageStyle } from "@/lib/menu-palette";
 
@@ -73,7 +75,7 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
                         setModal(c);
                       }
                     }}
-                    className="snap-center shrink-0 w-[72vw] md:w-[360px] h-[min(70vh,520px)] rounded-[2rem] p-7 md:p-8 flex flex-col relative overflow-hidden cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.99]"
+                    className="snap-center shrink-0 w-[72vw] md:w-[400px] h-[min(70vh,560px)] rounded-[2rem] p-7 md:p-9 flex flex-col relative overflow-hidden cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.99]"
                     style={{
                       background: bg,
                       color: fg,
@@ -82,48 +84,26 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
                   >
                     {showImage && (
                       <>
-                        <img src={c.image} alt={c.beanName} className="absolute inset-0 w-full h-full object-cover" />
+                        <img src={c.image} alt="" className="absolute inset-0 w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-black/35" />
                       </>
                     )}
                     {isFeatured && (
                       <div
-                        className="absolute top-4 left-4 flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full"
+                        className="absolute top-4 end-4 flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full"
                         style={{ background: palette.accentColor, color: "#fff" }}
                       >
-                        <Sparkles className="w-3.5 h-3.5" /> {lang === "ar" ? "مميّز" : "Featured"}
+                        <Sparkles className="w-3.5 h-3.5" /> {cropFieldLabels[lang].featured}
                       </div>
                     )}
 
-                    <div className="relative">
-                      <h2 className="font-display font-black text-xl md:text-2xl leading-tight">{c.beanName}</h2>
-                      <p className="text-base md:text-lg opacity-80 mt-1">{c.beanNameEn}</p>
+                    <CropTitle crop={c} lang={lang} className="relative" />
+
+                    <div className="relative flex-1 flex flex-col justify-center py-4">
+                      <CropFieldsGrid crop={c} lang={lang} className="gap-6 sm:gap-8" />
                     </div>
 
-                    <div className="relative flex-1 flex flex-col justify-center gap-5 mt-6 text-sm md:text-base">
-                      <Field
-                        label={lang === "ar" ? "اسم المحصول" : "Crop name"}
-                        value={lang === "ar" ? c.beanName : c.beanNameEn || c.beanName}
-                      />
-                      <Field
-                        label={lang === "ar" ? "البلد" : "Country"}
-                        value={lang === "ar" ? c.country : c.countryEn}
-                      />
-                      <Field
-                        label={lang === "ar" ? "المعالجة" : "Process"}
-                        value={lang === "ar" ? c.process : c.processEn}
-                      />
-                      <Field label={lang === "ar" ? "السلالة" : "Variety"} value={c.variety} />
-                      <Field label={lang === "ar" ? "الارتفاع" : "Altitude"} value={c.altitude} />
-                    </div>
-
-                    <div
-                      className="relative text-center mt-6 pt-5 border-t"
-                      style={{ borderColor: `${fg}25` }}
-                    >
-                      <div className="font-bold text-base">{c.notes}</div>
-                      <div className="text-sm opacity-70 mt-0.5">{c.notesEn}</div>
-                    </div>
+                    <CropNotes crop={c} lang={lang} borderColor={fg} className="relative mt-auto" />
                   </article>
                 );
               })}
@@ -144,12 +124,5 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
     </div>
   );
 };
-
-const Field = ({ label, value }: { label: string; value: string }) => (
-  <div>
-    <div className="text-xs opacity-60">{label}</div>
-    <div className="font-bold mt-0.5">{value}</div>
-  </div>
-);
 
 export default CropsTemplateMolo;

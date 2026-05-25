@@ -17,6 +17,9 @@ import {
 import { Plus, Search, Pencil, Trash2, ImageIcon, Sprout } from "lucide-react";
 import AllergenSelector from "@/components/dashboard/AllergenSelector";
 import { formatAllergensString, parseAllergensIds } from "@/constants/allergens";
+import { processProductImageFile, PRODUCT_IMAGE_SPEC } from "@/lib/product-image";
+import { toast } from "sonner";
+import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
 
 const emptyCrop = {
   beanName: "",
@@ -192,19 +195,39 @@ const Products = () => {
         <FieldP label="السعرات" value={calories} onChange={setCalories} type="number" />
         <div className="col-span-2 space-y-2">
           <Label className="text-xs">صورة المنتج (اختياري)</Label>
+          <p className="text-[10px] leading-relaxed text-muted-foreground">
+            المقاس المفضل:{" "}
+            <span className="font-bold text-foreground/80">
+              {PRODUCT_IMAGE_SPEC.recommendedWidth}×{PRODUCT_IMAGE_SPEC.recommendedHeight}
+            </span>{" "}
+            بكسل (مربع 1:1) — تُعاد المعالجة تلقائياً لملء إطار البطاقة. الحد الأدنى{" "}
+            {PRODUCT_IMAGE_SPEC.minWidth}×{PRODUCT_IMAGE_SPEC.minHeight} بكسل.
+          </p>
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => {
+            onChange={async (e) => {
               const f = e.target.files?.[0];
               if (!f) return;
-              const r = new FileReader();
-              r.onload = () => setImage(String(r.result));
-              r.readAsDataURL(f);
+              const loading = toast.loading("جاري معالجة صورة المنتج…");
+              try {
+                const dataUrl = await processProductImageFile(f);
+                setImage(dataUrl);
+                toast.success("تم رفع صورة المنتج", { id: loading });
+              } catch (err) {
+                toast.error(err instanceof Error ? err.message : "تعذّر رفع الصورة", { id: loading });
+              }
+              e.target.value = "";
             }}
             className="text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-secondary file:font-bold file:text-foreground hover:file:bg-secondary/70"
           />
-          {image && <img src={image} alt="" className="h-20 rounded-lg object-cover" />}
+          {image && (
+            <img
+              src={image}
+              alt=""
+              className="h-20 w-20 rounded-lg object-cover border border-border"
+            />
+          )}
         </div>
 
         <div className="col-span-2 border border-border rounded-2xl p-4 bg-secondary/40 space-y-3">
@@ -262,6 +285,7 @@ const Products = () => {
   );
 
   return (
+    <SubscriptionGuard requireEdit>
     <DashboardLayout
       title="المنتجات"
       subtitle={`${list.length} منتج في المنيو`}
@@ -412,6 +436,7 @@ const Products = () => {
         </div>
       )}
     </DashboardLayout>
+    </SubscriptionGuard>
   );
 };
 

@@ -18,6 +18,7 @@ import { useVenueData } from "@/hooks/useVenueData";
 import { toast } from "sonner";
 import { processHeaderImageFile } from "@/lib/header-image";
 import { HEADER_IMAGE_SPEC } from "@/lib/header-image-spec";
+import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
 
 const Theme = () => {
   const [venue] = useVenueData();
@@ -127,6 +128,7 @@ const Theme = () => {
   };
 
   return (
+    <SubscriptionGuard requireEdit>
     <DashboardLayout
       title="الثيم"
       subtitle="إدارة كاملة لأنواع المنيو، القوالب والألوان"
@@ -260,6 +262,7 @@ const Theme = () => {
         </Section>
       </div>
     </DashboardLayout>
+    </SubscriptionGuard>
   );
 };
 
@@ -286,10 +289,10 @@ const HeaderCustomizeBlock = ({
 
     <UploadRow
       label="بانر الهيدر"
-      hint={`JPG أو PNG — يُعاد القياس تلقائياً إلى ${HEADER_IMAGE_SPEC.recommendedWidth}×${HEADER_IMAGE_SPEC.recommendedHeight} بكسل (نسبة 6:1)`}
+      hint={`JPG أو PNG — يُعاد القياس تلقائياً إلى ${HEADER_IMAGE_SPEC.recommendedWidth}×${HEADER_IMAGE_SPEC.recommendedHeight} بكسل (نسبة 3:1)`}
       preview={
         header.headerImage ? (
-          <img src={header.headerImage} alt="" className="w-20 aspect-[6/1] rounded-lg object-contain border bg-muted" />
+          <img src={header.headerImage} alt="" className="w-20 aspect-[3/1] rounded-lg object-contain border bg-muted" />
         ) : undefined
       }
       onUpload={onHeaderImageUpload}

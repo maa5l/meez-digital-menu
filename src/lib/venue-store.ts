@@ -6,13 +6,15 @@ import { getLocalJson, setLocalJson } from "@/security/storage";
 import { getSession } from "@/security/session";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { logger } from "@/lib/logger";
+import { VENUE_REMOTE_UPDATED_PREFIX } from "@/config/venue-sync";
 import {
   fetchVenueForDeviceFromDatabase,
   fetchVenueFromDatabase,
+  fetchVenueUpdatedAtForDevice,
+  fetchVenueUpdatedAtForOwner,
   getDeviceMenuTypeFromDatabase,
   saveVenueToDatabase,
   shouldUseVenueDatabase,
-  upsertDeviceActivationInDatabase,
 } from "@/services/venue/venue-supabase.service";
 
 const VENUE_PREFIX = "meez:venue:";
@@ -22,7 +24,7 @@ const DEVICE_MENU_TYPE_PREFIX = STORAGE_KEYS.DEVICE_MENU_TYPE_PREFIX;
 
 export const TRIAL_SUBSCRIPTION: SubscriptionInfo = {
   plan: "تجربة مجانية",
-  status: "نشط",
+  status: "trial",
   screens: 0,
   maxScreens: 1,
   pricePerScreen: 0,
@@ -158,6 +160,17 @@ function saveVenueDataLocal(userId: string, data: VenueData): VenueData {
   return payload;
 }
 
+/** بعد حفظ سحابي ناجح — يمنع إعادة جلب JSON كاملاً دون داعٍ */
+export function markVenueRemoteSynced(userId: string, updatedAt: string | null): void {
+  rememberRemoteUpdatedAt(venueRemoteUpdatedKey(userId), updatedAt);
+  const venue = loadVenueData(userId);
+  for (const device of venue.devices) {
+    if (device.code.trim()) {
+      rememberRemoteUpdatedAt(deviceRemoteUpdatedKey(device.code), updatedAt);
+    }
+  }
+}
+
 export function saveVenueData(userId: string, data: VenueData): void {
   const payload = saveVenueDataLocal(userId, data);
   if (shouldUseVenueDatabase()) {
@@ -170,12 +183,42 @@ export function saveVenueData(userId: string, data: VenueData): void {
   }
 }
 
-/** مزامنة من السحابة — البعيد يفوز إذا المحلي فارغ (مثلاً أول زيارة من Vercel) */
+function venueRemoteUpdatedKey(userId: string): string {
+  return `${VENUE_REMOTE_UPDATED_PREFIX}${userId}`;
+}
+
+function deviceRemoteUpdatedKey(code: string): string {
+  return `${VENUE_REMOTE_UPDATED_PREFIX}device:${code.trim().toUpperCase()}`;
+}
+
+function rememberRemoteUpdatedAt(key: string, updatedAt: string | null): void {
+  if (!updatedAt) return;
+  setLocalJson(key, updatedAt);
+}
+
+function getRememberedRemoteUpdatedAt(key: string): string | null {
+  return getLocalJson<string | null>(key, null);
+}
+
+/** مزامنة من السحابة — يجلب JSON كاملاً فقط عند تغيّر updated_at */
 export async function pullVenueFromCloud(userId: string): Promise<VenueData> {
   const local = loadVenueData(userId);
   if (!shouldUseVenueDatabase()) return local;
 
   try {
+    const remoteUpdatedAt = await fetchVenueUpdatedAtForOwner(userId);
+    const cacheKey = venueRemoteUpdatedKey(userId);
+    const known = getRememberedRemoteUpdatedAt(cacheKey);
+
+    if (
+      remoteUpdatedAt &&
+      known === remoteUpdatedAt &&
+      local.version === 1 &&
+      !isVenueEffectivelyEmpty(local)
+    ) {
+      return local;
+    }
+
     const remote = await fetchVenueFromDatabase(userId);
     if (!remote || remote.version !== 1) {
       if (!isVenueEffectivelyEmpty(local)) {
@@ -185,27 +228,9 @@ export async function pullVenueFromCloud(userId: string): Promise<VenueData> {
     }
 
     const remoteNorm = normalizeVenue(remote);
-
-    if (isVenueEffectivelyEmpty(local) && !isVenueEffectivelyEmpty(remoteNorm)) {
-      saveVenueDataLocal(userId, remoteNorm);
-      return remoteNorm;
-    }
-
-    if (!isVenueEffectivelyEmpty(local) && isVenueEffectivelyEmpty(remoteNorm)) {
-      await saveVenueToDatabase(userId, local);
-      return local;
-    }
-
-    const remoteTime = Date.parse(remoteNorm.updatedAt) || 0;
-    const localTime = Date.parse(local.updatedAt) || 0;
-
-    if (remoteTime >= localTime) {
-      saveVenueDataLocal(userId, remoteNorm);
-      return remoteNorm;
-    }
-
-    await saveVenueToDatabase(userId, local);
-    return local;
+    saveVenueDataLocal(userId, remoteNorm);
+    rememberRemoteUpdatedAt(cacheKey, remoteUpdatedAt);
+    return remoteNorm;
   } catch (err) {
     logger.error("venue.cloud_pull_failed", {
       userId,
@@ -234,25 +259,12 @@ export function initializeVenueForUser(userId: string, venueName?: string): Venu
   return empty;
 }
 
-/** ربط أجهزة الحساب في قاعدة البيانات */
+/** لا مزامنة كتابة للأجهزة — التسجيل عبر register_device_with_license فقط */
 export async function syncDeviceActivationsToCloud(
-  ownerUserId: string,
-  devices: Device[],
+  _ownerUserId: string,
+  _devices: Device[],
 ): Promise<void> {
-  if (!shouldUseVenueDatabase()) return;
-
-  await Promise.all(
-    devices
-      .filter((d) => d.code.trim())
-      .map((d) =>
-        upsertDeviceActivationInDatabase(d.code, ownerUserId, inferDeviceMenuType(d)).catch((err) => {
-          logger.error("device.cloud_sync_failed", {
-            code: d.code,
-            message: err instanceof Error ? err.message : String(err),
-          });
-        }),
-      ),
-  );
+  return;
 }
 
 export function getCurrentUserId(): string | null {
@@ -277,14 +289,6 @@ export function linkDeviceToOwner(deviceCode: string, ownerUserId: string): void
   setLocalJson(`${DEVICE_OWNER_PREFIX}${code}`, ownerUserId);
   rememberOwnerUserId(ownerUserId);
   refreshDeviceVenueSync(code, ownerUserId);
-  if (shouldUseVenueDatabase()) {
-    void upsertDeviceActivationInDatabase(code, ownerUserId).catch((err) => {
-      logger.error("device.cloud_link_failed", {
-        code,
-        message: err instanceof Error ? err.message : String(err),
-      });
-    });
-  }
 }
 
 /** يعيد ربط كل أجهزة الحساب — مفيد بعد التحديث أو إذا فُقد الربط */
@@ -315,11 +319,18 @@ export function loadVenueForDevice(deviceCode: string): VenueData {
 }
 
 /** تحميل منيو الجهاز من Supabase (مع fallback محلي) */
-export async function loadVenueForDeviceAsync(deviceCode: string): Promise<VenueData> {
+export async function loadVenueForDeviceAsync(
+  deviceCode: string,
+  knownRemoteUpdatedAt?: string | null,
+): Promise<VenueData> {
   const code = deviceCode.trim().toUpperCase();
 
   if (shouldUseVenueDatabase()) {
     try {
+      const remoteUpdatedAt =
+        knownRemoteUpdatedAt !== undefined
+          ? knownRemoteUpdatedAt
+          : await fetchVenueUpdatedAtForDevice(code);
       const remote = await fetchVenueForDeviceFromDatabase(code);
       if (remote?.version === 1) {
         const normalized = normalizeVenue(remote);
@@ -328,7 +339,9 @@ export async function loadVenueForDeviceAsync(deviceCode: string): Promise<Venue
         setLocalJson(`${DEVICE_VENUE_PREFIX}${code}`, {
           venue: normalized,
           syncedAt: new Date().toISOString(),
+          remoteUpdatedAt: remoteUpdatedAt ?? undefined,
         });
+        rememberRemoteUpdatedAt(deviceRemoteUpdatedKey(code), remoteUpdatedAt);
         return normalized;
       }
     } catch (err) {
@@ -340,4 +353,24 @@ export async function loadVenueForDeviceAsync(deviceCode: string): Promise<Venue
   }
 
   return loadVenueForDevice(code);
+}
+
+/** مزامنة كاملة فقط عند تغيّر updated_at — وإلا البيانات المحلية */
+export async function syncVenueForDeviceIfStale(deviceCode: string): Promise<VenueData> {
+  const code = deviceCode.trim().toUpperCase();
+  if (!shouldUseVenueDatabase()) return loadVenueForDevice(code);
+
+  try {
+    const remoteUpdatedAt = await fetchVenueUpdatedAtForDevice(code);
+    const cacheKey = deviceRemoteUpdatedKey(code);
+    if (
+      remoteUpdatedAt &&
+      getRememberedRemoteUpdatedAt(cacheKey) === remoteUpdatedAt
+    ) {
+      return loadVenueForDevice(code);
+    }
+    return loadVenueForDeviceAsync(code, remoteUpdatedAt);
+  } catch {
+    return loadVenueForDevice(code);
+  }
 }

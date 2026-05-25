@@ -37,11 +37,17 @@ import {
 import { toast } from "sonner";
 import { activateDevice } from "@/services/device/activation";
 import { removeDeviceActivationFromDatabase } from "@/services/venue/venue-supabase.service";
+import { activateDeviceWithLicense } from "@/services/subscription/subscription-enforcement";
+import { shouldUseVenueDatabase } from "@/services/venue/venue-supabase.service";
+import { useSubscription } from "@/hooks/useSubscription";
+import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
+import { notifySubscriptionUpdated } from "@/hooks/useSubscription";
 import { deviceActivationCodeSchema } from "@/validations/device.schema";
 import { getErrorMessage } from "@/lib/errors";
 import { ROUTES } from "@/config/app";
 import { isIpadTrialMode } from "@/config/ipad-trial";
 import { getPendingVerification, clearPendingVerification } from "@/lib/pending-verification";
+import { verifyOwnerVerificationCode } from "@/services/device/verification-code.service";
 
 type ActivateNavState = {
   activationCode?: string;
@@ -53,6 +59,7 @@ const Devices = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [venue, updateVenue] = useVenueData();
+  const { access } = useSubscription();
   const list = venue.devices;
   const subscription = venue.subscription;
   const [open, setOpen] = useState(false);
@@ -88,7 +95,7 @@ const Devices = () => {
     void syncDeviceActivationsToCloud(ownerId, list);
   }, [list]);
 
-  const add = () => {
+  const add = async () => {
     if (!name.trim()) {
       toast.error("اسم الجهاز مطلوب");
       return;
@@ -97,8 +104,12 @@ const Devices = () => {
       toast.error("أدخل كود التحقق");
       return;
     }
-    if (list.length >= subscription.maxScreens) {
-      toast.error("وصلت للحد الأقصى. رقّ اشتراكك لإضافة شاشات أخرى.");
+    if (!access.can_add_devices) {
+      toast.error(
+        access.active_device_count >= access.screen_count
+          ? "وصلت لحد الشاشات المرخصة. رقّ اشتراكك لإضافة شاشات."
+          : "لا يمكن إضافة أجهزة في حالة الاشتراك الحالية.",
+      );
       return;
     }
     if (list.some((d) => d.code === activationCode.trim().toUpperCase())) {
@@ -112,6 +123,36 @@ const Devices = () => {
     }
 
     try {
+      if (shouldUseVenueDatabase()) {
+        const codeValid = await verifyOwnerVerificationCode(parsed.data.code);
+        if (!codeValid) {
+          toast.error(
+            "كود التحقق غير صالح. أنشئ كوداً جديداً من لوحة التحكم → كود التحقق ثم أعد التفعيل.",
+          );
+          return;
+        }
+
+        const result = await activateDeviceWithLicense(
+          parsed.data.code,
+          menuType,
+          name.trim(),
+        );
+        if (!result.ok) {
+          const msg =
+            result.error === "screen_limit_exceeded"
+              ? "وصلت لحد الشاشات المرخصة"
+              : result.error === "code_already_claimed"
+                ? "هذا الرمز مربوط بحساب آخر ولا يمكن إعادة استخدامه"
+                : result.error === "verification_code_invalid"
+                  ? "كود التحقق غير صالح — ولّد كوداً من «كود التحقق» أولاً"
+                  : result.error === "subscription_inactive"
+                  ? "الاشتراك غير نشط"
+                  : "تعذّر تفعيل الجهاز";
+          toast.error(msg);
+          return;
+        }
+        notifySubscriptionUpdated();
+      }
       activateDevice(parsed.data.code, { menuType });
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -163,12 +204,13 @@ const Devices = () => {
     toast.success(label);
   };
 
-  const used = list.length;
-  const max = subscription.maxScreens;
-  const canAddScreen = used < max;
+  const used = access.active_device_count || list.length;
+  const max = access.screen_count || subscription.maxScreens;
+  const canAddScreen = access.can_add_devices;
   const pct = max > 0 ? (used / max) * 100 : 0;
 
   return (
+    <SubscriptionGuard requireAddDevices>
     <DashboardLayout
       title="الأجهزة"
       subtitle={
@@ -247,7 +289,7 @@ const Devices = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="hero" onClick={add}>
+              <Button variant="hero" onClick={() => void add()}>
                 تفعيل
               </Button>
             </DialogFooter>
@@ -355,6 +397,7 @@ const Devices = () => {
         ))}
       </div>
     </DashboardLayout>
+    </SubscriptionGuard>
   );
 };
 

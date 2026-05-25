@@ -1,5 +1,7 @@
 import { X, Sparkles } from "lucide-react";
 import type { Crop } from "@/types/domain";
+import { CropFieldsGrid, CropNotes, CropTitle } from "@/components/menu/CropDisplay";
+import { cropFieldLabels } from "@/lib/crop-i18n";
 
 type Props = {
   crop: Crop;
@@ -9,29 +11,8 @@ type Props = {
   onClose: () => void;
 };
 
-const labels = {
-  ar: {
-    cropName: "اسم المحصول",
-    country: "البلد",
-    process: "المعالجة",
-    variety: "السلالة",
-    altitude: "الارتفاع",
-    notes: "ملاحظات",
-    featured: "مميّز",
-  },
-  en: {
-    cropName: "Crop name",
-    country: "Country",
-    process: "Process",
-    variety: "Variety",
-    altitude: "Altitude",
-    notes: "Notes",
-    featured: "Featured",
-  },
-} as const;
-
 const CropDetailModal = ({ crop, lang, accent, featured, onClose }: Props) => {
-  const L = labels[lang];
+  const L = cropFieldLabels[lang];
   const showImage = crop.bgType === "image" && crop.image;
 
   return (
@@ -45,30 +26,26 @@ const CropDetailModal = ({ crop, lang, accent, featured, onClose }: Props) => {
         onClick={(e) => e.stopPropagation()}
       >
         {showImage && (
-          <div className="relative bg-white flex items-center justify-center px-4 py-6 min-h-[200px] max-h-[min(52vh,440px)]">
-            <img
-              src={crop.image}
-              alt={crop.beanName}
-              className="max-w-full max-h-[min(48vh,400px)] w-auto h-auto object-contain"
-            />
+          <div className="relative aspect-square w-full overflow-hidden bg-white">
+            <img src={crop.image} alt="" className="h-full w-full object-cover object-center" />
             <button
               type="button"
               onClick={onClose}
               className="absolute top-3 start-3 w-9 h-9 rounded-full bg-white/95 shadow-sm flex items-center justify-center"
-              aria-label={lang === "ar" ? "إغلاق" : "Close"}
+              aria-label={L.close}
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         )}
 
-        <div className="p-6 text-[#1a1a1a] relative">
+        <div className="relative p-6 text-[#1a1a1a] text-center">
           {!showImage && (
             <button
               type="button"
               onClick={onClose}
               className="absolute top-4 start-4 w-9 h-9 rounded-full bg-secondary flex items-center justify-center"
-              aria-label={lang === "ar" ? "إغلاق" : "Close"}
+              aria-label={L.close}
             >
               <X className="w-5 h-5" />
             </button>
@@ -76,7 +53,7 @@ const CropDetailModal = ({ crop, lang, accent, featured, onClose }: Props) => {
 
           {featured && (
             <span
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white mb-3"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold text-white mb-4"
               style={{ background: accent }}
             >
               <Sparkles className="w-3.5 h-3.5" />
@@ -84,56 +61,13 @@ const CropDetailModal = ({ crop, lang, accent, featured, onClose }: Props) => {
             </span>
           )}
 
-          <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-            <DetailField
-              className="col-span-2"
-              prominent
-              label={L.cropName}
-              value={lang === "ar" ? crop.beanName : crop.beanNameEn || crop.beanName}
-              accent={accent}
-            />
-            {crop.beanNameEn && lang === "ar" && (
-              <DetailField className="col-span-2" label="Crop name" value={crop.beanNameEn} accent={accent} />
-            )}
-            {crop.beanNameEn && lang === "en" && crop.beanName && (
-              <DetailField className="col-span-2" label="اسم المحصول" value={crop.beanName} accent={accent} />
-            )}
-            <DetailField label={L.country} value={lang === "ar" ? crop.country : crop.countryEn} accent={accent} />
-            <DetailField label={L.process} value={lang === "ar" ? crop.process : crop.processEn} accent={accent} />
-            <DetailField label={L.variety} value={crop.variety} accent={accent} />
-            <DetailField label={L.altitude} value={crop.altitude} accent={accent} />
-          </div>
-
-          {(crop.notes || crop.notesEn) && (
-            <div className="pt-4 border-t border-black/10">
-              <div className="text-xs font-bold opacity-50 mb-1">{L.notes}</div>
-              <p className="text-sm font-bold">{lang === "ar" ? crop.notes : crop.notesEn}</p>
-              <p className="text-xs opacity-60 mt-1">{lang === "ar" ? crop.notesEn : crop.notes}</p>
-            </div>
-          )}
+          <CropTitle crop={crop} lang={lang} className="mb-6" />
+          <CropFieldsGrid crop={crop} lang={lang} size="modal" className="gap-6" />
+          <CropNotes crop={crop} lang={lang} className="border-black/10" />
         </div>
       </div>
     </div>
   );
 };
-
-const DetailField = ({
-  label,
-  value,
-  accent,
-  className = "",
-  prominent,
-}: {
-  label: string;
-  value: string;
-  accent: string;
-  className?: string;
-  prominent?: boolean;
-}) => (
-  <div className={`rounded-xl px-3 py-2.5 ${className}`} style={{ background: `${accent}12` }}>
-    <div className="text-[10px] font-bold opacity-50">{label}</div>
-    <div className={`mt-0.5 ${prominent ? "font-display font-black text-lg" : "font-bold"}`}>{value}</div>
-  </div>
-);
 
 export default CropDetailModal;

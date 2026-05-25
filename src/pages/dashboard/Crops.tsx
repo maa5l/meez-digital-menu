@@ -8,6 +8,7 @@ import { useVenueData } from "@/hooks/useVenueData";
 import type { Crop } from "@/types/domain";
 import { Plus, Coffee, Trash2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
+import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
 
 const empty: Omit<Crop, "id"> = {
   beanName: "", beanNameEn: "", country: "", countryEn: "",
@@ -42,6 +43,7 @@ const Crops = () => {
   };
 
   return (
+    <SubscriptionGuard requireEdit>
     <DashboardLayout
       title="محاصيل البن"
       subtitle="مكتبة محاصيل القهوة المعروضة على شاشة الكاشير المخصصة"
@@ -168,6 +170,7 @@ const Crops = () => {
         ))}
       </div>
     </DashboardLayout>
+    </SubscriptionGuard>
   );
 };
 

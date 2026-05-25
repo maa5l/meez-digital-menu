@@ -17,6 +17,7 @@ const Devices = lazy(() => import("@/pages/dashboard/Devices"));
 const LinkDevice = lazy(() => import("@/pages/dashboard/LinkDevice"));
 const Theme = lazy(() => import("@/pages/dashboard/Theme"));
 const Subscription = lazy(() => import("@/pages/dashboard/Subscription"));
+const PaymentCheckout = lazy(() => import("@/pages/dashboard/PaymentCheckout"));
 const Settings = lazy(() => import("@/pages/dashboard/Settings"));
 
 function PageLoader() {
@@ -106,6 +107,14 @@ export function AppRoutes() {
             element={
               <ProtectedRoute>
                 <Subscription />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard/subscription/pay"
+            element={
+              <ProtectedRoute>
+                <PaymentCheckout />
               </ProtectedRoute>
             }
           />

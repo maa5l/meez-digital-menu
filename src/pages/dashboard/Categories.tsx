@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
 
 const Categories = () => {
   const [venue, updateVenue] = useVenueData();
@@ -43,6 +44,7 @@ const Categories = () => {
     }));
 
   return (
+    <SubscriptionGuard requireEdit>
     <DashboardLayout
       title="التصنيفات"
       subtitle="نظّم منتجاتك في مجلدات يسهل تصفحها"
@@ -113,6 +115,7 @@ const Categories = () => {
       </div>
       )}
     </DashboardLayout>
+    </SubscriptionGuard>
   );
 };
 

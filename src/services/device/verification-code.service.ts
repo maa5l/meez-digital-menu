@@ -122,7 +122,79 @@ export function rememberVerificationCode(
   savePendingVerification(code, menuType);
 }
 
-/** التحقق من الكود على الجهاز (قبل عرض شاشة الانتظار) */
+/** تحقق كود الدخول — يطابق البريد وجلسة صالحة في Supabase */
+export async function verifyLoginVerificationCode(
+  code: string,
+  email: string,
+): Promise<boolean> {
+  const normalized = code.trim().toUpperCase();
+  if (!isValidDeviceCode(normalized)) return false;
+
+  if (!useCloud()) {
+    if (typeof window === "undefined") return false;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith(VERIFICATION_PREFIX)) continue;
+      const row = getLocalJson<LocalVerification | null>(key, null);
+      if (
+        row &&
+        row.expiresAt > Date.now() &&
+        row.code.toUpperCase() === normalized
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  const { data, error } = await getSupabase().rpc("verify_login_verification_code", {
+    p_code: normalized,
+    p_email: email.trim().toLowerCase(),
+  });
+
+  if (error) {
+    logger.error("verification.login_check_failed", { message: error.message });
+    return false;
+  }
+
+  return Boolean(data);
+}
+
+/** تحقق أن الكود صادر من لوحة التحكم لنفس المالك المسجّل */
+export async function verifyOwnerVerificationCode(code: string): Promise<boolean> {
+  const normalized = code.trim().toUpperCase();
+  if (!isValidDeviceCode(normalized)) return false;
+
+  if (!useCloud()) {
+    return validateVerificationCode(normalized);
+  }
+
+  const { data, error } = await getSupabase().rpc("verify_owner_verification_code", {
+    p_code: normalized,
+  });
+
+  if (error) {
+    logger.error("verification.owner_check_failed", { message: error.message });
+    return false;
+  }
+
+  return Boolean(data);
+}
+
+export async function consumeVerificationCode(code: string): Promise<void> {
+  const normalized = code.trim().toUpperCase();
+  if (!useCloud()) return;
+
+  const { error } = await getSupabase().rpc("consume_verification_code", {
+    p_code: normalized,
+  });
+
+  if (error) {
+    logger.warn("verification.consume_failed", { message: error.message });
+  }
+}
+
+/** التحقق من الكود (عام) */
 export async function validateVerificationCode(code: string): Promise<boolean> {
   const normalized = code.trim().toUpperCase();
   if (!isValidDeviceCode(normalized)) return false;

@@ -1,8 +1,9 @@
 /** مقاس صورة الهيدر الموصى به للمنيو */
 export const HEADER_IMAGE_SPEC = {
-  recommendedWidth: 1200,
-  recommendedHeight: 200,
-  minWidth: 320,
-  minHeight: 80,
-  targetAspect: 6,
+  recommendedWidth: 2400,
+  recommendedHeight: 800,
+  minWidth: 640,
+  minHeight: 200,
+  targetAspect: 3,
+  jpegQuality: 0.94,
 } as const;
