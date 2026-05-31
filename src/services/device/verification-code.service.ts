@@ -160,6 +160,176 @@ export async function verifyLoginVerificationCode(
   return Boolean(data);
 }
 
+export type VerificationEnsureReason =
+  | "invalid_format"
+  | "already_valid"
+  | "registered_new_session"
+  | "create_failed"
+  | "local_mock";
+
+export type VerificationEnsureResult = {
+  ok: boolean;
+  normalizedCode: string;
+  reason: VerificationEnsureReason;
+  /** جلسات المالك المطابقة (للتشخيص) */
+  dbSessions?: Array<{ id: string; code: string | null; expiresAt: string; expired: boolean }>;
+};
+
+type PairingSessionRow = {
+  id: string;
+  code: string | null;
+  expires_at: string;
+};
+
+async function fetchOwnerSessionsForCode(
+  ownerId: string,
+  normalized: string,
+): Promise<PairingSessionRow[]> {
+  const { data, error } = await getSupabase()
+    .from("device_pairing_sessions")
+    .select("id, code, expires_at")
+    .eq("owner_id", ownerId)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  if (error) {
+    logger.warn("verification.sessions_fetch_failed", { message: error.message });
+    return [];
+  }
+
+  return (data ?? []).filter(
+    (row) => row.code && row.code.trim().toUpperCase() === normalized,
+  ) as PairingSessionRow[];
+}
+
+function toDiagnosticSessions(rows: PairingSessionRow[]) {
+  const now = Date.now();
+  return rows.map((row) => ({
+    id: row.id,
+    code: row.code,
+    expiresAt: row.expires_at,
+    expired: new Date(row.expires_at).getTime() <= now,
+  }));
+}
+
+/**
+ * يضمن وجود جلسة تحقق صالحة للمالك قبل التفعيل.
+ * رمز الآيباد يُولَّد محلياً ولا يُكتب في Supabase — نسجّله هنا عند التفعيل من لوحة التحكم.
+ */
+export async function ensureOwnerVerificationSession(
+  code: string,
+  ownerId: string,
+): Promise<VerificationEnsureResult> {
+  const normalized = code.trim().toUpperCase();
+
+  logger.info("verification.ensure_start", {
+    inputCode: code,
+    normalizedCode: normalized,
+    ownerId,
+  });
+
+  if (!isValidDeviceCode(normalized)) {
+    logger.warn("verification.ensure_invalid_format", { inputCode: code, normalizedCode: normalized });
+    return { ok: false, normalizedCode: normalized, reason: "invalid_format" };
+  }
+
+  if (!useCloud()) {
+    const valid = await validateVerificationCode(normalized);
+    logger.info("verification.ensure_local", { normalizedCode: normalized, valid });
+    return { ok: valid, normalizedCode: normalized, reason: "local_mock" };
+  }
+
+  const supabase = getSupabase();
+  const existingRows = await fetchOwnerSessionsForCode(ownerId, normalized);
+  const dbSessions = toDiagnosticSessions(existingRows);
+
+  const { data: alreadyValid, error: verifyErr } = await supabase.rpc(
+    "verify_owner_verification_code",
+    { p_code: normalized },
+  );
+
+  if (verifyErr) {
+    logger.error("verification.owner_check_failed", {
+      message: verifyErr.message,
+      normalizedCode: normalized,
+      dbSessions,
+    });
+    return { ok: false, normalizedCode: normalized, reason: "create_failed", dbSessions };
+  }
+
+  logger.info("verification.owner_check", {
+    inputCode: code,
+    normalizedCode: normalized,
+    dbMatch: dbSessions,
+    verifyResult: Boolean(alreadyValid),
+  });
+
+  if (alreadyValid) {
+    return { ok: true, normalizedCode: normalized, reason: "already_valid", dbSessions };
+  }
+
+  const { data: sessionId, error: createErr } = await supabase.rpc(
+    "create_device_verification_code",
+    { p_code: normalized },
+  );
+
+  if (createErr) {
+    logger.warn("verification.ensure_rpc_create_failed", {
+      message: createErr.message,
+      normalizedCode: normalized,
+    });
+    try {
+      const fallbackId = await createVerificationCodeInTable(ownerId, normalized);
+      logger.info("verification.session_registered_fallback", {
+        normalizedCode: normalized,
+        sessionId: fallbackId,
+      });
+    } catch (insertErr) {
+      logger.error("verification.ensure_create_failed", {
+        normalizedCode: normalized,
+        rpcError: createErr.message,
+        insertError: insertErr instanceof Error ? insertErr.message : String(insertErr),
+        dbSessions,
+      });
+      return { ok: false, normalizedCode: normalized, reason: "create_failed", dbSessions };
+    }
+  } else {
+    logger.info("verification.session_registered", {
+      normalizedCode: normalized,
+      sessionId: String(sessionId),
+    });
+  }
+
+  const refreshedRows = await fetchOwnerSessionsForCode(ownerId, normalized);
+  const refreshedSessions = toDiagnosticSessions(refreshedRows);
+
+  const { data: validAfter, error: reverifyErr } = await supabase.rpc(
+    "verify_owner_verification_code",
+    { p_code: normalized },
+  );
+
+  if (reverifyErr) {
+    logger.error("verification.reverify_failed", { message: reverifyErr.message, normalizedCode: normalized });
+    return { ok: false, normalizedCode: normalized, reason: "create_failed", dbSessions: refreshedSessions };
+  }
+
+  const ok = Boolean(validAfter);
+  logger.info("verification.ensure_done", {
+    inputCode: code,
+    normalizedCode: normalized,
+    dbMatch: refreshedSessions,
+    verifyResult: ok,
+    reason: ok ? "registered_new_session" : "create_failed",
+  });
+
+  return {
+    ok,
+    normalizedCode: normalized,
+    reason: ok ? "registered_new_session" : "create_failed",
+    dbSessions: refreshedSessions,
+  };
+}
+
 /** تحقق أن الكود صادر من لوحة التحكم لنفس المالك المسجّل */
 export async function verifyOwnerVerificationCode(code: string): Promise<boolean> {
   const normalized = code.trim().toUpperCase();

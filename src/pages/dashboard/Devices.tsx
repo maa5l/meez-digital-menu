@@ -25,6 +25,7 @@ import {
   Sprout,
   KeyRound,
   ArrowLeft,
+  AlertCircle,
 } from "lucide-react";
 import {
   Dialog,
@@ -36,9 +37,13 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { activateDevice } from "@/services/device/activation";
-import { removeDeviceActivationFromDatabase } from "@/services/venue/venue-supabase.service";
+import {
+  removeDeviceActivationFromDatabase,
+  shouldUseVenueDatabase,
+  syncOwnerDevicesFromCloud,
+} from "@/services/venue/venue-supabase.service";
+import { deactivateAllOwnerDevicesRpc } from "@/services/core/platform-security";
 import { activateDeviceWithLicense } from "@/services/subscription/subscription-enforcement";
-import { shouldUseVenueDatabase } from "@/services/venue/venue-supabase.service";
 import { useSubscription } from "@/hooks/useSubscription";
 import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
 import { notifySubscriptionUpdated } from "@/hooks/useSubscription";
@@ -47,7 +52,8 @@ import { getErrorMessage } from "@/lib/errors";
 import { ROUTES } from "@/config/app";
 import { isIpadTrialMode } from "@/config/ipad-trial";
 import { getPendingVerification, clearPendingVerification } from "@/lib/pending-verification";
-import { verifyOwnerVerificationCode } from "@/services/device/verification-code.service";
+import { ensureOwnerVerificationSession } from "@/services/device/verification-code.service";
+import { logger } from "@/lib/logger";
 
 type ActivateNavState = {
   activationCode?: string;
@@ -66,6 +72,7 @@ const Devices = () => {
   const [name, setName] = useState("");
   const [menuType, setMenuType] = useState<"products" | "crops">("products");
   const [activationCode, setActivationCode] = useState("");
+  const [removingAll, setRemovingAll] = useState(false);
 
   useEffect(() => {
     const nav = location.state as ActivateNavState | null;
@@ -80,6 +87,11 @@ const Devices = () => {
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!shouldUseVenueDatabase()) return;
+    void syncOwnerDevicesFromCloud(updateVenue).then(() => notifySubscriptionUpdated());
+  }, [updateVenue]);
 
   useEffect(() => {
     const ownerId = getCurrentUserId();
@@ -122,81 +134,132 @@ const Devices = () => {
       return;
     }
 
-    try {
-      if (shouldUseVenueDatabase()) {
-        const codeValid = await verifyOwnerVerificationCode(parsed.data.code);
-        if (!codeValid) {
-          toast.error(
-            "كود التحقق غير صالح. أنشئ كوداً جديداً من لوحة التحكم → كود التحقق ثم أعد التفعيل.",
-          );
-          return;
-        }
-
-        const result = await activateDeviceWithLicense(
-          parsed.data.code,
-          menuType,
-          name.trim(),
-        );
-        if (!result.ok) {
-          const msg =
-            result.error === "screen_limit_exceeded"
-              ? "وصلت لحد الشاشات المرخصة"
-              : result.error === "code_already_claimed"
-                ? "هذا الرمز مربوط بحساب آخر ولا يمكن إعادة استخدامه"
-                : result.error === "verification_code_invalid"
-                  ? "كود التحقق غير صالح — ولّد كوداً من «كود التحقق» أولاً"
-                  : result.error === "subscription_inactive"
-                  ? "الاشتراك غير نشط"
-                  : "تعذّر تفعيل الجهاز";
-          toast.error(msg);
-          return;
-        }
-        notifySubscriptionUpdated();
-      }
-      activateDevice(parsed.data.code, { menuType });
-    } catch (error) {
-      toast.error(getErrorMessage(error));
+    if (!shouldUseVenueDatabase()) {
+      toast.error(
+        "Supabase غير مضبوط — التفعيل يبقى في المتصفح فقط ولن يراه تطبيق الكشك. راجع VITE_SUPABASE_* في .env.local",
+      );
       return;
     }
 
-    const ownerId = getCurrentUserId();
-    if (ownerId) {
+    try {
+      const ownerId = getCurrentUserId();
+      if (!ownerId) {
+        toast.error("سجّل الدخول أولاً");
+        return;
+      }
+
+      const ensure = await ensureOwnerVerificationSession(parsed.data.code, ownerId);
+      logger.info("devices.activate_verification", {
+        inputCode: parsed.data.code,
+        normalizedCode: ensure.normalizedCode,
+        ok: ensure.ok,
+        reason: ensure.reason,
+        dbSessions: ensure.dbSessions,
+      });
+
+      if (!ensure.ok) {
+        const hadExpired =
+          ensure.dbSessions?.some((s) => s.expired) && !ensure.dbSessions.some((s) => !s.expired);
+        toast.error(
+          ensure.reason === "invalid_format"
+            ? "صيغة الرمز غير صحيحة — استخدم QM-XXXX"
+            : hadExpired
+              ? "انتهت صلاحية الرمز السابق — أعد إدخال الرمز من الآيباد أو ولّد رمزاً جديداً"
+              : "تعذّر تجهيز كود التحقق — تأكد من الرمز الظاهر على الآيباد وحاول مرة أخرى",
+        );
+        return;
+      }
+
+      const result = await activateDeviceWithLicense(
+        ensure.normalizedCode,
+        menuType,
+        name.trim(),
+      );
+      if (!result.ok) {
+        const msg =
+          result.error === "screen_limit_exceeded"
+            ? "وصلت لحد الشاشات المرخصة"
+            : result.error === "code_already_claimed"
+              ? "هذا الرمز مربوط بحساب آخر ولا يمكن إعادة استخدامه"
+              : result.error === "verification_code_invalid"
+                ? "كود التحقق غير صالح — ولّد كوداً من «كود التحقق» أولاً"
+                : result.error === "subscription_inactive"
+                  ? "الاشتراك غير نشط"
+                  : result.error === "not_authenticated"
+                    ? "سجّل الدخول أولاً"
+                    : typeof result.error === "string" && result.error.length > 0
+                      ? result.error
+                      : "تعذّر تفعيل الجهاز";
+        toast.error(msg);
+        return;
+      }
+
+      notifySubscriptionUpdated();
+      await syncOwnerDevicesFromCloud(updateVenue);
+      activateDevice(parsed.data.code, { menuType });
       linkDeviceToOwner(parsed.data.code, ownerId);
       setDeviceMenuType(parsed.data.code, menuType);
+
+      setName("");
+      setActivationCode("");
+      setMenuType("products");
+      clearPendingVerification();
+      toast.success("تم التفعيل في Supabase — انتظر ثوانٍ على شاشة الكشك");
+      setOpen(false);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
     }
-
-    const newDevice = {
-      id: `d${Date.now()}`,
-      name: `${name} · ${menuType === "crops" ? "محاصيل" : "منتجات"}`,
-      code: parsed.data.code,
-      menuType,
-      lastActive: "تم التفعيل الآن",
-      status: "active" as const,
-    };
-
-    updateVenue((v) => ({
-      ...v,
-      devices: [...v.devices, newDevice],
-      subscription: { ...v.subscription, screens: v.devices.length + 1 },
-    }));
-    setName("");
-    setActivationCode("");
-    setMenuType("products");
-    clearPendingVerification();
-    toast.success("تم تفعيل الجهاز — ستفتح المنيو على الشاشة تلقائياً");
-    setOpen(false);
   };
 
-  const remove = (id: string) => {
+  const remove = async (id: string) => {
     const device = list.find((d) => d.id === id);
-    if (device?.code.trim()) {
-      void removeDeviceActivationFromDatabase(device.code);
+    if (!device) return;
+
+    try {
+      if (device.code.trim() && shouldUseVenueDatabase()) {
+        await removeDeviceActivationFromDatabase(device.code);
+      }
+      updateVenue((v) => ({
+        ...v,
+        devices: v.devices.filter((d) => d.id !== id),
+        subscription: { ...v.subscription, screens: Math.max(0, v.devices.length - 1) },
+      }));
+      notifySubscriptionUpdated();
+      toast.success("تم فصل الجهاز");
+    } catch (error) {
+      toast.error(getErrorMessage(error));
     }
-    updateVenue((v) => ({
-      ...v,
-      devices: v.devices.filter((d) => d.id !== id),
-      subscription: { ...v.subscription, screens: Math.max(0, v.devices.length - 1) },
-    }));
+  };
+
+  const removeAll = async () => {
+    if (list.length === 0) return;
+    if (!window.confirm("فصل جميع الأجهزة النشطة؟ لن تُحذف السجلات من النظام لكن ستختفي من القائمة.")) {
+      return;
+    }
+
+    setRemovingAll(true);
+    try {
+      if (shouldUseVenueDatabase()) {
+        const result = await deactivateAllOwnerDevicesRpc();
+        if (!result.ok) {
+          toast.error(result.error ?? "تعذّر فصل الأجهزة");
+          return;
+        }
+        await syncOwnerDevicesFromCloud(updateVenue);
+      } else {
+        updateVenue((v) => ({
+          ...v,
+          devices: [],
+          subscription: { ...v.subscription, screens: 0 },
+        }));
+      }
+      notifySubscriptionUpdated();
+      toast.success("تم فصل جميع الأجهزة");
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setRemovingAll(false);
+    }
   };
 
   const copy = (text: string, label = "تم النسخ") => {
@@ -204,10 +267,11 @@ const Devices = () => {
     toast.success(label);
   };
 
-  const used = access.active_device_count || list.length;
+  const used = Math.max(access.active_device_count, list.filter((d) => d.status === "active").length);
   const max = access.screen_count || subscription.maxScreens;
   const canAddScreen = access.can_add_devices;
   const pct = max > 0 ? (used / max) * 100 : 0;
+  const cloudReady = shouldUseVenueDatabase();
 
   return (
     <SubscriptionGuard requireAddDevices>
@@ -221,7 +285,7 @@ const Devices = () => {
       action={
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button variant="hero" size="lg" disabled={!canAddScreen}>
+            <Button variant="hero" size="lg" disabled={!canAddScreen || !cloudReady}>
               <Plus className="w-4 h-4" />
               تفعيل جهاز
             </Button>
@@ -297,6 +361,21 @@ const Devices = () => {
         </Dialog>
       }
     >
+      {!cloudReady && (
+        <div className="mb-6 rounded-2xl border border-destructive/40 bg-destructive/10 p-4 flex gap-3 text-destructive">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <div className="text-sm space-y-1">
+            <p className="font-bold">Supabase غير مضبوط — التفعيل لا يصل لتطبيق الكشك</p>
+            <p className="opacity-90">
+              ضع <span dir="ltr">VITE_SUPABASE_URL</span> و{" "}
+              <span dir="ltr">VITE_SUPABASE_ANON_KEY</span> الحقيقيين في{" "}
+              <span dir="ltr">.env.local</span> ثم أعد تشغيل{" "}
+              <span dir="ltr">npm run dev</span>.
+            </p>
+          </div>
+        </div>
+      )}
+
       <Link
         to={ROUTES.dashboardLinkDevice}
         className="block bg-gradient-hero text-primary-foreground rounded-2xl p-6 mb-6 hover:shadow-warm transition-shadow"
@@ -330,8 +409,22 @@ const Devices = () => {
               {used} من أصل {max} شاشة
             </div>
           </div>
-          <div className="font-display font-black text-2xl text-accent">
-            {used}/{max}
+          <div className="flex items-center gap-3">
+            {list.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                disabled={removingAll}
+                onClick={() => void removeAll()}
+              >
+                <Trash2 className="w-4 h-4" />
+                فصل الكل
+              </Button>
+            )}
+            <div className="font-display font-black text-2xl text-accent">
+              {used}/{max}
+            </div>
           </div>
         </div>
         <div className="h-3 bg-secondary rounded-full overflow-hidden">

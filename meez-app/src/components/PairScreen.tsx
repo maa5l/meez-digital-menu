@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/Brand";
-import { getPublicSiteHref, getPublicSiteLabel } from "@/config/env";
+import { getMenuWebBaseUrl, getPublicSiteHref, getPublicSiteLabel, isLocalhostMenuUrl } from "@/config/env";
 
 type Props = {
   code: string;
@@ -56,6 +56,19 @@ export function PairScreen({ code }: Props) {
         >
           {siteLabel}
         </a>
+
+        {import.meta.env.DEV && (
+          <div className="mt-10 rounded-xl border border-white/20 bg-black/20 p-3 text-xs text-left space-y-2" dir="ltr">
+            <p className="opacity-60">dev · menu after activation:</p>
+            <p className="font-mono break-all">{getMenuWebBaseUrl()}/menu?code={code}</p>
+            {isLocalhostMenuUrl() && (
+              <p className="text-amber-300">
+                localhost only works on the same machine. On Mac + PC use the PC LAN IP, e.g.{" "}
+                <span className="font-mono">http://192.168.1.x:8080</span> in meez-app/.env.local
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

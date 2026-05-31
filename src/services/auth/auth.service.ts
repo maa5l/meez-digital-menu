@@ -2,7 +2,7 @@ import type { Session } from "@supabase/supabase-js";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { setSession, clearSession, createMockSession } from "@/security/session";
 import type { AuthSession } from "@/types/domain";
-import { appEnv, resolveAppOrigin } from "@/config/env";
+import { appEnv } from "@/config/env";
 import {
   initializeVenueForUser,
   isVenueEffectivelyEmpty,
@@ -20,6 +20,8 @@ import {
 import { usesSupabaseAuth } from "@/config/env";
 import { logger } from "@/lib/logger";
 import { ensureSubscriptionRecord } from "@/services/subscription/subscription-enforcement";
+
+/** OTP disabled temporarily for debugging — login uses signInWithPassword only. */
 
 async function hydrateVenueForUser(userId: string, venueName?: string): Promise<void> {
   if (shouldUseVenueDatabase()) {
@@ -77,53 +79,13 @@ export async function getActiveSession(): Promise<AuthSession | null> {
     if (data.session) {
       const venueName =
         (data.session.user.user_metadata?.venue_name as string | undefined) ?? "";
-      await hydrateVenueForUser(
-        data.session.user.id,
-        venueName || undefined,
-      );
+      await hydrateVenueForUser(data.session.user.id, venueName || undefined);
       await syncAccountWithVenue(data.session.user.id);
     }
     return syncSessionFromSupabase(data.session);
   }
   const { getSession } = await import("@/security/session");
   return getSession();
-}
-
-export async function signUp(
-  email: string,
-  password: string,
-  venueName?: string,
-): Promise<{ needsEmailConfirmation: boolean }> {
-  if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
-    const session = createMockSession(email);
-    setSession(session);
-    initializeVenueForUser(session.userId, venueName);
-    return { needsEmailConfirmation: false };
-  }
-
-  const supabase = getSupabase();
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { venue_name: venueName ?? "" },
-      emailRedirectTo: `${resolveAppOrigin()}/auth`,
-    },
-  });
-
-  if (error) throw error;
-
-  if (data.session) {
-    await afterSupabaseAuth(data.session, venueName);
-    syncSessionFromSupabase(data.session);
-    return { needsEmailConfirmation: false };
-  }
-
-  if (data.user) {
-    logger.audit("auth.signup_pending_confirmation", { userId: data.user.id });
-  }
-
-  return { needsEmailConfirmation: true };
 }
 
 function isEmailNotConfirmed(error: unknown): boolean {
@@ -142,169 +104,100 @@ function isEmailNotConfirmed(error: unknown): boolean {
   );
 }
 
-function isEmailRateLimitError(error: unknown): boolean {
-  const msg =
-    error && typeof error === "object" && "message" in error
-      ? String((error as { message?: string }).message).toLowerCase()
-      : String(error ?? "").toLowerCase();
-  const status =
-    error && typeof error === "object" && "status" in error
-      ? Number((error as { status?: number }).status)
-      : undefined;
-  const code =
-    error && typeof error === "object" && "code" in error
-      ? String((error as { code?: string }).code).toLowerCase()
-      : "";
-
-  return (
-    status === 429 ||
-    code.includes("rate_limit") ||
-    msg.includes("rate limit") ||
-    msg.includes("too many") ||
-    msg.includes("over_email_send_rate_limit")
-  );
+function mapPasswordAuthError(error: unknown): Error {
+  if (!(error && typeof error === "object" && "message" in error)) {
+    return new Error("تعذّر تسجيل الدخول");
+  }
+  const msg = String((error as { message?: string }).message).toLowerCase();
+  if (isEmailNotConfirmed(error)) {
+    return new Error(
+      "البريد غير مؤكد. عطّل Confirm email في Supabase: Authentication → Providers → Email → Confirm email (OFF).",
+    );
+  }
+  if (msg.includes("invalid login credentials") || msg.includes("invalid credentials")) {
+    return new Error("البريد أو كلمة المرور غير صحيحة.");
+  }
+  return error instanceof Error ? error : new Error(String((error as { message?: string }).message));
 }
 
-/** إرسال رمز 6 أرقام إلى البريد — تسجيل دخول الحساب فقط (لا علاقة بكود الشاشات QM-XXXX) */
-export async function sendLoginOtp(email: string): Promise<void> {
-  if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
-    if (!appEnv.enableMockAuth && appEnv.isProd) {
-      throw new Error("المصادقة غير متاحة. اضبط Supabase في البيئة.");
-    }
-    logger.audit("auth.login_otp_mock_sent", { email });
-    return;
-  }
-
-  const { error } = await getSupabase().auth.signInWithOtp({
-    email: email.trim().toLowerCase(),
-    options: {
-      shouldCreateUser: false,
-    },
-  });
-
-  if (error) {
-    const msg = error.message.toLowerCase();
-    if (isEmailRateLimitError(error)) {
-      throw new Error("تم طلب رموز كثيرة خلال وقت قصير. انتظر دقيقة ثم جرّب مرة أخرى.");
-    }
-    if (msg.includes("signups not allowed") || msg.includes("user not found")) {
-      throw new Error("لا يوجد حساب بهذا البريد. أنشئ حساباً جديداً أولاً.");
-    }
-    if (msg.includes("provider") || msg.includes("disabled") || msg.includes("email not enabled")) {
-      throw new Error(
-        "تعذّر إرسال الرمز. فعّل Email OTP في Supabase: Authentication → Providers → Email.",
-      );
-    }
-    throw error;
-  }
-
-  logger.audit("auth.login_otp_sent", { email });
-}
-
-/** التحقق من رمز 6 أرقام وإنشاء الجلسة */
-export async function verifyLoginOtp(email: string, otp: string): Promise<void> {
-  const token = otp.trim();
+/** تسجيل دخول بكلمة المرور — OTP disabled temporarily for debugging */
+export async function signInWithPassword(email: string, password: string): Promise<void> {
+  const normalizedEmail = email.trim().toLowerCase();
 
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
     if (!appEnv.enableMockAuth && appEnv.isProd) {
       throw new Error("المصادقة غير متاحة. اضبط Supabase في البيئة.");
     }
-    if (!/^\d{6}$/.test(token)) {
-      throw new Error("أدخل رمز التحقق المكوّن من 6 أرقام");
-    }
-    const session = createMockSession(email);
+    const session = createMockSession(normalizedEmail);
     setSession(session);
     initializeVenueForUser(session.userId);
     return;
   }
 
-  const { data, error } = await getSupabase().auth.verifyOtp({
-    email: email.trim().toLowerCase(),
-    token,
-    type: "email",
+  const { data, error } = await getSupabase().auth.signInWithPassword({
+    email: normalizedEmail,
+    password,
   });
 
-  if (error) {
-    const msg = error.message.toLowerCase();
-    if (msg.includes("expired") || msg.includes("invalid") || msg.includes("otp")) {
-      throw new Error("رمز التحقق غير صحيح أو منتهٍ. اطلب رمزاً جديداً.");
-    }
-    throw error;
-  }
+  logger.debug("auth.signInWithPassword.response", {
+    email: normalizedEmail,
+    hasError: Boolean(error),
+    hasSession: Boolean(data.session),
+  });
 
+  if (error) throw mapPasswordAuthError(error);
   if (!data.session) {
-    throw new Error("لم يتم إنشاء جلسة. تحقق من الرمز أو اطلب رمزاً جديداً.");
+    throw new Error("لم يتم إنشاء جلسة. تحقق من إعدادات Supabase Auth.");
   }
 
   await afterSupabaseAuth(data.session);
   syncSessionFromSupabase(data.session);
+  logger.audit("auth.password_login", { email: normalizedEmail });
 }
 
-/** إرسال رمز 6 أرقام لإعادة تعيين كلمة المرور */
-export async function sendPasswordResetOtp(email: string): Promise<void> {
-  if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
-    if (!appEnv.enableMockAuth && appEnv.isProd) {
-      throw new Error("المصادقة غير متاحة. اضبط Supabase في البيئة.");
-    }
-    logger.audit("auth.password_reset_otp_mock_sent", { email });
-    return;
-  }
-
-  const { error } = await getSupabase().auth.resetPasswordForEmail(
-    email.trim().toLowerCase(),
-  );
-
-  if (error) {
-    if (isEmailRateLimitError(error)) {
-      throw new Error("تم طلب رموز كثيرة خلال وقت قصير. انتظر دقيقة ثم جرّب مرة أخرى.");
-    }
-    throw error;
-  }
-
-  logger.audit("auth.password_reset_otp_sent", { email });
-}
-
-/** التحقق من رمز الاستعادة ثم حفظ كلمة المرور الجديدة */
-export async function resetPasswordWithOtp(
+export async function signUp(
   email: string,
-  otp: string,
   password: string,
-): Promise<void> {
-  const token = otp.trim();
+  venueName?: string,
+): Promise<{ needsEmailConfirmation: boolean }> {
+  const normalizedEmail = email.trim().toLowerCase();
 
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
-    if (!appEnv.enableMockAuth && appEnv.isProd) {
-      throw new Error("المصادقة غير متاحة. اضبط Supabase في البيئة.");
-    }
-    if (!/^\d{6}$/.test(token)) {
-      throw new Error("أدخل رمز التحقق المكوّن من 6 أرقام");
-    }
-    return;
+    const session = createMockSession(normalizedEmail);
+    setSession(session);
+    initializeVenueForUser(session.userId, venueName);
+    return { needsEmailConfirmation: false };
   }
 
-  const { data, error } = await getSupabase().auth.verifyOtp({
-    email: email.trim().toLowerCase(),
-    token,
-    type: "recovery",
+  const supabase = getSupabase();
+  const { data, error } = await supabase.auth.signUp({
+    email: normalizedEmail,
+    password,
+    options: {
+      data: { venue_name: venueName ?? "" },
+      // OTP disabled temporarily for debugging — no emailRedirectTo / no confirmation emails
+    },
   });
 
-  if (error) {
-    const msg = error.message.toLowerCase();
-    if (msg.includes("expired") || msg.includes("invalid") || msg.includes("otp")) {
-      throw new Error("رمز إعادة التعيين غير صحيح أو منتهٍ. اطلب رمزاً جديداً.");
+  if (error) throw error;
+
+  if (data.session) {
+    await afterSupabaseAuth(data.session, venueName);
+    syncSessionFromSupabase(data.session);
+    return { needsEmailConfirmation: false };
+  }
+
+  try {
+    await signInWithPassword(normalizedEmail, password);
+    return { needsEmailConfirmation: false };
+  } catch (loginError) {
+    if (isEmailNotConfirmed(loginError)) {
+      throw new Error(
+        "تم إنشاء الحساب لكن البريد يحتاج تأكيداً. عطّل Confirm email في Supabase: Authentication → Providers → Email.",
+      );
     }
-    throw error;
+    throw loginError;
   }
-
-  if (!data.session) {
-    throw new Error("لم يتم التحقق من الرمز. اطلب رمزاً جديداً.");
-  }
-
-  const { error: updateError } = await getSupabase().auth.updateUser({ password });
-  if (updateError) throw updateError;
-
-  await getSupabase().auth.signOut();
-  clearSession();
 }
 
 export { usesSupabaseAuth };

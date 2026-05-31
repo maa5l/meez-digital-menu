@@ -4,6 +4,7 @@ import { getLocalString, setLocalString } from "@/security/storage";
 import { getSession } from "@/security/session";
 import { linkDeviceToOwner, refreshDeviceVenueSync, setDeviceMenuType } from "@/lib/venue-store";
 import { logger } from "@/lib/logger";
+import { checkKioskAccess } from "@/services/subscription/subscription-enforcement";
 import { isDeviceActivatedInDatabase, shouldUseVenueDatabase } from "@/services/venue/venue-supabase.service";
 
 const ACTIVATION_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -81,8 +82,8 @@ export async function checkDeviceRegistrationOnKiosk(
   if (!isValidDeviceCode(normalized)) return "not_registered";
 
   if (shouldUseVenueDatabase()) {
-    const inDb = await isDeviceActivatedInDatabase(normalized);
-    return inDb ? "registered" : "not_registered";
+    const check = await checkKioskAccess(normalized);
+    return check.registered && check.allowed ? "registered" : "not_registered";
   }
 
   return isDeviceActivated(normalized) ? "registered" : "not_registered";

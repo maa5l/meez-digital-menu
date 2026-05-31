@@ -151,11 +151,11 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "http://127.0.0.1:3000"
+site_url = "http://localhost:8080"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+additional_redirect_urls = ["http://localhost:8080", "http://localhost:8081", "http://127.0.0.1:8080"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -226,7 +226,7 @@ max_frequency = "1s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+otp_expiry = 600
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]
@@ -238,10 +238,15 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# رمز تسجيل الدخول بدلاً من رابط Magic Link
+# رمز تسجيل الدخول بدلاً من رابط Magic Link (يجب استخدام {{ .Token }} وليس {{ .ConfirmationURL }})
 [auth.email.template.magic_link]
 subject = "{{ .Token }} هو رمز تسجيل الدخول"
 content_path = "./supabase/templates/magic_link.html"
+
+# رمز تأكيد التسجيل بدلاً من رابط التفعيل
+[auth.email.template.confirmation]
+subject = "{{ .Token }} هو رمز تأكيد حسابك"
+content_path = "./supabase/templates/confirmation.html"
 
 # رمز إعادة تعيين كلمة المرور بدلاً من رابط recovery
 [auth.email.template.recovery]

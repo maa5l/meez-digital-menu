@@ -304,9 +304,9 @@ export type Database = {
       };
       activate_device_with_license: {
         Args: {
-          p_code: string;
-          p_menu_type?: string | null;
-          p_device_name?: string | null;
+          license: string;
+          device: string;
+          app_env?: string;
         };
         Returns: Json;
       };
@@ -315,11 +315,16 @@ export type Database = {
           p_code: string;
           p_menu_type?: string | null;
           p_device_name?: string | null;
+          p_app_env?: string;
         };
         Returns: Json;
       };
       deactivate_device: {
         Args: { p_code: string };
+        Returns: Json;
+      };
+      deactivate_all_my_devices: {
+        Args: Record<string, never>;
         Returns: Json;
       };
       update_venue_data: {

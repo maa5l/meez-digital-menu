@@ -1,69 +1,48 @@
 import { useEffect, useRef } from "react";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
+import { isSupabaseConfigured } from "@/config/env";
 import { checkDeviceRegisteredOnServer } from "@/services/kiosk-check";
-
-const POLL_STEPS_MS = [8_000, 12_000, 20_000, 30_000, 45_000] as const;
-const HIDDEN_POLL_MS = 90_000;
+import { subscribeDeviceActivationChanges } from "@/services/device-realtime.service";
 
 type Options = {
   enabled?: boolean;
   onRegistered?: (code: string) => void;
 };
 
-/**
- * مراقبة صامتة — لا تحدّث واجهة React (لا وميض ولا نصوص حالة).
- */
+/** Realtime + فحص عند الفتح/العودة للواجهة (بدون polling) */
 export function useDeviceRegistrationWatch(code: string | null, options?: Options) {
   const enabled = options?.enabled !== false;
   const onRegisteredRef = useRef(options?.onRegistered);
   onRegisteredRef.current = options?.onRegistered;
-  const attemptRef = useRef(0);
+  const registeredRef = useRef(false);
 
   useEffect(() => {
     if (!code || !enabled) return;
 
     let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
 
-    const delay = () => {
-      if (document.hidden) return HIDDEN_POLL_MS;
-      const step = Math.min(attemptRef.current, POLL_STEPS_MS.length - 1);
-      return POLL_STEPS_MS[step];
-    };
-
-    const schedule = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => void tick(), delay());
-    };
-
-    const tick = async () => {
-      if (cancelled) return;
-      if (document.hidden) {
-        schedule();
-        return;
-      }
+    const check = async () => {
+      if (cancelled || registeredRef.current) return;
 
       const next = await checkDeviceRegisteredOnServer(code);
-      if (cancelled) return;
+      if (cancelled || registeredRef.current) return;
 
       if (next === "registered") {
+        registeredRef.current = true;
         onRegisteredRef.current?.(code);
-        return;
       }
-
-      attemptRef.current += 1;
-      schedule();
     };
 
-    attemptRef.current = 0;
-    void tick();
+    void check();
+
+    const unsubscribe = isSupabaseConfigured()
+      ? subscribeDeviceActivationChanges(code, () => void check())
+      : () => {};
 
     const onVisible = () => {
-      if (document.hidden || cancelled) return;
-      attemptRef.current = 0;
-      clearTimeout(timer);
-      void tick();
+      if (document.hidden || cancelled || registeredRef.current) return;
+      void check();
     };
 
     document.addEventListener("visibilitychange", onVisible);
@@ -79,7 +58,7 @@ export function useDeviceRegistrationWatch(code: string | null, options?: Option
 
     return () => {
       cancelled = true;
-      clearTimeout(timer);
+      unsubscribe();
       document.removeEventListener("visibilitychange", onVisible);
       removeCapListener?.();
     };

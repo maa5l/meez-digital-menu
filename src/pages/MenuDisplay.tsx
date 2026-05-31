@@ -5,7 +5,6 @@ import TemplateProductsDetail from "@/components/menu/TemplateProductsDetail";
 import CropsTemplateMolo from "@/components/menu/CropsTemplateMolo";
 import CropsTemplatePureShelf from "@/components/menu/CropsTemplatePureShelf";
 import MenuEmptyState from "@/components/menu/MenuEmptyState";
-import { IpadTrialScreen } from "@/components/device/IpadTrialScreen";
 import { KioskSubscriptionBlocked } from "@/components/subscription/KioskSubscriptionBlocked";
 import { useMenuVenue } from "@/hooks/useMenuVenue";
 import { getDeviceMenuType, getDeviceMenuTypeAsync } from "@/lib/venue-store";
@@ -15,10 +14,11 @@ import {
 } from "@/services/device/activation";
 import {
   evaluateKioskGate,
-  KIOSK_SUBSCRIPTION_POLL_MS,
   type KioskGateResult,
 } from "@/services/device/kiosk-access";
 import { recordDeviceHeartbeat } from "@/services/subscription/subscription-enforcement";
+import { subscribeDeviceActivationChanges } from "@/services/venue/venue-realtime.service";
+import { shouldUseVenueDatabase } from "@/services/venue/venue-supabase.service";
 import { normalizeDeviceCodeParam } from "@/lib/device-pairing";
 import { ROUTES } from "@/config/app";
 import { getCropsPalette, getProductsPalette } from "@/lib/menu-palette";
@@ -79,10 +79,20 @@ const MenuDisplay = () => {
     };
 
     void verify();
-    const interval = setInterval(() => void verify(), KIOSK_SUBSCRIPTION_POLL_MS);
+
+    const unsubscribe = shouldUseVenueDatabase()
+      ? subscribeDeviceActivationChanges(code, () => void verify())
+      : () => {};
+
+    const onVisible = () => {
+      if (!document.hidden && !cancelled) void verify();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     return () => {
       cancelled = true;
-      clearInterval(interval);
+      unsubscribe();
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [code, isPreview]);
 
@@ -103,14 +113,8 @@ const MenuDisplay = () => {
     );
   }
 
-  if (!isPreview && !gate.registered) {
-    return (
-      <IpadTrialScreen
-        code={code}
-        registrationStatus="not_registered"
-        subtitle="المنيو يظهر بعد تفعيل هذا الرمز من لوحة التحكم"
-      />
-    );
+  if (!isPreview && (!gate.registered || gate.reason === "device_inactive")) {
+    return <Navigate to={ROUTES.pair} replace />;
   }
 
   if (!isPreview && gate.registered && !gate.allowed) {

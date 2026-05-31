@@ -28,6 +28,30 @@ export class RateLimitError extends AppError {
   constructor(retryAfterMs: number) {
     super(`محاولات كثيرة. أعد المحاولة بعد ${Math.ceil(retryAfterMs / 1000)} ثانية`, "RATE_LIMIT", 429);
     this.name = "RateLimitError";
+    this.retryAfterMs = retryAfterMs;
+  }
+
+  readonly retryAfterMs: number;
+}
+
+/** حد Supabase لإرسال البريد — لا يُرسل بريد فعلياً عند 429 */
+export class EmailRateLimitError extends AppError {
+  readonly retryAfterMs: number;
+  readonly supabaseErrorCode?: string;
+
+  constructor(options: {
+    retryAfterSeconds?: number;
+    message?: string;
+    supabaseErrorCode?: string;
+  } = {}) {
+    const retryAfterSeconds = options.retryAfterSeconds ?? 60;
+    const message =
+      options.message ??
+      `تم طلب رموز كثيرة. انتظر ${retryAfterSeconds} ثانية — أو استخدم آخر رمز وصل إلى بريدك.`;
+    super(message, "EMAIL_RATE_LIMIT", 429);
+    this.name = "EmailRateLimitError";
+    this.retryAfterMs = retryAfterSeconds * 1000;
+    this.supabaseErrorCode = options.supabaseErrorCode;
   }
 }
 
@@ -46,15 +70,26 @@ function parseApiDetail(raw: string): string | null {
   return null;
 }
 
+function extractMessage(error: unknown): string | null {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+  if (typeof error === "string" && error.trim()) {
+    return error;
+  }
+  if (error && typeof error === "object" && "message" in error) {
+    const msg = (error as { message?: unknown }).message;
+    if (typeof msg === "string" && msg.trim()) return msg;
+  }
+  return null;
+}
+
 export function getErrorMessage(error: unknown): string {
   if (error instanceof AppError) return error.message;
-  if (error instanceof Error) {
-    const parsed = parseApiDetail(error.message);
-    return parsed ?? error.message;
-  }
-  if (typeof error === "string") {
-    const parsed = parseApiDetail(error);
-    return parsed ?? error;
+  const direct = extractMessage(error);
+  if (direct) {
+    const parsed = parseApiDetail(direct);
+    return parsed ?? direct;
   }
   return "حدث خطأ غير متوقع";
 }

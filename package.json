@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:kiosk": "npm run dev --prefix meez-app",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
@@ -20,7 +21,10 @@
     "supabase:status": "supabase status",
     "supabase:link": "supabase link --project-ref feorprugthydhyytvebe",
     "supabase:db:push": "supabase db push",
-    "supabase:db:pull": "supabase db pull"
+    "supabase:db:pull": "supabase db pull",
+    "supabase:auth:push": "node scripts/push-auth-email-templates.mjs",
+    "supabase:config:push": "supabase config push --project-ref feorprugthydhyytvebe --yes",
+    "test:otp": "node scripts/test-otp-send.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -4,6 +4,14 @@ export const loginEmailSchema = z.object({
   email: z.string().trim().email("بريد إلكتروني غير صالح").max(254),
 });
 
+export const loginSchema = loginEmailSchema.extend({
+  password: z
+    .string()
+    .min(8, "كلمة المرور 8 أحرف على الأقل")
+    .max(128, "كلمة المرور طويلة جداً"),
+});
+
+/** OTP disabled temporarily for debugging */
 export const loginOtpSchema = loginEmailSchema.extend({
   otp: z
     .string()
@@ -11,6 +19,7 @@ export const loginOtpSchema = loginEmailSchema.extend({
     .regex(/^\d{6}$/, "أدخل رمز التحقق المكوّن من 6 أرقام"),
 });
 
+/** OTP disabled temporarily for debugging */
 export const resetPasswordSchema = loginOtpSchema.extend({
   password: z
     .string()
@@ -28,6 +37,7 @@ export const signupSchema = z.object({
 });
 
 export type LoginEmailInput = z.infer<typeof loginEmailSchema>;
+export type LoginInput = z.infer<typeof loginSchema>;
 export type LoginOtpInput = z.infer<typeof loginOtpSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type SignupInput = z.infer<typeof signupSchema>;

@@ -13,19 +13,24 @@ export async function checkDeviceRegisteredOnServer(code: string): Promise<Regis
   const normalized = code.trim().toUpperCase();
 
   try {
-    const { data, error } = await getSupabase().rpc("is_device_activated", {
-      device_code: normalized,
+    const { data, error } = await getSupabase().rpc("check_kiosk_access", {
+      p_device_code: normalized,
     });
 
     if (error) {
-      logger.error("kiosk.peek_failed", { message: error.message });
+      logger.error("kiosk.peek_failed", { message: error.message, code: normalized });
       return "not_registered";
     }
 
-    return data === true ? "registered" : "not_registered";
+    if (!data || typeof data !== "object") return "not_registered";
+    const row = data as Record<string, unknown>;
+    const registered = Boolean(row.registered);
+    const allowed = Boolean(row.allowed);
+    return registered && allowed ? "registered" : "not_registered";
   } catch (err) {
     logger.error("kiosk.peek_exception", {
       message: err instanceof Error ? err.message : String(err),
+      code: normalized,
     });
     return "not_registered";
   }

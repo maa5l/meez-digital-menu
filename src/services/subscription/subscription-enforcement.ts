@@ -197,15 +197,20 @@ export async function activateDeviceWithLicense(
     return { ok: true, code: code.trim().toUpperCase() };
   }
 
-  const { data, error } = await getSupabase().rpc("activate_device_with_license", {
+  const { data, error } = await getSupabase().rpc("register_device_with_license", {
     p_code: code.trim().toUpperCase(),
     p_menu_type: menuType ?? null,
     p_device_name: deviceName ?? null,
+    p_app_env: "production",
   });
 
   if (error) {
-    logger.error("subscription.device_activate_failed", { message: error.message });
-    throw error;
+    const message =
+      typeof error.message === "string" && error.message.trim()
+        ? error.message
+        : "تعذّر تفعيل الجهاز في الخادم";
+    logger.error("subscription.device_activate_failed", { message, code: error.code });
+    return { ok: false, error: message };
   }
 
   if (!data || typeof data !== "object") {

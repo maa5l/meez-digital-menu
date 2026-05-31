@@ -62,6 +62,7 @@ export async function registerDeviceWithLicense(
     p_code: code.trim().toUpperCase(),
     p_menu_type: menuType ?? null,
     p_device_name: deviceName ?? null,
+    p_app_env: "production",
   });
 
   if (error) {
@@ -74,6 +75,28 @@ export async function registerDeviceWithLicense(
   return {
     ok: Boolean(row.ok),
     code: typeof row.code === "string" ? row.code : undefined,
+    error: typeof row.error === "string" ? row.error : undefined,
+  };
+}
+
+/** إلغاء تفعيل جميع أجهزة المالك الحالي */
+export async function deactivateAllOwnerDevicesRpc(): Promise<{ ok: boolean; count?: number; error?: string }> {
+  if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
+    return { ok: true, count: 0 };
+  }
+
+  const { data, error } = await getSupabase().rpc("deactivate_all_my_devices");
+
+  if (error) {
+    logger.error("core.device_deactivate_all_failed", { message: error.message });
+    return { ok: false, error: error.message };
+  }
+
+  if (!data || typeof data !== "object") return { ok: false, error: "invalid_response" };
+  const row = data as Record<string, unknown>;
+  return {
+    ok: Boolean(row.ok),
+    count: typeof row.count === "number" ? row.count : Number(row.count ?? 0),
     error: typeof row.error === "string" ? row.error : undefined,
   };
 }

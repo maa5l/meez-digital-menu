@@ -68,9 +68,22 @@ npm run supabase:link
 npm run supabase:db:push
 ```
 
-## تسجيل الدخول
+## تسجيل الدخول (مؤقت — كلمة مرور فقط)
 
-- **تسجيل جديد:** من `/auth` — يُنشأ `profile` تلقائياً
+> **OTP disabled temporarily for debugging** — لا يُستخدم `signInWithOtp` حالياً.
+
+- **تسجيل الدخول:** `signInWithPassword` (بريد + كلمة مرور)
+- **تسجيل جديد:** `signUp` → جلسة مباشرة (يتطلب **Confirm email = OFF** في Supabase)
+- **إعادة التعيين:** معطّلة مؤقتاً (لا بريد OTP)
+
+### Supabase Dashboard (مطلوب)
+
+Authentication → Providers → Email:
+- **Confirm email** → OFF
+- **Enable Email OTP / Magic Link** → OFF (أو لا تُستخدم من التطبيق)
+
+أو عبر السكربت: `mailer_autoconfirm: true` في `npm run supabase:auth:push`
+
 - **حساب تجريبي (بعد migration الأولى):** `owner@meez.app` / `MeezOwner2026!` (غيّر كلمة المرور من Dashboard)
 
 ## سلوك التطبيق

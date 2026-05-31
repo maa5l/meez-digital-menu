@@ -1,20 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { VenueData } from "@/types/venue";
-import { MENU_VENUE_POLL_MS } from "@/config/venue-sync";
 import {
   createEmptyVenueData,
   loadCurrentVenueData,
   loadVenueForDevice,
   loadVenueForDeviceAsync,
-  syncVenueForDeviceIfStale,
 } from "@/lib/venue-store";
 import { fetchDashboardPreviewVenue } from "@/services/core/platform-security";
+import { checkKioskAccess } from "@/services/subscription/subscription-enforcement";
 import { shouldUseVenueDatabase } from "@/services/venue/venue-supabase.service";
+import { subscribeVenueChanges } from "@/services/venue/venue-realtime.service";
 import { usesSupabaseAuth } from "@/config/env";
 
 const VENUE_UPDATED = "meez:venue-updated";
 
-/** بيانات المنيو للعرض — معاينة من لوحة التحكم أو جهاز مفعّل */
+/** بيانات المنيو للعرض — Realtime + fallback عند العودة للتبويب */
 export function useMenuVenue(
   deviceCode: string | null,
   isPreview: boolean,
@@ -29,7 +29,6 @@ export function useMenuVenue(
   }, [deviceCode, isPreview, ready]);
 
   const [venue, setVenue] = useState<VenueData>(load);
-  const pollInFlightRef = useRef(false);
 
   const reloadFull = useCallback(async () => {
     if (!ready) {
@@ -55,18 +54,6 @@ export function useMenuVenue(
     setVenue(load());
   }, [deviceCode, isPreview, ready, load]);
 
-  const pollForChanges = useCallback(async () => {
-    if (!ready || isPreview || !deviceCode || !shouldUseVenueDatabase()) return;
-    if (pollInFlightRef.current) return;
-    pollInFlightRef.current = true;
-    try {
-      const next = await syncVenueForDeviceIfStale(deviceCode);
-      setVenue(next);
-    } finally {
-      pollInFlightRef.current = false;
-    }
-  }, [deviceCode, isPreview, ready]);
-
   useEffect(() => {
     void reloadFull();
   }, [reloadFull]);
@@ -78,17 +65,38 @@ export function useMenuVenue(
     window.addEventListener(VENUE_UPDATED, onUpdate);
     window.addEventListener("storage", onUpdate);
 
-    const poll =
-      !isPreview && deviceCode && shouldUseVenueDatabase()
-        ? setInterval(() => void pollForChanges(), MENU_VENUE_POLL_MS)
-        : undefined;
+    const onVisible = () => {
+      if (!document.hidden) void reloadFull();
+    };
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
       window.removeEventListener(VENUE_UPDATED, onUpdate);
       window.removeEventListener("storage", onUpdate);
-      if (poll) clearInterval(poll);
+      document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [reloadFull, pollForChanges, ready, isPreview, deviceCode]);
+  }, [reloadFull, ready]);
+
+  useEffect(() => {
+    if (!ready || isPreview || !deviceCode || !shouldUseVenueDatabase()) return;
+
+    let cancelled = false;
+    let unsubscribeVenue: (() => void) | undefined;
+
+    void (async () => {
+      const access = await checkKioskAccess(deviceCode);
+      if (cancelled || !access.owner_id) return;
+
+      unsubscribeVenue = subscribeVenueChanges(access.owner_id, () => {
+        if (!cancelled) void reloadFull();
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+      unsubscribeVenue?.();
+    };
+  }, [deviceCode, isPreview, ready, reloadFull]);
 
   return venue;
 }
