@@ -33,9 +33,7 @@ export function AuthBootstrap() {
 
       if (
         session &&
-        (event === "SIGNED_IN" ||
-          event === "INITIAL_SESSION" ||
-          event === "TOKEN_REFRESHED")
+        (event === "SIGNED_IN" || event === "INITIAL_SESSION")
       ) {
         syncSessionFromSupabase(session);
         void getActiveSession().then(() => {

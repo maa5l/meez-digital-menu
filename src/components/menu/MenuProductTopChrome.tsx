@@ -1,16 +1,25 @@
-import MenuProductHeader, { headerHideTransition } from "@/components/menu/MenuProductHeader";
+import MenuProductHeader from "@/components/menu/MenuProductHeader";
+import MenuFixedCalorieBar from "@/components/menu/MenuFixedCalorieBar";
 import {
-  getMenuProductHeaderHeight,
-  getMenuTopChromeHeight,
+  getCalorieDisclaimerColor,
+  getMenuScrollPaddingTop,
+  getMenuSubheaderTop,
   MENU_SUBHEADER_HEIGHT,
+  headerHideTransition,
 } from "@/lib/menu-header";
+import { getProductsHeaderCustomization } from "@/lib/menu-header-settings";
+import { getProductsPalette } from "@/lib/menu-palette";
 import { cn } from "@/lib/utils";
 import type { MenuSettings } from "@/types/domain";
+import type { MenuLang } from "@/lib/product-i18n";
 
 type Props = {
   settings: MenuSettings;
-  lang: "ar" | "en";
+  lang: MenuLang;
   visible: boolean;
+  hideHeader?: boolean;
+  showLangInCompactBar?: boolean;
+  onLangToggle?: () => void;
   subheader?: React.ReactNode;
   children: React.ReactNode;
   scrollRef: React.Ref<HTMLDivElement>;
@@ -21,26 +30,40 @@ export function MenuProductTopChrome({
   settings,
   lang,
   visible,
+  hideHeader = false,
+  showLangInCompactBar = false,
+  onLangToggle,
   subheader,
   children,
   scrollRef,
 }: Props) {
-  const headerH = getMenuProductHeaderHeight(settings);
   const hasSubheader = Boolean(subheader);
-  const chromeHeight = getMenuTopChromeHeight(hasSubheader);
+  const scrollPaddingTop = getMenuScrollPaddingTop(hasSubheader, visible, hideHeader);
+  const subheaderTop = getMenuSubheaderTop(visible, hideHeader);
+  const headerCustomization = getProductsHeaderCustomization(settings);
+  const palette = getProductsPalette(settings);
+  const calorieColor = getCalorieDisclaimerColor(headerCustomization, palette.textColor);
+  const headerFg = headerCustomization.headerTextColor ?? palette.textColor;
 
   return (
     <>
-      <MenuProductHeader settings={settings} lang={lang} visible={visible} />
+      {hideHeader ? (
+        <MenuFixedCalorieBar
+          lang={lang}
+          textColor={calorieColor}
+          headerFg={headerFg}
+          customization={headerCustomization}
+          showLang={showLangInCompactBar}
+          onLangToggle={onLangToggle}
+        />
+      ) : (
+        <MenuProductHeader settings={settings} lang={lang} visible={visible} />
+      )}
 
       {hasSubheader && (
         <div
-          className={cn(
-            "fixed inset-x-0 z-[45]",
-            headerHideTransition,
-            visible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none",
-          )}
-          style={{ top: headerH }}
+          className={cn("fixed inset-x-0 z-[45]", headerHideTransition)}
+          style={{ top: subheaderTop }}
         >
           <MenuProductSubheaderBar settings={settings}>{subheader}</MenuProductSubheaderBar>
         </div>
@@ -48,9 +71,12 @@ export function MenuProductTopChrome({
 
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y min-h-0"
+        className={cn(
+          "flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y min-h-0",
+          headerHideTransition,
+        )}
         style={{
-          paddingTop: chromeHeight,
+          paddingTop: scrollPaddingTop,
           WebkitOverflowScrolling: "touch",
         }}
       >

@@ -3,11 +3,12 @@ import { useScrollHeaderVisibility } from "@/hooks/useScrollHeaderVisibility";
 
 const MINUTE_MS = 60_000;
 
-/** تمرير قالب المنتجات: إخفاء الهيدر عند النزول + العودة للأعلى كل دقيقة */
-export function useProductTemplateScroll() {
+/** تمرير قالب المنيو: إخفاء الهيدر عند النزول (اختياري) + العودة للأعلى كل دقيقة */
+export function useProductTemplateScroll(autoHideHeaderOnScroll = true) {
   const [scrollRoot, setScrollRoot] = useState<HTMLElement | null>(null);
   const scrollRef = useCallback((node: HTMLElement | null) => setScrollRoot(node), []);
-  const { visible: headerVisible, reveal } = useScrollHeaderVisibility(scrollRoot);
+  const { visible: scrollVisible, reveal } = useScrollHeaderVisibility(scrollRoot);
+  const headerVisible = autoHideHeaderOnScroll ? scrollVisible : true;
 
   useEffect(() => {
     if (!scrollRoot) return;

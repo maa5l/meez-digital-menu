@@ -7,10 +7,12 @@ import type {
 } from "@/types/subscription";
 import { appEnv } from "@/config/env";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import { cachedFetch } from "@/lib/request-cache";
 import { logger } from "@/lib/logger";
 import type { SubscriptionInfo } from "@/types/venue";
 import { TRIAL_SUBSCRIPTION } from "@/lib/venue-store";
 import { BILLING } from "@/config/billing";
+import { fetchKioskState } from "@/services/venue/venue-supabase.service";
 
 const GRACE_DAYS = 5;
 
@@ -160,32 +162,59 @@ export async function ensureSubscriptionRecord(): Promise<void> {
   if (error) logger.error("subscription.ensure_failed", { message: error.message });
 }
 
-export async function checkKioskAccess(deviceCode: string): Promise<KioskAccessCheck> {
+export async function checkKioskAccess(
+  deviceCode: string,
+  force = false,
+): Promise<KioskAccessCheck> {
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
     return { allowed: true, registered: true };
   }
 
-  const { data, error } = await getSupabase().rpc("check_kiosk_access", {
-    p_device_code: deviceCode.trim().toUpperCase(),
-  });
+  const normalized = deviceCode.trim().toUpperCase();
+  const session = await getSupabase().auth.getSession();
+  const isAuthenticated = Boolean(session.data.session?.user?.id);
 
-  if (error) {
-    logger.error("subscription.kiosk_check_failed", { message: error.message });
-    return { allowed: false, registered: false, reason: "check_failed" };
+  if (!isAuthenticated) {
+    const state = await fetchKioskState(normalized, force);
+    return {
+      allowed: state.allowed,
+      registered: state.registered,
+      reason: state.reason,
+      subscription_status: state.subscription_status as KioskAccessCheck["subscription_status"],
+      menu_type: state.menu_type,
+      venue_updated_at: state.venue_updated_at,
+      retry_after_seconds: state.retry_after_seconds,
+    };
   }
 
-  if (!data || typeof data !== "object") {
-    return { allowed: false, registered: false, reason: "invalid_response" };
-  }
+  return cachedFetch(
+    `kiosk:access:${normalized}`,
+    async () => {
+      const { data, error } = await getSupabase().rpc("check_kiosk_access", {
+        p_device_code: normalized,
+      });
 
-  const row = data as Record<string, unknown>;
-  return {
-    allowed: Boolean(row.allowed),
-    registered: Boolean(row.registered),
-    reason: typeof row.reason === "string" ? row.reason : undefined,
-    access: parseAccess(row.access) ?? undefined,
-    owner_id: typeof row.owner_id === "string" ? row.owner_id : undefined,
-  };
+      if (error) {
+        logger.error("subscription.kiosk_check_failed", { message: error.message });
+        return { allowed: false, registered: false, reason: "check_failed" };
+      }
+
+      if (!data || typeof data !== "object") {
+        return { allowed: false, registered: false, reason: "invalid_response" };
+      }
+
+      const row = data as Record<string, unknown>;
+      return {
+        allowed: Boolean(row.allowed),
+        registered: Boolean(row.registered),
+        reason: typeof row.reason === "string" ? row.reason : undefined,
+        access: parseAccess(row.access) ?? undefined,
+        owner_id: typeof row.owner_id === "string" ? row.owner_id : undefined,
+      };
+    },
+    30_000,
+    force,
+  );
 }
 
 export async function activateDeviceWithLicense(
@@ -229,16 +258,10 @@ export async function activateDeviceWithLicense(
 export async function recordDeviceHeartbeat(deviceCode: string): Promise<boolean> {
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) return true;
 
-  const { data, error } = await getSupabase().rpc("record_device_heartbeat", {
-    p_device_code: deviceCode.trim().toUpperCase(),
-  });
-
-  if (error) {
-    logger.error("subscription.heartbeat_failed", { message: error.message });
-    return false;
-  }
-
-  return Boolean(data);
+  const normalized = deviceCode.trim().toUpperCase();
+  // check_kiosk_access يحدّث last_seen_at — لا حاجة لاستدعاء record_device_heartbeat
+  const check = await checkKioskAccess(normalized);
+  return check.allowed;
 }
 
 /** وصول محلي من SubscriptionInfo في venue (mock / بدون Supabase) */

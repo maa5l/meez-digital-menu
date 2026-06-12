@@ -4,9 +4,14 @@ import { X } from "lucide-react";
 import CategoryTabs from "@/components/menu/CategoryTabs";
 import { MenuProductSubheaderBar, MenuProductTopChrome } from "@/components/menu/MenuProductTopChrome";
 import { ProductGridCard, ProductModalDetails } from "@/components/menu/ProductCardParts";
+import ProductCornerBadge from "@/components/menu/ProductCornerBadge";
+import { useMenuLang } from "@/context/MenuLangContext";
+import { hasProductBadge, productBadgeColor, productBadgeLabel } from "@/lib/product-badge";
 import { localizeProduct } from "@/lib/product-i18n";
 import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
+import { getProductsHeaderCustomization, isProductsLangToggleEnabled } from "@/lib/menu-header-settings";
 import { getProductsPalette, palettePageStyle } from "@/lib/menu-palette";
+import type { MenuLang } from "@/lib/product-i18n";
 
 type Props = {
   settings: MenuSettings;
@@ -15,10 +20,15 @@ type Props = {
 };
 
 const TemplateProductsFeatured = ({ settings, categories, products }: Props) => {
-  const [lang, setLang] = useState<"ar" | "en">("ar");
+  const { lang, toggleLang } = useMenuLang();
   const [activeCat, setActiveCat] = useState(() => categories[0]?.id ?? "");
   const [modal, setModal] = useState<Product | null>(null);
-  const { scrollRef, headerVisible } = useProductTemplateScroll();
+  const productsHeader = getProductsHeaderCustomization(settings);
+  const hideHeader = productsHeader.hideHeader === true;
+  const showLang = isProductsLangToggleEnabled(settings);
+  const autoHideHeader = !hideHeader && productsHeader.autoHideHeaderOnScroll !== false;
+  const { scrollRef, headerVisible } = useProductTemplateScroll(autoHideHeader);
+  const hasSubheader = categories.length > 0 || (!hideHeader && showLang);
 
   useEffect(() => {
     if (categories.length === 0) {
@@ -47,9 +57,12 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
         settings={settings}
         lang={lang}
         visible={headerVisible}
+        hideHeader={hideHeader}
+        showLangInCompactBar={hideHeader && showLang}
+        onLangToggle={toggleLang}
         scrollRef={scrollRef}
         subheader={
-          categories.length > 0 || settings.showLanguageToggle !== false ? (
+          hasSubheader ? (
             <MenuProductSubheaderBar settings={settings}>
               <CategoryTabs
                 categories={categories}
@@ -58,15 +71,15 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
                 textColor={palette.textColor}
                 lang={lang}
                 onSelect={setActiveCat}
-                onLangToggle={() => setLang(lang === "ar" ? "en" : "ar")}
-                showLang={settings.showLanguageToggle !== false}
+                onLangToggle={toggleLang}
+                showLang={!hideHeader && showLang}
               />
             </MenuProductSubheaderBar>
           ) : undefined
         }
       >
         <div className="px-5 pb-8 pt-8 md:px-10 md:pt-10">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+          <div className="grid grid-cols-2 gap-3 pt-2 md:grid-cols-3 md:gap-4 md:pt-3 lg:grid-cols-4">
             {visible.map((p) => (
               <ProductGridCard
                 key={p.id}
@@ -93,41 +106,51 @@ const DetailModal = ({
   onClose,
 }: {
   product: Product;
-  lang: "ar" | "en";
+  lang: MenuLang;
   onClose: () => void;
 }) => {
   const localized = localizeProduct(product, lang);
   return (
-  <div
-    className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-    onClick={onClose}
-    dir={lang === "ar" ? "rtl" : "ltr"}
-  >
     <div
-      className="bg-white w-full max-w-xl rounded-[2rem] overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto"
-      onClick={(e) => e.stopPropagation()}
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
+      dir={lang === "ar" ? "rtl" : "ltr"}
     >
-      {product.image && (
-        <div className="relative mx-auto aspect-square w-full max-w-md overflow-hidden bg-white">
-          <img
-            src={product.image}
-            alt={localized.name}
-            className="h-full w-full object-cover object-center"
-          />
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute top-3 start-3 w-9 h-9 rounded-full bg-white/95 shadow-sm flex items-center justify-center"
-          >
-            <X className="w-5 h-5" />
-          </button>
+      <div
+        className="relative w-full max-w-xl overflow-visible rounded-[2rem] bg-white shadow-2xl max-h-[90vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {product.image && (
+          <div className="relative mx-3 mt-4 overflow-visible md:mx-4">
+            {hasProductBadge(product, lang) && (
+              <ProductCornerBadge
+                text={productBadgeLabel(product, lang)!}
+                color={productBadgeColor(product)!}
+                size="md"
+                className="start-1 -top-2 md:start-2"
+              />
+            )}
+            <div className="relative aspect-square overflow-hidden rounded-[1.25rem] bg-neutral-100">
+              <img
+                src={product.image}
+                alt={localized.name}
+                className="h-full w-full object-cover object-center"
+              />
+              <button
+                type="button"
+                onClick={onClose}
+                className="absolute top-3 start-3 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 shadow-sm"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="overflow-y-auto p-6">
+          <ProductModalDetails product={product} lang={lang} />
         </div>
-      )}
-      <div className="p-6">
-        <ProductModalDetails product={product} lang={lang} />
       </div>
     </div>
-  </div>
   );
 };
 

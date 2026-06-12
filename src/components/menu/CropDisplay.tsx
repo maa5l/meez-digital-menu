@@ -61,7 +61,7 @@ export const CropField = ({
   </div>
 );
 
-/** شبكة حقول المحصول */
+/** شبكة حقول المحصول — عمود واحد في وسط الكرت */
 export const CropFieldsGrid = ({
   crop,
   lang,
@@ -79,7 +79,10 @@ export const CropFieldsGrid = ({
   return (
     <div
       className={cn(
-        "mx-auto grid w-full max-w-3xl grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-x-10 sm:gap-y-10",
+        "mx-auto w-full text-center",
+        size === "modal"
+          ? "grid max-w-lg grid-cols-2 gap-x-4 gap-y-5"
+          : "flex max-w-[14rem] flex-col items-center gap-5 sm:max-w-xs sm:gap-6",
         className,
       )}
     >
@@ -111,10 +114,9 @@ export const CropNotes = ({
       className={cn("mt-8 border-t pt-6 text-center", className)}
       style={borderColor ? { borderColor: `${borderColor}25` } : undefined}
     >
-      <div className="text-sm font-bold opacity-70 md:text-base">{cropFieldLabels[lang].notes}</div>
       <p
         dir={lang === "ar" ? "rtl" : "ltr"}
-        className="mt-2 text-lg font-bold leading-relaxed md:text-xl lg:text-2xl"
+        className="text-lg font-bold leading-relaxed md:text-xl lg:text-2xl"
       >
         {localized.notes}
       </p>

@@ -1,8 +1,13 @@
 import type { VenueData } from "@/types/venue";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import { cachedFetch, invalidateCacheKey } from "@/lib/request-cache";
+import { getSession } from "@/security/session";
 import { logger } from "@/lib/logger";
 import { appEnv } from "@/config/env";
+import { invalidateOwnerVenueCache } from "@/services/venue/venue-supabase.service";
 import type { DeviceActivationResult } from "@/types/subscription";
+
+const RPC_TTL_MS = 30_000;
 
 export async function updateVenueDataRpc(
   venue: VenueData,
@@ -28,6 +33,10 @@ export async function updateVenueDataRpc(
       : row.updated_at != null
         ? String(row.updated_at)
         : undefined;
+
+  const userId = getSession()?.userId;
+  if (userId) invalidateOwnerVenueCache(userId);
+
   return {
     ok: Boolean(row.ok),
     error: typeof row.error === "string" ? row.error : undefined,
@@ -35,18 +44,28 @@ export async function updateVenueDataRpc(
   };
 }
 
-export async function fetchDashboardPreviewVenue(): Promise<VenueData | null> {
+export async function fetchDashboardPreviewVenue(force = false): Promise<VenueData | null> {
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) return null;
 
-  const { data, error } = await getSupabase().rpc("get_dashboard_preview_venue");
+  const userId = getSession()?.userId;
+  if (!userId) return null;
 
-  if (error) {
-    logger.error("core.preview_fetch_failed", { message: error.message });
-    return null;
-  }
+  return cachedFetch(
+    `venue:preview:${userId}`,
+    async () => {
+      const { data, error } = await getSupabase().rpc("get_dashboard_preview_venue");
 
-  if (!data || typeof data !== "object") return null;
-  return data as VenueData;
+      if (error) {
+        logger.error("core.preview_fetch_failed", { message: error.message });
+        return null;
+      }
+
+      if (!data || typeof data !== "object") return null;
+      return data as VenueData;
+    },
+    RPC_TTL_MS,
+    force,
+  );
 }
 
 export async function registerDeviceWithLicense(

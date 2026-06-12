@@ -18,6 +18,13 @@ import { Plus, Search, Pencil, Trash2, ImageIcon, Sprout } from "lucide-react";
 import AllergenSelector from "@/components/dashboard/AllergenSelector";
 import { formatAllergensString, parseAllergensIds } from "@/constants/allergens";
 import { processProductImageFile, PRODUCT_IMAGE_SPEC } from "@/lib/product-image";
+import {
+  BADGE_COLOR_PRESETS,
+  BADGE_TEXT_MAX,
+  BADGE_TEXT_PRESETS,
+  badgeForeground,
+  normalizeBadgeColor,
+} from "@/lib/product-badge";
 import { toast } from "sonner";
 import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
 
@@ -50,6 +57,10 @@ const Products = () => {
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
   const [hasCrop, setHasCrop] = useState(false);
   const [crop, setCrop] = useState(emptyCrop);
+  const [hasBadge, setHasBadge] = useState(false);
+  const [badgeText, setBadgeText] = useState("");
+  const [badgeTextEn, setBadgeTextEn] = useState("");
+  const [badgeColor, setBadgeColor] = useState("#dc2626");
 
   const isEditing = editingId !== null;
 
@@ -64,6 +75,10 @@ const Products = () => {
     setSelectedAllergens([]);
     setHasCrop(false);
     setCrop(emptyCrop);
+    setHasBadge(false);
+    setBadgeText("");
+    setBadgeTextEn("");
+    setBadgeColor("#dc2626");
     setCategoryId(categories[0]?.id ?? "");
   };
 
@@ -88,6 +103,11 @@ const Products = () => {
       setHasCrop(false);
       setCrop(emptyCrop);
     }
+    const hasBadgeData = Boolean(p.badgeText?.trim() && p.badgeColor?.trim());
+    setHasBadge(hasBadgeData);
+    setBadgeText(p.badgeText ?? "");
+    setBadgeTextEn(p.badgeTextEn ?? "");
+    setBadgeColor(normalizeBadgeColor(p.badgeColor));
   };
 
   const openCreate = () => {
@@ -123,6 +143,13 @@ const Products = () => {
     allergens: formatAllergensString(selectedAllergens, "ar"),
     allergensEn: formatAllergensString(selectedAllergens, "en"),
     cropInfo: hasCrop ? { ...crop } : undefined,
+    ...(hasBadge && badgeText.trim()
+      ? {
+          badgeText: badgeText.trim().slice(0, BADGE_TEXT_MAX),
+          badgeTextEn: badgeTextEn.trim().slice(0, BADGE_TEXT_MAX) || undefined,
+          badgeColor: normalizeBadgeColor(badgeColor),
+        }
+      : {}),
   });
 
   const save = () => {
@@ -227,6 +254,86 @@ const Products = () => {
               alt=""
               className="h-20 w-20 rounded-lg object-cover border border-border"
             />
+          )}
+        </div>
+
+        <div className="col-span-2 border border-border rounded-2xl p-4 bg-secondary/40 space-y-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={hasBadge}
+              onChange={(e) => setHasBadge(e.target.checked)}
+              className="w-4 h-4 accent-accent"
+            />
+            <span className="font-bold text-sm">شارة في زاوية المنتج (اختياري)</span>
+          </label>
+          {hasBadge && (
+            <div className="space-y-3 pt-1">
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                تظهر كشريط مستقيم صغير فوق زاوية بطاقة المنتج في المنيو — مثل «الأكثر مبيعاً» أو «جديد».
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {BADGE_TEXT_PRESETS.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setBadgeText(preset)}
+                    className="rounded-full border border-border bg-card px-3 py-1 text-xs font-bold text-foreground hover:bg-secondary"
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+              <FieldP
+                label="نص الشارة (عربي)"
+                value={badgeText}
+                onChange={(v) => setBadgeText(v.slice(0, BADGE_TEXT_MAX))}
+              />
+              <FieldP label="Badge text (English)" value={badgeTextEn} onChange={(v) => setBadgeTextEn(v.slice(0, BADGE_TEXT_MAX))} ltr />
+              <div className="space-y-2">
+                <Label className="text-xs">لون الشارة</Label>
+                <div className="flex flex-wrap items-center gap-2">
+                  {BADGE_COLOR_PRESETS.map((preset) => (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      title={preset.label}
+                      onClick={() => setBadgeColor(preset.value)}
+                      className="h-8 w-8 rounded-full border-2 transition-transform hover:scale-110"
+                      style={{
+                        backgroundColor: preset.value,
+                        borderColor: badgeColor === preset.value ? "#1a1a1a" : "transparent",
+                      }}
+                    />
+                  ))}
+                  <input
+                    type="color"
+                    value={badgeColor}
+                    onChange={(e) => setBadgeColor(normalizeBadgeColor(e.target.value))}
+                    className="h-8 w-10 cursor-pointer rounded-lg border border-border bg-transparent"
+                    aria-label="لون مخصص"
+                  />
+                </div>
+              </div>
+              {badgeText.trim() && (
+                <div className="relative mx-auto mt-4 h-24 w-24 rounded-xl border border-border bg-neutral-100">
+                  <div className="absolute start-3 -top-2 z-10">
+                    <span
+                      className="inline-block max-w-[5rem] truncate rounded-lg px-2 py-1 text-[8px] font-black shadow-md ring-2 ring-white/90"
+                      style={{
+                        backgroundColor: badgeColor,
+                        color: badgeForeground(badgeColor),
+                      }}
+                    >
+                      {badgeText.trim()}
+                    </span>
+                  </div>
+                  <div className="flex h-full items-center justify-center text-[10px] text-muted-foreground">
+                    معاينة
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
 

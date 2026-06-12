@@ -4,14 +4,15 @@ import {
   isDeviceActivatedOnKiosk,
 } from "@/services/device/activation";
 import { shouldUseVenueDatabase } from "@/services/venue/venue-supabase.service";
-import { subscribeDeviceActivationChanges } from "@/services/venue/venue-realtime.service";
+
+const REGISTRATION_POLL_MS = 30_000;
 
 type Options = {
   enabled?: boolean;
   onRegistered?: () => void;
 };
 
-/** Realtime + فحص عند الفتح/العودة للواجهة (بدون polling) */
+/** polling + فحص عند الفتح/العودة (RPC-only — لا Realtime) */
 export function useDeviceRegistrationWatch(code: string | null, options?: Options) {
   const enabled = options?.enabled !== false;
   const onRegisteredRef = useRef(options?.onRegistered);
@@ -40,9 +41,10 @@ export function useDeviceRegistrationWatch(code: string | null, options?: Option
 
     void check();
 
-    const unsubscribe = shouldUseVenueDatabase()
-      ? subscribeDeviceActivationChanges(code, () => void check())
-      : () => {};
+    const pollId =
+      shouldUseVenueDatabase()
+        ? window.setInterval(() => void check(), REGISTRATION_POLL_MS)
+        : undefined;
 
     const onVisible = () => {
       if (document.hidden || cancelled || registeredRef.current) return;
@@ -53,7 +55,7 @@ export function useDeviceRegistrationWatch(code: string | null, options?: Option
 
     return () => {
       cancelled = true;
-      unsubscribe();
+      if (pollId != null) window.clearInterval(pollId);
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [code, enabled]);

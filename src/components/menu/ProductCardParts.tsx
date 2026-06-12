@@ -1,9 +1,11 @@
 import { Riyal } from "@/components/Brand";
 import AllergenIcons from "@/components/menu/AllergenIcons";
 import { localizeProduct, type MenuLang } from "@/lib/product-i18n";
+import { hasProductBadge, productBadgeColor, productBadgeLabel } from "@/lib/product-badge";
 import type { Product } from "@/types/domain";
 import { Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ProductCornerBadge from "@/components/menu/ProductCornerBadge";
 
 type Lang = MenuLang;
 
@@ -85,6 +87,13 @@ const InfoRow = ({
       </div>
     </div>
   );
+};
+
+function ProductImageBadge({ product, lang, size }: { product: Product; lang: Lang; size?: "sm" | "md" }) {
+  if (!hasProductBadge(product, lang)) return null;
+  const text = productBadgeLabel(product, lang)!;
+  const color = productBadgeColor(product)!;
+  return <ProductCornerBadge text={text} color={color} size={size} />;
 };
 
 export const ProductCardFooter = ({
@@ -307,10 +316,11 @@ export const ProductGridCard = ({
   <button
     type="button"
     onClick={onClick}
-    className="rounded-[1.5rem] md:rounded-[1.75rem] overflow-hidden text-start transition-shadow hover:shadow-lg group w-full flex flex-col border-2 border-black/[0.07]"
+    className="group relative w-full overflow-visible rounded-[1.5rem] border-2 border-black/[0.07] text-start transition-shadow hover:shadow-lg md:rounded-[1.75rem] flex flex-col"
     style={{ background: cardBg }}
   >
-    <div className="flex-none w-full px-2.5 pt-2.5 md:px-3 md:pt-3">
+    <ProductImageBadge product={product} lang={lang} />
+    <div className="flex-none w-full overflow-hidden rounded-[1.5rem] md:rounded-[1.75rem] px-2.5 pt-2.5 md:px-3 md:pt-3">
       <div className="relative w-full overflow-hidden rounded-[1.1rem] bg-white pb-[100%] md:rounded-[1.15rem]">
         <div className="absolute inset-0 flex items-center justify-center">
           {product.image ? (
@@ -390,12 +400,13 @@ export const ProductListCard = ({
     type="button"
     onClick={onClick}
     dir={isEn ? "ltr" : "rtl"}
-    className="flex w-full gap-3 rounded-2xl p-3 text-start transition-all"
+    className="relative flex w-full gap-3 overflow-visible rounded-2xl p-3 text-start transition-all"
     style={{
       background: cardBg,
       boxShadow: active ? `inset 0 0 0 2px ${accentColor}` : undefined,
     }}
   >
+    <ProductImageBadge product={product} lang={lang} size="sm" />
     {isEn ? (
       <>
         {textBlock}
@@ -429,10 +440,11 @@ export const ProductDetailCard = ({
   return (
     <div
       dir={lang === "en" ? "ltr" : "rtl"}
-      className={`flex h-full min-h-0 flex-col overflow-hidden rounded-2xl ${className ?? ""}`}
+      className={`relative flex h-full min-h-0 flex-col overflow-visible rounded-2xl ${className ?? ""}`}
       style={{ background: cardBg }}
     >
-      <div className="flex min-h-0 flex-1 flex-col p-3 pb-0">
+      <ProductImageBadge product={product} lang={lang} size="md" />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl p-3 pb-0">
         <div className="relative flex h-full min-h-0 w-full overflow-hidden rounded-2xl bg-white">
           {product.image ? (
             <img

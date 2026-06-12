@@ -3,8 +3,11 @@ import type { Category, Product, MenuSettings } from "@/types/domain";
 import CategoryTabs from "@/components/menu/CategoryTabs";
 import { MenuProductSubheaderBar, MenuProductTopChrome } from "@/components/menu/MenuProductTopChrome";
 import { ProductDetailCard, ProductListCard } from "@/components/menu/ProductCardParts";
+import { useMenuLang } from "@/context/MenuLangContext";
 import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
-import { getMenuTopChromeHeight } from "@/lib/menu-header";
+import { getMenuUi } from "@/lib/menu-i18n";
+import { getProductsHeaderCustomization, isProductsLangToggleEnabled } from "@/lib/menu-header-settings";
+import { getMenuScrollPaddingTop } from "@/lib/menu-header";
 import { getProductsPalette, palettePageStyle } from "@/lib/menu-palette";
 
 type Props = {
@@ -14,9 +17,13 @@ type Props = {
 };
 
 const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
-  const [lang, setLang] = useState<"ar" | "en">("ar");
+  const { lang, toggleLang } = useMenuLang();
   const [activeCat, setActiveCat] = useState(() => categories[0]?.id ?? "");
-  const { scrollRef, headerVisible } = useProductTemplateScroll();
+  const productsHeader = getProductsHeaderCustomization(settings);
+  const hideHeader = productsHeader.hideHeader === true;
+  const showLang = isProductsLangToggleEnabled(settings);
+  const autoHideHeader = !hideHeader && productsHeader.autoHideHeaderOnScroll !== false;
+  const { scrollRef, headerVisible } = useProductTemplateScroll(autoHideHeader);
 
   useEffect(() => {
     if (categories.length === 0) {
@@ -59,12 +66,12 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
   const palette = getProductsPalette(settings);
   const bgStyle = palettePageStyle(palette);
   const cardBg = palette.cardColor || "#d4d4d4";
-  const showLang = settings.showLanguageToggle !== false;
-  const hasSubheader = categories.length > 0 || showLang;
-  const chromeH = getMenuTopChromeHeight(hasSubheader);
+  const hasSubheader = categories.length > 0 || (!hideHeader && showLang);
+  const ui = getMenuUi(lang);
+  const scrollPadding = getMenuScrollPaddingTop(hasSubheader, headerVisible, hideHeader);
   const panelGapTop = 36;
   const panelGapBottom = 24;
-  const panelHeight = `calc(100dvh - ${chromeH + panelGapTop + panelGapBottom}px)`;
+  const panelHeight = `calc(100dvh - ${scrollPadding + panelGapTop + panelGapBottom}px)`;
 
   return (
     <div className="relative flex h-full min-h-0 flex-col" dir={lang === "ar" ? "rtl" : "ltr"} style={bgStyle}>
@@ -72,6 +79,9 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
         settings={settings}
         lang={lang}
         visible={headerVisible}
+        hideHeader={hideHeader}
+        showLangInCompactBar={hideHeader && showLang}
+        onLangToggle={toggleLang}
         scrollRef={scrollRef}
         subheader={
           hasSubheader ? (
@@ -83,8 +93,8 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
                 textColor={palette.textColor}
                 lang={lang}
                 onSelect={setActiveCat}
-                onLangToggle={() => setLang(lang === "ar" ? "en" : "ar")}
-                showLang={showLang}
+                onLangToggle={toggleLang}
+                showLang={!hideHeader && showLang}
               />
             </MenuProductSubheaderBar>
           ) : undefined
@@ -128,7 +138,7 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
                 className="flex h-full w-full items-center justify-center rounded-2xl text-sm font-bold opacity-50"
                 style={{ background: cardBg }}
               >
-                {lang === "ar" ? "اختر منتجًا" : "Select a product"}
+                {ui.selectProduct}
               </div>
             )}
           </div>

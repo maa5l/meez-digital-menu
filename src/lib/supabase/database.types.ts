@@ -286,6 +286,22 @@ export type Database = {
         Args: { device_code: string };
         Returns: Json;
       };
+      get_kiosk_state: {
+        Args: { p_code: string };
+        Returns: Json;
+      };
+      get_kiosk_venue: {
+        Args: { p_code: string };
+        Returns: Json;
+      };
+      get_owner_venue: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      get_owner_venue_updated_at: {
+        Args: Record<string, never>;
+        Returns: string;
+      };
       get_venue_updated_at_for_device: {
         Args: { device_code: string };
         Returns: string;

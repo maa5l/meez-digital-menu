@@ -21,6 +21,8 @@ const menuHeaderCustomizationSchema = z.object({
   headerImage: z.string().max(2_000_000).optional(),
   calorieTextColor: hexColor.optional(),
   showLanguageToggle: z.boolean().optional(),
+  autoHideHeaderOnScroll: z.boolean().optional(),
+  hideHeader: z.boolean().optional(),
 });
 
 export const menuSettingsSchema = z.object({
@@ -48,4 +50,6 @@ export const menuSettingsSchema = z.object({
   burnBarTextEn: z.string().max(80).optional(),
   showLanguageToggle: z.boolean().optional(),
   calorieTextColor: hexColor.optional(),
+  autoHideHeaderOnScroll: z.boolean().optional(),
+  hideHeader: z.boolean().optional(),
 });

@@ -81,7 +81,10 @@ const MenuVenueHeader = ({
         "flex w-full flex-col overflow-hidden border-b border-black/10",
         !embedded && "fixed inset-x-0 top-0 z-40",
         !embedded && headerHideTransition,
-        !embedded && (visible ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0 pointer-events-none"),
+        !embedded &&
+          (visible
+            ? "translate-y-0 opacity-100"
+            : "-translate-y-full opacity-0 pointer-events-none invisible"),
       )}
       style={{
         height: headerHeight,

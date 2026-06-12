@@ -3,14 +3,15 @@ import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
 import { isSupabaseConfigured } from "@/config/env";
 import { checkDeviceRegisteredOnServer } from "@/services/kiosk-check";
-import { subscribeDeviceActivationChanges } from "@/services/device-realtime.service";
+
+const REGISTRATION_POLL_MS = 30_000;
 
 type Options = {
   enabled?: boolean;
   onRegistered?: (code: string) => void;
 };
 
-/** Realtime + فحص عند الفتح/العودة للواجهة (بدون polling) */
+/** polling + فحص عند الفتح/العودة (RPC-only) */
 export function useDeviceRegistrationWatch(code: string | null, options?: Options) {
   const enabled = options?.enabled !== false;
   const onRegisteredRef = useRef(options?.onRegistered);
@@ -36,9 +37,9 @@ export function useDeviceRegistrationWatch(code: string | null, options?: Option
 
     void check();
 
-    const unsubscribe = isSupabaseConfigured()
-      ? subscribeDeviceActivationChanges(code, () => void check())
-      : () => {};
+    const pollId = isSupabaseConfigured()
+      ? window.setInterval(() => void check(), REGISTRATION_POLL_MS)
+      : undefined;
 
     const onVisible = () => {
       if (document.hidden || cancelled || registeredRef.current) return;
@@ -58,7 +59,7 @@ export function useDeviceRegistrationWatch(code: string | null, options?: Option
 
     return () => {
       cancelled = true;
-      unsubscribe();
+      if (pollId != null) window.clearInterval(pollId);
       document.removeEventListener("visibilitychange", onVisible);
       removeCapListener?.();
     };

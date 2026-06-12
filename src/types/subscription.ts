@@ -50,6 +50,11 @@ export type KioskAccessCheck = {
   reason?: string;
   access?: SubscriptionAccess;
   owner_id?: string;
+  /** من get_kiosk_state — لا يكشف owner_id للـ anon */
+  subscription_status?: SubscriptionStatus;
+  menu_type?: string | null;
+  venue_updated_at?: string | null;
+  retry_after_seconds?: number;
 };
 
 export type DeviceActivationResult = {

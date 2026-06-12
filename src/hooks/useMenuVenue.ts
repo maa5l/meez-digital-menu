@@ -1,24 +1,22 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { VenueData } from "@/types/venue";
 import {
   createEmptyVenueData,
   loadCurrentVenueData,
   loadVenueForDevice,
-  loadVenueForDeviceAsync,
+  syncVenueForDeviceIfStale,
 } from "@/lib/venue-store";
 import { fetchDashboardPreviewVenue } from "@/services/core/platform-security";
-import { checkKioskAccess } from "@/services/subscription/subscription-enforcement";
-import { shouldUseVenueDatabase } from "@/services/venue/venue-supabase.service";
-import { subscribeVenueChanges } from "@/services/venue/venue-realtime.service";
+import { shouldUseVenueDatabase, invalidateDeviceVenueCache } from "@/services/venue/venue-supabase.service";
 import { usesSupabaseAuth } from "@/config/env";
+import { debounce, throttle } from "@/lib/throttle";
 
 const VENUE_UPDATED = "meez:venue-updated";
 
-/** بيانات المنيو للعرض — Realtime + fallback عند العودة للتبويب */
+/** بيانات المنيو للعرض — polling + cache (RPC-only؛ لا Realtime على الجداول) */
 export function useMenuVenue(
   deviceCode: string | null,
   isPreview: boolean,
-  /** false أثناء انتظار التفعيل */
   ready: boolean,
 ): VenueData {
   const load = useCallback(() => {
@@ -29,44 +27,68 @@ export function useMenuVenue(
   }, [deviceCode, isPreview, ready]);
 
   const [venue, setVenue] = useState<VenueData>(load);
-
-  const reloadFull = useCallback(async () => {
-    if (!ready) {
-      setVenue(createEmptyVenueData());
-      return;
-    }
-    if (isPreview) {
-      let next = loadCurrentVenueData();
-      if (shouldUseVenueDatabase() && usesSupabaseAuth()) {
-        const fromRpc = await fetchDashboardPreviewVenue();
-        if (fromRpc?.version === 1) {
-          next = fromRpc;
-        }
-      }
-      setVenue(next);
-      return;
-    }
-    if (deviceCode && shouldUseVenueDatabase()) {
-      const fromCloud = await loadVenueForDeviceAsync(deviceCode);
-      setVenue(fromCloud);
-      return;
-    }
-    setVenue(load());
-  }, [deviceCode, isPreview, ready, load]);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    void reloadFull();
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const reloadFull = useCallback(
+    async (force = false) => {
+      if (!ready) {
+        if (mountedRef.current) setVenue(createEmptyVenueData());
+        return;
+      }
+      if (isPreview) {
+        let next = loadCurrentVenueData();
+        if (shouldUseVenueDatabase() && usesSupabaseAuth()) {
+          const fromRpc = await fetchDashboardPreviewVenue(force);
+          if (fromRpc?.version === 1) {
+            const rpcItems = fromRpc.products.length + fromRpc.crops.length;
+            const localItems = next.products.length + next.crops.length;
+            if (rpcItems >= localItems) next = fromRpc;
+          }
+        }
+        if (mountedRef.current) setVenue(next);
+        return;
+      }
+      if (deviceCode && shouldUseVenueDatabase()) {
+        if (force) invalidateDeviceVenueCache(deviceCode);
+        const fromCloud = await syncVenueForDeviceIfStale(deviceCode, force);
+        if (mountedRef.current) setVenue(fromCloud);
+        return;
+      }
+      if (mountedRef.current) setVenue(load());
+    },
+    [deviceCode, isPreview, ready, load],
+  );
+
+  const reloadDebounced = useMemo(
+    () => debounce((force?: boolean) => void reloadFull(Boolean(force)), 500),
+    [reloadFull],
+  );
+
+  const reloadThrottled = useMemo(
+    () => throttle(() => void reloadFull(false), 30_000),
+    [reloadFull],
+  );
+
+  useEffect(() => {
+    void reloadFull(false);
   }, [reloadFull]);
 
   useEffect(() => {
     if (!ready) return;
 
-    const onUpdate = () => void reloadFull();
+    const onUpdate = () => reloadDebounced(false);
     window.addEventListener(VENUE_UPDATED, onUpdate);
     window.addEventListener("storage", onUpdate);
 
     const onVisible = () => {
-      if (!document.hidden) void reloadFull();
+      if (!document.hidden) reloadThrottled();
     };
     document.addEventListener("visibilitychange", onVisible);
 
@@ -75,28 +97,7 @@ export function useMenuVenue(
       window.removeEventListener("storage", onUpdate);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [reloadFull, ready]);
-
-  useEffect(() => {
-    if (!ready || isPreview || !deviceCode || !shouldUseVenueDatabase()) return;
-
-    let cancelled = false;
-    let unsubscribeVenue: (() => void) | undefined;
-
-    void (async () => {
-      const access = await checkKioskAccess(deviceCode);
-      if (cancelled || !access.owner_id) return;
-
-      unsubscribeVenue = subscribeVenueChanges(access.owner_id, () => {
-        if (!cancelled) void reloadFull();
-      });
-    })();
-
-    return () => {
-      cancelled = true;
-      unsubscribeVenue?.();
-    };
-  }, [deviceCode, isPreview, ready, reloadFull]);
+  }, [ready, reloadDebounced, reloadThrottled]);
 
   return venue;
 }

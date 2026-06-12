@@ -318,59 +318,52 @@ export function loadVenueForDevice(deviceCode: string): VenueData {
   return createEmptyVenueData();
 }
 
-/** تحميل منيو الجهاز من Supabase (مع fallback محلي) */
+/** تحميل منيو الجهاز من Supabase — يجلب JSON كاملاً فقط عند تغيّر updated_at */
 export async function loadVenueForDeviceAsync(
   deviceCode: string,
-  knownRemoteUpdatedAt?: string | null,
+  _knownRemoteUpdatedAt?: string | null,
 ): Promise<VenueData> {
-  const code = deviceCode.trim().toUpperCase();
-
-  if (shouldUseVenueDatabase()) {
-    try {
-      const remoteUpdatedAt =
-        knownRemoteUpdatedAt !== undefined
-          ? knownRemoteUpdatedAt
-          : await fetchVenueUpdatedAtForDevice(code);
-      const remote = await fetchVenueForDeviceFromDatabase(code);
-      if (remote?.version === 1) {
-        const normalized = normalizeVenue(remote);
-        const ownerId = getDeviceOwnerUserId(code);
-        if (ownerId) saveVenueDataLocal(ownerId, normalized);
-        setLocalJson(`${DEVICE_VENUE_PREFIX}${code}`, {
-          venue: normalized,
-          syncedAt: new Date().toISOString(),
-          remoteUpdatedAt: remoteUpdatedAt ?? undefined,
-        });
-        rememberRemoteUpdatedAt(deviceRemoteUpdatedKey(code), remoteUpdatedAt);
-        return normalized;
-      }
-    } catch (err) {
-      logger.error("venue.device_cloud_load_failed", {
-        code,
-        message: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
-
-  return loadVenueForDevice(code);
+  return syncVenueForDeviceIfStale(deviceCode);
 }
 
 /** مزامنة كاملة فقط عند تغيّر updated_at — وإلا البيانات المحلية */
-export async function syncVenueForDeviceIfStale(deviceCode: string): Promise<VenueData> {
+export async function syncVenueForDeviceIfStale(
+  deviceCode: string,
+  force = false,
+): Promise<VenueData> {
   const code = deviceCode.trim().toUpperCase();
   if (!shouldUseVenueDatabase()) return loadVenueForDevice(code);
 
   try {
-    const remoteUpdatedAt = await fetchVenueUpdatedAtForDevice(code);
+    const remoteUpdatedAt = await fetchVenueUpdatedAtForDevice(code, force);
     const cacheKey = deviceRemoteUpdatedKey(code);
     if (
+      !force &&
       remoteUpdatedAt &&
       getRememberedRemoteUpdatedAt(cacheKey) === remoteUpdatedAt
     ) {
       return loadVenueForDevice(code);
     }
-    return loadVenueForDeviceAsync(code, remoteUpdatedAt);
-  } catch {
-    return loadVenueForDevice(code);
+
+    const remote = await fetchVenueForDeviceFromDatabase(code, force);
+    if (remote?.version === 1) {
+      const normalized = normalizeVenue(remote);
+      const ownerId = getDeviceOwnerUserId(code);
+      if (ownerId) saveVenueDataLocal(ownerId, normalized);
+      setLocalJson(`${DEVICE_VENUE_PREFIX}${code}`, {
+        venue: normalized,
+        syncedAt: new Date().toISOString(),
+        remoteUpdatedAt: remoteUpdatedAt ?? undefined,
+      });
+      rememberRemoteUpdatedAt(cacheKey, remoteUpdatedAt);
+      return normalized;
+    }
+  } catch (err) {
+    logger.error("venue.device_cloud_load_failed", {
+      code,
+      message: err instanceof Error ? err.message : String(err),
+    });
   }
+
+  return loadVenueForDevice(code);
 }

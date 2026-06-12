@@ -3,23 +3,26 @@ import type { Crop, MenuSettings } from "@/types/domain";
 import { Sparkles } from "lucide-react";
 import CropDetailModal from "@/components/menu/CropDetailModal";
 import { CropFieldsGrid, CropNotes, CropTitle } from "@/components/menu/CropDisplay";
-import CropsLangToggle from "@/components/menu/CropsLangToggle";
+import MenuLangToggle from "@/components/menu/MenuLangToggle";
 import { MenuCropsTopChrome } from "@/components/menu/MenuCropsTopChrome";
 import { MenuProductSubheaderBar } from "@/components/menu/MenuProductTopChrome";
+import { useMenuLang } from "@/context/MenuLangContext";
 import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
 import { cropFieldLabels } from "@/lib/crop-i18n";
-import { getCropsHeaderCustomization } from "@/lib/menu-header-settings";
+import { getCropsHeaderCustomization, isCropsLangToggleEnabled } from "@/lib/menu-header-settings";
 import { getCropsPalette, palettePageStyle } from "@/lib/menu-palette";
 
 /**
  * Crops Template — "Featured Header + Cards Carousel".
  */
 const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops: Crop[] }) => {
-  const [lang, setLang] = useState<"ar" | "en">("ar");
+  const { lang, toggleLang } = useMenuLang();
   const [modal, setModal] = useState<Crop | null>(null);
-  const { scrollRef, headerVisible } = useProductTemplateScroll();
   const cropsHeader = getCropsHeaderCustomization(settings);
-  const showLang = cropsHeader.showLanguageToggle !== false;
+  const showLang = isCropsLangToggleEnabled(settings);
+  const hideHeader = cropsHeader.hideHeader === true;
+  const autoHideHeader = !hideHeader && cropsHeader.autoHideHeaderOnScroll !== false;
+  const { scrollRef, headerVisible } = useProductTemplateScroll(autoHideHeader);
 
   const ordered = settings.featuredCropId
     ? [
@@ -37,15 +40,16 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
         settings={settings}
         lang={lang}
         visible={headerVisible}
+        hideHeader={hideHeader}
+        showLangInCompactBar={hideHeader && showLang}
+        onLangToggle={toggleLang}
         scrollRef={scrollRef}
         subheader={
-          showLang ? (
+          !hideHeader && showLang ? (
             <MenuProductSubheaderBar settings={settings}>
-              <CropsLangToggle
-                lang={lang}
-                textColor={palette.textColor}
-                onToggle={() => setLang(lang === "ar" ? "en" : "ar")}
-              />
+              <div className="flex justify-start" dir="ltr">
+                <MenuLangToggle lang={lang} textColor={palette.textColor} onToggle={toggleLang} />
+              </div>
             </MenuProductSubheaderBar>
           ) : undefined
         }
@@ -75,7 +79,7 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
                         setModal(c);
                       }
                     }}
-                    className="snap-center shrink-0 w-[72vw] md:w-[400px] h-[min(70vh,560px)] rounded-[2rem] p-7 md:p-9 flex flex-col relative overflow-hidden cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.99]"
+                    className="snap-center shrink-0 w-[72vw] md:w-[400px] h-[min(70vh,560px)] rounded-[2rem] p-7 md:p-9 flex flex-col items-center justify-center relative overflow-hidden cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.99]"
                     style={{
                       background: bg,
                       color: fg,
@@ -97,13 +101,16 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
                       </div>
                     )}
 
-                    <CropTitle crop={c} lang={lang} className="relative" />
-
-                    <div className="relative flex-1 flex flex-col justify-center py-4">
-                      <CropFieldsGrid crop={c} lang={lang} className="gap-6 sm:gap-8" />
+                    <div className="relative z-10 flex w-full flex-col items-center justify-center gap-5 md:gap-6">
+                      <CropTitle crop={c} lang={lang} />
+                      <CropFieldsGrid crop={c} lang={lang} />
+                      <CropNotes
+                        crop={c}
+                        lang={lang}
+                        borderColor={fg}
+                        className="mt-0 w-full max-w-xs border-t pt-4"
+                      />
                     </div>
-
-                    <CropNotes crop={c} lang={lang} borderColor={fg} className="relative mt-auto" />
                   </article>
                 );
               })}

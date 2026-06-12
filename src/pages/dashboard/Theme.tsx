@@ -2,9 +2,9 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { GalleryHorizontal, Minus, ExternalLink, Palette, Coffee, UtensilsCrossed, Sparkles, Upload, X, Star, ListChecks, LayoutTemplate } from "lucide-react";
+import { GalleryHorizontal, Minus, ExternalLink, Palette, Coffee, UtensilsCrossed, Sparkles, Upload, X, Star, ListChecks, LayoutTemplate, Loader2, Save } from "lucide-react";
 import type { ChangeEvent, ReactNode } from "react";
-import { useMenuSettings } from "@/hooks/useMenuSettings";
+import { useEffect, useMemo, useState } from "react";
 import { defaultMenuSettings, type MenuSettings } from "@/lib/mockData";
 import type { MenuHeaderCustomization, MenuPalette } from "@/types/domain";
 import { getCropsPalette, getProductsPalette } from "@/lib/menu-palette";
@@ -19,12 +19,56 @@ import { toast } from "sonner";
 import { processHeaderImageFile } from "@/lib/header-image";
 import { HEADER_IMAGE_SPEC } from "@/lib/header-image-spec";
 import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
+import { getCurrentUserId } from "@/lib/venue-store";
+import { usesSupabaseAuth } from "@/config/env";
+import { getErrorMessage } from "@/lib/errors";
 
 const Theme = () => {
-  const [venue] = useVenueData();
-  const [settings, update] = useMenuSettings();
+  const [venue, updateVenue] = useVenueData();
+  const [settings, setSettings] = useState<MenuSettings>(() => ({
+    ...defaultMenuSettings,
+    ...venue.menuSettings,
+  }));
+  const [saving, setSaving] = useState(false);
   const { products, crops } = venue;
-  const reset = () => { update(defaultMenuSettings); toast.success("تمت إعادة الثيم للوضع الافتراضي"); };
+
+  useEffect(() => {
+    setSettings({ ...defaultMenuSettings, ...venue.menuSettings });
+  }, [venue.menuSettings]);
+
+  const dirty = useMemo(
+    () => JSON.stringify(settings) !== JSON.stringify({ ...defaultMenuSettings, ...venue.menuSettings }),
+    [settings, venue.menuSettings],
+  );
+
+  const update = (next: MenuSettings) => setSettings(next);
+
+  const onSave = async () => {
+    const userId = getCurrentUserId();
+    if (!userId) {
+      toast.error("سجّل الدخول أولاً");
+      return;
+    }
+    setSaving(true);
+    try {
+      updateVenue((v) => ({
+        ...v,
+        menuSettings: { ...defaultMenuSettings, ...settings },
+      }));
+      window.dispatchEvent(new Event("meez:venue-updated"));
+      toast.success(usesSupabaseAuth() ? "تم حفظ التعديلات في قاعدة البيانات" : "تم حفظ التعديلات محلياً");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const reset = () => {
+    setSettings(defaultMenuSettings);
+    updateVenue((v) => ({ ...v, menuSettings: defaultMenuSettings }));
+    toast.success("تمت إعادة الثيم للوضع الافتراضي");
+  };
 
   const productsColors = getProductsPalette(settings);
   const cropsColors = getCropsPalette(settings);
@@ -53,7 +97,7 @@ const Theme = () => {
           try {
             const dataUrl = await processHeaderImageFile(file);
             update(patchProductsHeader(settings, { headerImage: dataUrl }));
-            toast.success("تم رفع صورة الهيدر", { id: loading });
+            toast.success("تم رفع صورة الهيدر — احفظ التعديلات", { id: loading });
           } catch (err) {
             toast.error(err instanceof Error ? err.message : "تعذّر رفع الصورة", { id: loading });
             e.target.value = "";
@@ -67,7 +111,7 @@ const Theme = () => {
         reader.onload = () => {
           const result = reader.result as string;
           update(patchProductsHeader(settings, { [key]: result }));
-          toast.success("تم رفع الصورة");
+          toast.success("تم رفع الصورة — احفظ التعديلات");
         };
         reader.onerror = () => toast.error("تعذّر قراءة الملف");
         reader.readAsDataURL(file);
@@ -88,7 +132,7 @@ const Theme = () => {
           try {
             const dataUrl = await processHeaderImageFile(file);
             update(patchCropsHeader(settings, { headerImage: dataUrl }));
-            toast.success("تم رفع بانر هيدر المحاصيل", { id: loading });
+            toast.success("تم رفع بانر هيدر المحاصيل — احفظ التعديلات", { id: loading });
           } catch (err) {
             toast.error(err instanceof Error ? err.message : "تعذّر رفع الصورة", { id: loading });
             e.target.value = "";
@@ -102,7 +146,7 @@ const Theme = () => {
         reader.onload = () => {
           const result = reader.result as string;
           update(patchCropsHeader(settings, { [key]: result }));
-          toast.success("تم رفع الصورة");
+          toast.success("تم رفع الصورة — احفظ التعديلات");
         };
         reader.onerror = () => toast.error("تعذّر قراءة الملف");
         reader.readAsDataURL(file);
@@ -120,7 +164,7 @@ const Theme = () => {
       const result = reader.result as string;
       if (target === "products") patchProductsColors({ bgImage: result });
       else patchCropsColors({ bgImage: result });
-      toast.success("تم رفع صورة الخلفية");
+      toast.success("تم رفع صورة الخلفية — احفظ التعديلات");
     };
     reader.onerror = () => toast.error("تعذّر قراءة الملف");
     reader.readAsDataURL(file);
@@ -132,7 +176,26 @@ const Theme = () => {
     <DashboardLayout
       title="الثيم"
       subtitle="إدارة كاملة لأنواع المنيو، القوالب والألوان"
-      action={<Button variant="outline" onClick={reset}>إعادة الافتراضي</Button>}
+      action={
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={reset}>
+            إعادة الافتراضي
+          </Button>
+          <Button variant="hero" onClick={() => void onSave()} disabled={!dirty || saving}>
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                جاري الحفظ...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                حفظ التعديلات
+              </>
+            )}
+          </Button>
+        </div>
+      }
     >
       {/* نظرة عامة سريعة */}
       <div className="grid sm:grid-cols-3 gap-4 mb-6">
@@ -332,6 +395,17 @@ const HeaderCustomizeBlock = ({
 
     <div className="flex flex-wrap gap-2">
       <ToggleChip
+        label="إخفاء الهيدر نهائياً"
+        checked={header.hideHeader === true}
+        onChange={(v) => onPatch({ hideHeader: v })}
+      />
+      <ToggleChip
+        label="إخفاء الهيدر عند التمرير"
+        checked={header.autoHideHeaderOnScroll !== false}
+        disabled={header.hideHeader === true}
+        onChange={(v) => onPatch({ autoHideHeaderOnScroll: v })}
+      />
+      <ToggleChip
         label="زر اللغة"
         checked={header.showLanguageToggle !== false}
         onChange={(v) => onPatch({ showLanguageToggle: v })}
@@ -391,16 +465,19 @@ const UploadRow = ({
 const ToggleChip = ({
   label,
   checked,
+  disabled,
   onChange,
 }: {
   label: string;
   checked: boolean;
+  disabled?: boolean;
   onChange: (v: boolean) => void;
 }) => (
   <button
     type="button"
+    disabled={disabled}
     onClick={() => onChange(!checked)}
-    className={`px-3 py-2 rounded-full text-xs font-bold border transition-colors ${
+    className={`px-3 py-2 rounded-full text-xs font-bold border transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
       checked ? "bg-accent text-accent-foreground border-accent" : "bg-card text-muted-foreground border-border"
     }`}
   >

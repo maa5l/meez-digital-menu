@@ -5,6 +5,7 @@ import { isAuthenticated } from "@/security/session";
 import { getActiveSession } from "@/services/auth/auth.service";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { appEnv } from "@/config/env";
+import { VenueDataProvider } from "@/context/VenueDataContext";
 import { logger } from "@/lib/logger";
 
 type Props = {
@@ -38,5 +39,5 @@ export function ProtectedRoute({ children }: Props) {
     return <Navigate to={ROUTES.auth} state={{ from: location.pathname }} replace />;
   }
 
-  return <>{children}</>;
+  return <VenueDataProvider>{children}</VenueDataProvider>;
 }

@@ -1,7 +1,10 @@
 import { appEnv } from "@/config/env";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import { cachedFetch, invalidateCacheKey, invalidateCachePrefix } from "@/lib/request-cache";
 import type { VenueData } from "@/types/venue";
 import { logger } from "@/lib/logger";
+
+const RPC_TTL_MS = 30_000;
 
 export function shouldUseVenueDatabase(): boolean {
   return isSupabaseConfigured() && !appEnv.useLocalMockAuth;
@@ -11,55 +14,132 @@ function normalizeCode(code: string): string {
   return code.trim().toUpperCase();
 }
 
-export async function fetchVenueUpdatedAtForOwner(ownerId: string): Promise<string | null> {
-  if (!shouldUseVenueDatabase()) return null;
-
-  const { data, error } = await getSupabase()
-    .from("venues")
-    .select("updated_at")
-    .eq("owner_id", ownerId)
-    .maybeSingle();
-
-  if (error) {
-    logger.error("venue.updated_at_failed", { ownerId, message: error.message });
-    throw error;
-  }
-
-  return data?.updated_at ?? null;
+export function invalidateOwnerVenueCache(ownerId: string): void {
+  invalidateCachePrefix(`venue:owner:${ownerId}:`);
+  invalidateCacheKey(`venue:preview:${ownerId}`);
 }
 
-export async function fetchVenueFromDatabase(ownerId: string): Promise<VenueData | null> {
-  if (!shouldUseVenueDatabase()) return null;
-
-  const { data, error } = await getSupabase()
-    .from("venues")
-    .select("data, updated_at")
-    .eq("owner_id", ownerId)
-    .maybeSingle();
-
-  if (error) {
-    logger.error("venue.fetch_failed", { ownerId, message: error.message });
-    throw error;
-  }
-
-  if (!data?.data || typeof data.data !== "object") return null;
-  return data.data as VenueData;
+export function invalidateDeviceVenueCache(code: string): void {
+  const norm = normalizeCode(code);
+  invalidateCachePrefix(`venue:device:${norm}:`);
+  invalidateCacheKey(`kiosk:access:${norm}`);
+  invalidateCacheKey(`kiosk:state:${norm}`);
 }
 
-/** طلب خفيف — يعيد وقت آخر تحديث فقط (للكيوسك) */
-export async function fetchVenueUpdatedAtForDevice(code: string): Promise<string | null> {
+export async function fetchVenueUpdatedAtForOwner(
+  ownerId: string,
+  force = false,
+): Promise<string | null> {
   if (!shouldUseVenueDatabase()) return null;
 
-  const { data, error } = await getSupabase().rpc("get_venue_updated_at_for_device", {
-    device_code: normalizeCode(code),
-  });
+  return cachedFetch(
+    `venue:owner:${ownerId}:updated_at`,
+    async () => {
+      const { data, error } = await getSupabase().rpc("get_owner_venue_updated_at");
 
-  if (error) {
-    logger.error("venue.device_updated_at_failed", { code, message: error.message });
-    throw error;
+      if (error) {
+        logger.error("venue.updated_at_failed", { ownerId, message: error.message });
+        throw error;
+      }
+
+      return typeof data === "string" ? data : null;
+    },
+    RPC_TTL_MS,
+    force,
+  );
+}
+
+export async function fetchVenueFromDatabase(
+  ownerId: string,
+  force = false,
+): Promise<VenueData | null> {
+  if (!shouldUseVenueDatabase()) return null;
+
+  return cachedFetch(
+    `venue:owner:${ownerId}:full`,
+    async () => {
+      const { data, error } = await getSupabase().rpc("get_owner_venue");
+
+      if (error) {
+        logger.error("venue.fetch_failed", { ownerId, message: error.message });
+        throw error;
+      }
+
+      if (!data || typeof data !== "object") return null;
+      const row = data as { data?: unknown; updated_at?: string };
+      if (!row.data || typeof row.data !== "object") return null;
+      return row.data as VenueData;
+    },
+    RPC_TTL_MS,
+    force,
+  );
+}
+
+export type KioskState = {
+  allowed: boolean;
+  registered: boolean;
+  reason?: string;
+  menu_type?: string | null;
+  venue_updated_at?: string | null;
+  subscription_status?: string | null;
+  retry_after_seconds?: number;
+};
+
+/** بوابة الكشك — RPC get_kiosk_state (JSONB مُصفّى، rate-limited) */
+export async function fetchKioskState(
+  code: string,
+  force = false,
+): Promise<KioskState> {
+  if (!shouldUseVenueDatabase()) {
+    return { allowed: true, registered: true };
   }
 
-  return typeof data === "string" ? data : null;
+  const norm = normalizeCode(code);
+
+  return cachedFetch(
+    `kiosk:state:${norm}`,
+    async () => {
+      const { data, error } = await getSupabase().rpc("get_kiosk_state", {
+        p_code: norm,
+      });
+
+      if (error) {
+        logger.error("kiosk.state_failed", { code: norm, message: error.message });
+        return { allowed: false, registered: false, reason: "check_failed" };
+      }
+
+      if (!data || typeof data !== "object") {
+        return { allowed: false, registered: false, reason: "invalid_response" };
+      }
+
+      const row = data as Record<string, unknown>;
+      return {
+        allowed: Boolean(row.allowed),
+        registered: Boolean(row.registered),
+        reason: typeof row.reason === "string" ? row.reason : undefined,
+        menu_type: typeof row.menu_type === "string" ? row.menu_type : null,
+        venue_updated_at:
+          typeof row.venue_updated_at === "string" ? row.venue_updated_at : null,
+        subscription_status:
+          typeof row.subscription_status === "string" ? row.subscription_status : null,
+        retry_after_seconds:
+          typeof row.retry_after_seconds === "number"
+            ? row.retry_after_seconds
+            : undefined,
+      };
+    },
+    RPC_TTL_MS,
+    force,
+  );
+}
+
+/** طلب خفيف — updated_at من get_kiosk_state (لا RPC منفصل) */
+export async function fetchVenueUpdatedAtForDevice(
+  code: string,
+  force = false,
+): Promise<string | null> {
+  const state = await fetchKioskState(code, force);
+  return state.venue_updated_at ?? null;
 }
 
 /** حفظ المنيو — RPC فقط (update_venue_data) مع فحص الاشتراك */
@@ -82,23 +162,36 @@ export async function saveVenueToDatabase(ownerId: string, venue: VenueData): Pr
   }
 
   markVenueRemoteSynced(ownerId, result.updatedAt ?? null);
+  invalidateOwnerVenueCache(ownerId);
   logger.audit("venue.saved_cloud", { ownerId });
 }
 
-export async function fetchVenueForDeviceFromDatabase(code: string): Promise<VenueData | null> {
+export async function fetchVenueForDeviceFromDatabase(
+  code: string,
+  force = false,
+): Promise<VenueData | null> {
   if (!shouldUseVenueDatabase()) return null;
 
-  const { data, error } = await getSupabase().rpc("get_venue_for_device", {
-    device_code: normalizeCode(code),
-  });
+  const norm = normalizeCode(code);
 
-  if (error) {
-    logger.error("venue.device_fetch_failed", { code, message: error.message });
-    throw error;
-  }
+  return cachedFetch(
+    `venue:device:${norm}:full`,
+    async () => {
+      const { data, error } = await getSupabase().rpc("get_kiosk_venue", {
+        p_code: norm,
+      });
 
-  if (!data || typeof data !== "object") return null;
-  return data as VenueData;
+      if (error) {
+        logger.error("venue.device_fetch_failed", { code: norm, message: error.message });
+        throw error;
+      }
+
+      if (!data || typeof data !== "object") return null;
+      return data as VenueData;
+    },
+    RPC_TTL_MS,
+    force,
+  );
 }
 
 export async function isDeviceActivatedInDatabase(code: string): Promise<boolean> {

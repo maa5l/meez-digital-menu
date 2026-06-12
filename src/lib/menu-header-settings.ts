@@ -12,6 +12,8 @@ export function getProductsHeaderCustomization(settings: MenuSettings): MenuHead
     logoImage: settings.logoImage,
     calorieTextColor: settings.calorieTextColor,
     showLanguageToggle: settings.showLanguageToggle,
+    autoHideHeaderOnScroll: settings.autoHideHeaderOnScroll,
+    hideHeader: settings.hideHeader,
   };
 }
 
@@ -35,4 +37,12 @@ export function patchCropsHeader(
     ...settings,
     cropsHeader: { ...getCropsHeaderCustomization(settings), ...patch },
   };
+}
+
+export function isProductsLangToggleEnabled(settings: MenuSettings): boolean {
+  return getProductsHeaderCustomization(settings).showLanguageToggle !== false;
+}
+
+export function isCropsLangToggleEnabled(settings: MenuSettings): boolean {
+  return getCropsHeaderCustomization(settings).showLanguageToggle !== false;
 }

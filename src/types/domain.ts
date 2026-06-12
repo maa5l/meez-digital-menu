@@ -27,6 +27,10 @@ export type Product = {
   image?: string;
   allergens?: string;
   allergensEn?: string;
+  /** شارة زاوية — نص ولون يحددهما العميل */
+  badgeText?: string;
+  badgeTextEn?: string;
+  badgeColor?: string;
   cropInfo?: CropInfo;
 };
 
@@ -63,6 +67,10 @@ export type MenuHeaderCustomization = {
   logoImage?: string;
   calorieTextColor?: string;
   showLanguageToggle?: boolean;
+  /** true (افتراضي) = يختفي الهيدر عند التمرير للأسفل */
+  autoHideHeaderOnScroll?: boolean;
+  /** إخفاء الهيدر (البانر والشعار والعنوان) — يبقى إفصاح السعرات فقط */
+  hideHeader?: boolean;
 };
 
 export type MenuSettings = {
