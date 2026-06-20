@@ -1,3 +1,5 @@
+@import "../../src/styles/huwiya-fonts.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,6 +18,11 @@
     );
   }
 
+  html {
+    @apply font-sans antialiased;
+    scroll-behavior: smooth;
+  }
+
   html,
   body,
   #root {
@@ -25,10 +32,20 @@
     overscroll-behavior: none;
   }
 
-  body {
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  body,
+  #root {
+    @apply font-body;
+    font-feature-settings: "ss01", "kern";
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
+  }
+
+  button,
+  input,
+  textarea,
+  select,
+  optgroup {
+    font: inherit;
   }
 }
 

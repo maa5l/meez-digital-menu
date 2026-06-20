@@ -8,20 +8,26 @@ type Props = {
   onToggle: () => void;
   textColor: string;
   className?: string;
+  /** tab = نفس شكل أزرار التصنيفات */
+  variant?: "default" | "tab";
 };
 
-const MenuLangToggle = ({ lang, onToggle, textColor, className }: Props) => {
+const MenuLangToggle = ({ lang, onToggle, textColor, className, variant = "default" }: Props) => {
   const ui = getMenuUi(lang);
+  const isTab = variant === "tab";
+
   return (
     <button
       type="button"
       onClick={onToggle}
       className={cn(
-        "touch-manipulation shrink-0 inline-flex items-center gap-1.5 rounded-full border border-current/30",
-        "bg-transparent px-4 py-2 text-sm font-bold transition-colors hover:border-current/50",
+        "touch-manipulation shrink-0 inline-flex items-center justify-center gap-1.5 font-bold transition-colors",
+        isTab
+          ? "rounded-full border border-transparent bg-transparent px-5 py-2 text-sm"
+          : "rounded-full border border-current/30 bg-transparent px-4 py-2 text-sm hover:border-current/50",
         className,
       )}
-      style={{ color: textColor }}
+      style={{ color: textColor, opacity: isTab ? 0.75 : 1 }}
       aria-label={ui.langToggleLabel}
     >
       <Languages className="h-4 w-4 shrink-0" aria-hidden />

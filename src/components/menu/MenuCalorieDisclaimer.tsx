@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { Baby, User, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { menuCalorieAlignClass, menuChromeMotion } from "@/lib/menu-header";
 
 type Props = {
   lang: "ar" | "en";
@@ -80,20 +81,30 @@ const MenuCalorieDisclaimer = ({
   const list = (
     <ul
       className={cn(
-        "grid grid-cols-3 items-center",
-        compact ? "gap-2 md:gap-3" : "gap-2 md:gap-4",
+        "flex w-full flex-col",
+        menuChromeMotion,
+        compact ? "gap-0.5 md:gap-1" : "gap-1 md:gap-1.5",
+        menuCalorieAlignClass(lang),
         className,
       )}
+      dir="ltr"
     >
       {L.rows.map(({ id, Icon, label, text }) => (
         <li
           key={id}
-          className="flex min-w-0 items-center justify-center gap-1.5 md:gap-2"
+          className={cn(
+            "flex max-w-full items-center gap-1.5 md:gap-2",
+            lang === "ar" ? "justify-start text-left" : "justify-end text-right",
+          )}
           aria-label={label}
         >
           <Icon className={iconInner} strokeWidth={2.25} style={{ color: textColor }} aria-hidden />
-          <span className={cn("min-w-0 text-center font-semibold", textSize)} style={{ color: textColor }}>
-            <span className="line-clamp-2">{text}</span>
+          <span
+            dir={lang === "ar" ? "rtl" : "ltr"}
+            className={cn("min-w-0 font-semibold leading-tight", textSize)}
+            style={{ color: textColor }}
+          >
+            {text}
           </span>
         </li>
       ))}

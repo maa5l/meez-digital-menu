@@ -18,6 +18,7 @@ import { Plus, Search, Pencil, Trash2, ImageIcon, Sprout } from "lucide-react";
 import AllergenSelector from "@/components/dashboard/AllergenSelector";
 import { formatAllergensString, parseAllergensIds } from "@/constants/allergens";
 import { processProductImageFile, PRODUCT_IMAGE_SPEC } from "@/lib/product-image";
+import { PRODUCT_IMAGE_ASPECT } from "@/lib/product-card-spec";
 import {
   BADGE_COLOR_PRESETS,
   BADGE_TEXT_MAX,
@@ -27,6 +28,7 @@ import {
 } from "@/lib/product-badge";
 import { toast } from "sonner";
 import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
+import { cropSelectLabel, cropToCropInfo } from "@/lib/crop-info";
 
 const emptyCrop = {
   beanName: "",
@@ -41,6 +43,7 @@ const Products = () => {
   const [venue, updateVenue] = useVenueData();
   const list = venue.products;
   const categories = venue.categories;
+  const crops = venue.crops;
   const [filter, setFilter] = useState<string>("all");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -56,6 +59,7 @@ const Products = () => {
   const [image, setImage] = useState("");
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
   const [hasCrop, setHasCrop] = useState(false);
+  const [linkedCropId, setLinkedCropId] = useState("");
   const [crop, setCrop] = useState(emptyCrop);
   const [hasBadge, setHasBadge] = useState(false);
   const [badgeText, setBadgeText] = useState("");
@@ -74,6 +78,7 @@ const Products = () => {
     setImage("");
     setSelectedAllergens([]);
     setHasCrop(false);
+    setLinkedCropId("");
     setCrop(emptyCrop);
     setHasBadge(false);
     setBadgeText("");
@@ -99,8 +104,10 @@ const Products = () => {
     if (p.cropInfo) {
       setHasCrop(true);
       setCrop({ ...emptyCrop, ...p.cropInfo });
+      setLinkedCropId(p.cropId && crops.some((c) => c.id === p.cropId) ? p.cropId : "");
     } else {
       setHasCrop(false);
+      setLinkedCropId("");
       setCrop(emptyCrop);
     }
     const hasBadgeData = Boolean(p.badgeText?.trim() && p.badgeColor?.trim());
@@ -143,6 +150,7 @@ const Products = () => {
     allergens: formatAllergensString(selectedAllergens, "ar"),
     allergensEn: formatAllergensString(selectedAllergens, "en"),
     cropInfo: hasCrop ? { ...crop } : undefined,
+    cropId: hasCrop && linkedCropId ? linkedCropId : undefined,
     ...(hasBadge && badgeText.trim()
       ? {
           badgeText: badgeText.trim().slice(0, BADGE_TEXT_MAX),
@@ -227,7 +235,7 @@ const Products = () => {
             <span className="font-bold text-foreground/80">
               {PRODUCT_IMAGE_SPEC.recommendedWidth}×{PRODUCT_IMAGE_SPEC.recommendedHeight}
             </span>{" "}
-            بكسل (مربع 1:1) — تُعاد المعالجة تلقائياً لملء إطار البطاقة. الحد الأدنى{" "}
+            بكسل (250×270) — تُعاد المعالجة تلقائياً لملء إطار البطاقة. الحد الأدنى{" "}
             {PRODUCT_IMAGE_SPEC.minWidth}×{PRODUCT_IMAGE_SPEC.minHeight} بكسل.
           </p>
           <input
@@ -357,24 +365,58 @@ const Products = () => {
             <span className="font-bold text-sm">إضافة معلومات محاصيل (للبن المختص)</span>
           </label>
           {hasCrop && (
-            <div className="grid grid-cols-2 gap-3">
-              {(
-                [
-                  ["beanName", "اسم المحصول"],
-                  ["country", "البلد"],
-                  ["process", "المعالجة"],
-                  ["variety", "السلالة"],
-                  ["altitude", "الارتفاع"],
-                  ["notes", "الإيحاءات"],
-                ] as const
-              ).map(([key, label]) => (
-                <FieldP
-                  key={key}
-                  label={label}
-                  value={crop[key]}
-                  onChange={(v) => setCrop({ ...crop, [key]: v })}
-                />
-              ))}
+            <div className="space-y-3">
+              {crops.length > 0 ? (
+                <div className="space-y-2">
+                  <Label className="text-xs">ربط بمحصول من الحساب</Label>
+                  <select
+                    value={linkedCropId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setLinkedCropId(id);
+                      const selected = crops.find((c) => c.id === id);
+                      if (selected) setCrop(cropToCropInfo(selected));
+                    }}
+                    className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                  >
+                    <option value="">— اختر محصول —</option>
+                    {crops.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {cropSelectLabel(c)}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    اختر محصولاً مضافاً مسبقاً لملء الحقول تلقائياً، أو عدّلها يدوياً أدناه.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  لا توجد محاصيل في الحساب بعد. أضف محصولاً من صفحة «المحاصيل» أو أدخل المعلومات يدوياً.
+                </p>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                {(
+                  [
+                    ["beanName", "اسم المحصول"],
+                    ["country", "البلد"],
+                    ["process", "المعالجة"],
+                    ["variety", "السلالة"],
+                    ["altitude", "الارتفاع"],
+                    ["notes", "الإيحاءات"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <FieldP
+                    key={key}
+                    label={label}
+                    value={crop[key]}
+                    onChange={(v) => {
+                      setLinkedCropId("");
+                      setCrop({ ...crop, [key]: v });
+                    }}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -472,7 +514,7 @@ const Products = () => {
                 key={p.id}
                 className="group bg-card rounded-2xl border border-border overflow-hidden hover:shadow-warm hover:border-accent/40 transition-all"
               >
-                <div className="aspect-[4/3] bg-secondary relative overflow-hidden">
+                <div className="bg-secondary relative overflow-hidden" style={{ aspectRatio: PRODUCT_IMAGE_ASPECT }}>
                   {p.image ? (
                     <img
                       src={p.image}

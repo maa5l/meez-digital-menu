@@ -2,6 +2,15 @@ import { Riyal } from "@/components/Brand";
 import AllergenIcons from "@/components/menu/AllergenIcons";
 import { localizeProduct, type MenuLang } from "@/lib/product-i18n";
 import { hasProductBadge, productBadgeColor, productBadgeLabel } from "@/lib/product-badge";
+import {
+  PRODUCT_CARD_ASPECT,
+  PRODUCT_CARD_FOOTER_HEIGHT,
+  PRODUCT_CARD_PAD_BOTTOM,
+  PRODUCT_CARD_PAD_TOP,
+  PRODUCT_CARD_PAD_X,
+  PRODUCT_IMAGE_ASPECT,
+} from "@/lib/product-card-spec";
+import { menuChromeMotion } from "@/lib/menu-header";
 import type { Product } from "@/types/domain";
 import { Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,6 +26,12 @@ const labels = {
     allergens: "مسببات الحساسية",
     description: "الوصف",
     crop: "المحصول",
+    cropBean: "اسم المحصول",
+    cropCountry: "البلد",
+    cropProcess: "المعالجة",
+    cropVariety: "السلالة",
+    cropAltitude: "الارتفاع",
+    cropNotes: "الإيحاءات",
     noImage: "صورة المنتج",
     img: "صورة",
   },
@@ -27,6 +42,12 @@ const labels = {
     allergens: "Allergens",
     description: "Description",
     crop: "Crop",
+    cropBean: "Bean",
+    cropCountry: "Country",
+    cropProcess: "Process",
+    cropVariety: "Variety",
+    cropAltitude: "Altitude",
+    cropNotes: "Notes",
     noImage: "Product image",
     img: "Img",
   },
@@ -36,6 +57,33 @@ function cropSummary(product: Product): string | null {
   const c = product.cropInfo;
   if (!c?.beanName?.trim()) return null;
   return [c.beanName, c.country, c.process].filter(Boolean).join(" · ");
+}
+
+const cropModalFields = [
+  ["beanName", "cropBean"],
+  ["country", "cropCountry"],
+  ["process", "cropProcess"],
+  ["variety", "cropVariety"],
+  ["altitude", "cropAltitude"],
+  ["notes", "cropNotes"],
+] as const;
+
+/** شعار الريال يسار الرقم — لجميع اللغات */
+function PriceWithRiyal({
+  price,
+  className,
+  riyalClassName = "shrink-0 opacity-90",
+}: {
+  price: number | string;
+  className?: string;
+  riyalClassName?: string;
+}) {
+  return (
+    <span dir="ltr" className={cn("inline-flex max-w-full items-center gap-0.5", className)}>
+      <Riyal className={riyalClassName} />
+      <span className="truncate">{price}</span>
+    </span>
+  );
 }
 
 const InfoRow = ({
@@ -56,31 +104,35 @@ const InfoRow = ({
   /** محاذاة القيمة — افتراضياً نفس `align` */
   valueAlign?: "right" | "left";
   rtl?: boolean;
-  size?: "card" | "modal";
+  size?: "card" | "modal" | "modalCompact";
 }) => {
   const valueSide = valueAlign ?? align;
+  const labelCls =
+    size === "modalCompact"
+      ? "text-[10px]"
+      : size === "modal"
+        ? "text-xs"
+        : "text-[9px] md:text-[10px]";
   return (
     <div className={`space-y-0.5 ${align === "right" ? "text-right" : "text-left"}`}>
-      <div
-        className={`font-bold leading-none opacity-55 ${
-          size === "modal" ? "text-xs" : "text-[9px] md:text-[10px]"
-        }`}
-      >
-        {label}
-      </div>
+      <div className={cn("font-bold leading-none opacity-55", labelCls)}>{label}</div>
       <div
         dir={rtl ? "rtl" : undefined}
         className={cn(
           "text-[#1a1a1a] leading-snug",
-          size === "modal"
+          size === "modalCompact"
             ? bold
-              ? "text-lg font-black md:text-xl"
-              : "text-base font-semibold"
-            : bold
-              ? "text-xs font-black md:text-sm"
-              : "text-[10px] font-semibold md:text-xs",
+              ? "text-base font-black"
+              : "text-sm font-semibold"
+            : size === "modal"
+              ? bold
+                ? "text-lg font-black md:text-xl"
+                : "text-base font-semibold"
+              : bold
+                ? "text-xs font-black md:text-sm"
+                : "text-[10px] font-semibold md:text-xs",
           clamp && "line-clamp-3 opacity-85",
-          valueSide === "right" ? "text-right" : "text-left",
+          valueSide === "right" ? "text-right flex flex-col items-end" : "text-left flex flex-col items-start",
         )}
       >
         {value}
@@ -89,12 +141,135 @@ const InfoRow = ({
   );
 };
 
-function ProductImageBadge({ product, lang, size }: { product: Product; lang: Lang; size?: "sm" | "md" }) {
+function ProductImageBadge({
+  product,
+  lang,
+  size,
+  placement,
+}: {
+  product: Product;
+  lang: Lang;
+  size?: "sm" | "md";
+  placement?: "inset" | "corner";
+}) {
   if (!hasProductBadge(product, lang)) return null;
   const text = productBadgeLabel(product, lang)!;
   const color = productBadgeColor(product)!;
-  return <ProductCornerBadge text={text} color={color} size={size} />;
-};
+  return <ProductCornerBadge text={text} color={color} size={size} placement={placement} />;
+}
+
+const compactLabels = {
+  ar: { allergens: "حساسية" },
+  en: { allergens: "Allergens" },
+} as const;
+
+/** تذييل مضغوط — مُحسَّن لقالب 280×370 */
+function ProductCardFooterCompact({
+  product,
+  lang,
+  cardBg,
+}: {
+  product: Product;
+  lang: Lang;
+  cardBg: string;
+}) {
+  const t = labels[lang];
+  const tc = compactLabels[lang];
+  const localized = localizeProduct(product, lang);
+  const isEn = lang === "en";
+
+  const labelCls = "text-[7px] font-bold leading-normal text-[#1a1a1a]/50";
+  const nameValueCls =
+    "block w-full truncate py-px text-[10px] font-bold leading-[1.5] text-[#1a1a1a]";
+  const primaryCls =
+    "text-[10px] font-black leading-[1.45] text-[#1a1a1a] truncate py-px";
+  const secondaryCls = "text-[9px] font-bold leading-normal text-[#1a1a1a]";
+
+  const cellCls = (side: "right" | "left") =>
+    cn(
+      "flex min-h-0 w-full flex-col justify-center gap-1",
+      side === "right" ? "items-end text-right" : "items-start text-left",
+    );
+
+  const nameCell = (
+    <>
+      <div className={labelCls}>{t.name}</div>
+      <div className={nameValueCls} dir={isEn ? "ltr" : "rtl"}>
+        {localized.name}
+      </div>
+    </>
+  );
+
+  const priceCell = (side: "right" | "left") => (
+    <>
+      <div className={labelCls}>{t.price}</div>
+      <div
+        className={cn(
+          primaryCls,
+          side === "right" ? "flex justify-end" : "flex justify-start",
+        )}
+      >
+        <PriceWithRiyal price={product.price} riyalClassName="h-2.5 w-2.5 shrink-0 opacity-90" />
+      </div>
+    </>
+  );
+
+  const caloriesCell = (
+    <>
+      <div className={labelCls}>{t.calories}</div>
+      <div className={secondaryCls}>{product.calories}</div>
+    </>
+  );
+
+  const allergensCell = (side: "right" | "left") => (
+    <>
+      <div className={cn(labelCls, "w-full truncate")}>{tc.allergens}</div>
+      <div className={cn("flex h-4 w-full shrink-0 items-center", side === "right" ? "justify-end" : "justify-start")}>
+        <AllergenIcons
+          allergens={product.allergens}
+          allergensEn={product.allergensEn}
+          lang={lang}
+          size="xs"
+          className={cn("scale-[0.85]", side === "right" ? "origin-right" : "origin-left")}
+          emptyPlaceholder={<span className={cn(secondaryCls, "opacity-40")}>—</span>}
+        />
+      </div>
+    </>
+  );
+
+  return (
+    <div
+      className="flex w-full flex-none flex-col overflow-hidden rounded-b-[1.5rem] md:rounded-b-[1.75rem]"
+      style={{ background: cardBg, height: PRODUCT_CARD_FOOTER_HEIGHT, maxHeight: PRODUCT_CARD_FOOTER_HEIGHT }}
+    >
+      <div
+        className="grid h-full min-h-0 grid-cols-2 grid-rows-2 gap-x-2.5 gap-y-2"
+        style={{
+          paddingInline: PRODUCT_CARD_PAD_X,
+          paddingTop: "3%",
+          paddingBottom: PRODUCT_CARD_PAD_BOTTOM,
+        }}
+        dir="ltr"
+      >
+        {isEn ? (
+          <>
+            <div className={cellCls("left")}>{nameCell}</div>
+            <div className={cellCls("right")}>{priceCell("right")}</div>
+            <div className={cellCls("left")}>{caloriesCell}</div>
+            <div className={cellCls("right")}>{allergensCell("right")}</div>
+          </>
+        ) : (
+          <>
+            <div className={cellCls("left")}>{priceCell("left")}</div>
+            <div className={cellCls("right")}>{nameCell}</div>
+            <div className={cellCls("left")}>{allergensCell("left")}</div>
+            <div className={cellCls("right")}>{caloriesCell}</div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export const ProductCardFooter = ({
   product,
@@ -109,36 +284,32 @@ export const ProductCardFooter = ({
   compact?: boolean;
   showDescription?: boolean;
 }) => {
+  if (compact) {
+    return <ProductCardFooterCompact product={product} lang={lang} cardBg={cardBg} />;
+  }
+
   const t = labels[lang];
   const cropLine = cropSummary(product);
   const localized = localizeProduct(product, lang);
   const isEn = lang === "en";
-  const primaryAlign = isEn ? "left" : "right";
-  const secondaryAlign = isEn ? "right" : "left";
-
   return (
-    <div
-      className={compact ? "px-2.5 pb-2.5 pt-1" : "px-3 md:px-4 pb-3 md:pb-4 pt-1.5"}
-      style={{ background: cardBg, color: "#1a1a1a" }}
-      dir={isEn ? "ltr" : "rtl"}
-    >
-      <div className={`grid grid-cols-2 gap-x-3 ${compact ? "gap-y-1.5" : "gap-y-2.5"}`}>
-        <InfoRow align={primaryAlign} label={t.name} value={localized.name} bold rtl={!isEn} />
-        <InfoRow
-          align={secondaryAlign}
-          label={t.price}
-          value={
-            <span className="inline-flex items-center gap-0.5">
-              {product.price} <Riyal className="w-2.5 h-2.5 md:w-3 md:h-3" />
-            </span>
-          }
-          bold
-        />
+    <div className="px-3 md:px-4 pb-3 md:pb-4 pt-1.5" style={{ background: cardBg, color: "#1a1a1a" }}>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-2.5" dir="ltr">
         {isEn ? (
           <>
+            <InfoRow align="left" label={t.name} value={localized.name} bold />
             <InfoRow
-              align="left"
-              valueAlign="left"
+              align="right"
+              label={t.price}
+              value={
+                <PriceWithRiyal price={product.price} riyalClassName="w-2.5 h-2.5 md:w-3 md:h-3" />
+              }
+              bold
+            />
+            <InfoRow align="left" label={t.calories} value={String(product.calories)} />
+            <InfoRow
+              align="right"
+              valueAlign="right"
               label={t.allergens}
               value={
                 <AllergenIcons
@@ -148,11 +319,18 @@ export const ProductCardFooter = ({
                 />
               }
             />
-            <InfoRow align="right" label={t.calories} value={String(product.calories)} />
           </>
         ) : (
           <>
-            <InfoRow align="right" label={t.calories} value={String(product.calories)} />
+            <InfoRow
+              align="left"
+              label={t.price}
+              value={
+                <PriceWithRiyal price={product.price} riyalClassName="w-2.5 h-2.5 md:w-3 md:h-3" />
+              }
+              bold
+            />
+            <InfoRow align="right" label={t.name} value={localized.name} bold rtl />
             <InfoRow
               align="left"
               valueAlign="left"
@@ -165,15 +343,22 @@ export const ProductCardFooter = ({
                 />
               }
             />
+            <InfoRow align="right" label={t.calories} value={String(product.calories)} />
           </>
         )}
-        {showDescription && !compact && localized.description?.trim() && (
+        {showDescription && localized.description?.trim() && (
           <div className="col-span-2 w-full pt-2 mt-0.5 border-t border-black/10">
-            <InfoRow align={primaryAlign} rtl={!isEn} label={t.description} value={localized.description} clamp />
+            <InfoRow
+              align={isEn ? "left" : "right"}
+              rtl={!isEn}
+              label={t.description}
+              value={localized.description}
+              clamp
+            />
           </div>
         )}
       </div>
-      {cropLine && !compact && (
+      {cropLine && (
         <p
           className={cn(
             "mt-2 border-t border-black/10 pt-2 text-[10px] font-semibold opacity-75 md:text-xs",
@@ -189,113 +374,148 @@ export const ProductCardFooter = ({
   );
 };
 
-/** تفاصيل المنتج في النافذة المنبثقة — نفس ترتيب البطاقة */
+/** تفاصيل المنتج في النافذة المنبثقة — متجاوبة مع حجم الشاشة */
 export const ProductModalDetails = ({
   product,
   lang,
+  dense = false,
 }: {
   product: Product;
   lang: Lang;
+  dense?: boolean;
 }) => {
   const t = labels[lang];
   const localized = localizeProduct(product, lang);
   const isEn = lang === "en";
-  const primaryAlign = isEn ? "left" : "right";
-  const secondaryAlign = isEn ? "right" : "left";
-  const cropLine = cropSummary(product);
+
+  const labelCls = dense
+    ? "text-[10px] font-bold leading-normal text-[#1a1a1a]/55"
+    : "text-[11px] font-bold leading-none text-[#1a1a1a]/55 md:text-xs";
+  const nameCls = dense
+    ? "font-display text-base font-bold leading-[1.45] text-[#1a1a1a]"
+    : "font-display text-lg font-black leading-tight text-[#1a1a1a] md:text-xl";
+  const valueCls = dense
+    ? "text-sm font-black leading-normal text-[#1a1a1a]"
+    : "text-base font-black leading-tight text-[#1a1a1a] md:text-lg";
+  const secondaryCls = dense
+    ? "text-xs font-bold leading-normal text-[#1a1a1a]"
+    : "text-sm font-bold text-[#1a1a1a] md:text-base";
+  const bodyCls = dense ? "text-xs leading-relaxed opacity-85" : "text-sm leading-relaxed opacity-85 md:text-base";
+  const sectionMt = dense ? "mt-3 pt-3" : "mt-5 pt-4 md:mt-6 md:pt-5";
+  const gridGap = dense ? "gap-x-4 gap-y-3" : "gap-x-5 gap-y-4 md:gap-x-6 md:gap-y-5";
+  const allergenSize = dense ? ("sm" as const) : ("md" as const);
+  const rowSize = dense ? ("modalCompact" as const) : ("modal" as const);
+
+  const cell = (side: "start" | "end") =>
+    cn(
+      "flex min-w-0 flex-col gap-1",
+      side === "start" ? "items-start text-left" : "items-end text-right",
+    );
 
   return (
     <div className="text-[#1a1a1a]" dir={isEn ? "ltr" : "rtl"}>
-      <div className="grid grid-cols-2 gap-x-5 gap-y-5">
-        <div className={primaryAlign === "right" ? "text-right" : "text-left"}>
-          <div className="text-xs font-bold opacity-50">{t.name}</div>
-          <h2 className="font-display text-2xl font-black leading-tight">{localized.name}</h2>
-        </div>
-        <InfoRow
-          size="modal"
-          align={secondaryAlign}
-          label={t.price}
-          value={
-            <span className="inline-flex items-center gap-1">
-              {product.price} <Riyal className="h-4 w-4" />
-            </span>
-          }
-          bold
-        />
+      <div className={cn("grid grid-cols-2", gridGap)} dir="ltr">
         {isEn ? (
           <>
-            <InfoRow
-              size="modal"
-              align="left"
-              valueAlign="left"
-              label={t.allergens}
-              value={
-                <AllergenIcons
-                  allergens={product.allergens}
-                  allergensEn={product.allergensEn}
-                  lang={lang}
-                  size="md"
+            <div className={cell("start")}>
+              <div className={labelCls}>{t.name}</div>
+              <h2 className={nameCls}>{localized.name}</h2>
+            </div>
+            <div className={cell("end")}>
+              <div className={labelCls}>{t.price}</div>
+              <div className={valueCls}>
+                <PriceWithRiyal
+                  price={product.price}
+                  riyalClassName={dense ? "h-3.5 w-3.5" : "h-4 w-4 md:h-5 md:w-5"}
                 />
-              }
-            />
-            <InfoRow
-              size="modal"
-              align="right"
-              label={t.calories}
-              value={String(product.calories)}
-              bold
-            />
+              </div>
+            </div>
+            <div className={cell("start")}>
+              <div className={labelCls}>{t.calories}</div>
+              <div className={secondaryCls}>{product.calories}</div>
+            </div>
+            <div className={cell("end")}>
+              <div className={labelCls}>{t.allergens}</div>
+              <AllergenIcons
+                allergens={product.allergens}
+                allergensEn={product.allergensEn}
+                lang={lang}
+                size={allergenSize}
+                emptyPlaceholder={<span className={cn(secondaryCls, "opacity-40")}>—</span>}
+              />
+            </div>
           </>
         ) : (
           <>
-            <InfoRow
-              size="modal"
-              align="right"
-              label={t.calories}
-              value={String(product.calories)}
-              bold
-            />
-            <InfoRow
-              size="modal"
-              align="left"
-              valueAlign="left"
-              label={t.allergens}
-              value={
-                <AllergenIcons
-                  allergens={product.allergens}
-                  allergensEn={product.allergensEn}
-                  lang={lang}
-                  size="md"
+            <div className={cell("start")}>
+              <div className={labelCls}>{t.price}</div>
+              <div className={valueCls}>
+                <PriceWithRiyal
+                  price={product.price}
+                  riyalClassName={dense ? "h-3.5 w-3.5" : "h-4 w-4 md:h-5 md:w-5"}
                 />
-              }
-            />
+              </div>
+            </div>
+            <div className={cell("end")}>
+              <div className={labelCls}>{t.name}</div>
+              <h2 className={cn(nameCls, "text-right")} dir="rtl">
+                {localized.name}
+              </h2>
+            </div>
+            <div className={cell("start")}>
+              <div className={labelCls}>{t.allergens}</div>
+              <AllergenIcons
+                allergens={product.allergens}
+                allergensEn={product.allergensEn}
+                lang={lang}
+                size={allergenSize}
+                emptyPlaceholder={<span className={cn(secondaryCls, "opacity-40")}>—</span>}
+              />
+            </div>
+            <div className={cell("end")}>
+              <div className={labelCls}>{t.calories}</div>
+              <div className={secondaryCls}>{product.calories}</div>
+            </div>
           </>
         )}
       </div>
 
       {localized.description?.trim() && (
-        <div className="mt-5 border-t border-black/10 pt-4">
-          <div
-            className={`mb-1 text-xs font-bold opacity-50 ${primaryAlign === "right" ? "text-right" : "text-left"}`}
-          >
+        <div className={cn("border-t border-black/10", sectionMt)}>
+          <div className={cn("mb-1 font-bold opacity-50", labelCls, isEn ? "text-left" : "text-right")}>
             {t.description}
           </div>
           <p
             dir={isEn ? "ltr" : "rtl"}
-            className={`text-sm leading-relaxed opacity-80 ${primaryAlign === "right" ? "text-right" : "text-left"}`}
+            className={cn(bodyCls, isEn ? "text-left" : "text-right")}
           >
             {localized.description}
           </p>
         </div>
       )}
 
-      {cropLine && (
+      {product.cropInfo && (
         <div
-          className={`mt-4 border-t border-black/10 pt-4 text-sm ${secondaryAlign === "right" ? "text-right" : "text-left"}`}
+          className={cn("border-t border-black/10", sectionMt, isEn ? "text-left" : "text-right")}
           dir={isEn ? "ltr" : "rtl"}
         >
-          <div className="mb-1 text-xs font-bold opacity-50">{t.crop}</div>
-          <p className="font-bold">{cropLine}</p>
+          <div className={cn("mb-2 font-bold opacity-50", labelCls)}>{t.crop}</div>
+          <div className={cn("grid grid-cols-2", dense ? "gap-x-4 gap-y-2" : "gap-x-6 gap-y-3 md:gap-x-8 md:gap-y-4")}>
+            {cropModalFields.map(([key, labelKey]) => {
+              const value = product.cropInfo![key]?.trim();
+              if (!value) return null;
+              return (
+                <InfoRow
+                  key={key}
+                  size={rowSize}
+                  align={isEn ? "left" : "right"}
+                  label={t[labelKey]}
+                  value={value}
+                  rtl={!isEn}
+                />
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -316,12 +536,21 @@ export const ProductGridCard = ({
   <button
     type="button"
     onClick={onClick}
-    className="group relative w-full overflow-visible rounded-[1.5rem] border-2 border-black/[0.07] text-start transition-shadow hover:shadow-lg md:rounded-[1.75rem] flex flex-col"
-    style={{ background: cardBg }}
+    className={cn(
+      "group relative flex w-full flex-col overflow-hidden rounded-[1.5rem] border-2 border-black/[0.07] text-start transition-shadow hover:shadow-lg md:rounded-[1.75rem]",
+      menuChromeMotion,
+    )}
+    style={{ background: cardBg, aspectRatio: PRODUCT_CARD_ASPECT }}
   >
-    <ProductImageBadge product={product} lang={lang} />
-    <div className="flex-none w-full overflow-hidden rounded-[1.5rem] md:rounded-[1.75rem] px-2.5 pt-2.5 md:px-3 md:pt-3">
-      <div className="relative w-full overflow-hidden rounded-[1.1rem] bg-white pb-[100%] md:rounded-[1.15rem]">
+    <div
+      className="relative flex-none w-full"
+      style={{ paddingInline: PRODUCT_CARD_PAD_X, paddingTop: PRODUCT_CARD_PAD_TOP }}
+    >
+      <div
+        className="relative w-full overflow-hidden rounded-[1.1rem] bg-white md:rounded-[1.15rem]"
+        style={{ aspectRatio: PRODUCT_IMAGE_ASPECT }}
+      >
+        <ProductImageBadge product={product} lang={lang} placement="inset" />
         <div className="absolute inset-0 flex items-center justify-center">
           {product.image ? (
             <img
@@ -337,7 +566,7 @@ export const ProductGridCard = ({
         </div>
       </div>
     </div>
-    <ProductCardFooter product={product} lang={lang} cardBg={cardBg} />
+    <ProductCardFooter product={product} lang={lang} cardBg={cardBg} compact />
   </button>
 );
 
@@ -374,15 +603,18 @@ export const ProductListCard = ({
           <Flame className="h-3.5 w-3.5 shrink-0 text-orange-500" />
           {product.calories}
         </span>
-        <span className="inline-flex shrink-0 items-center gap-0.5 font-black text-sm text-[#1a1a1a]">
-          {product.price} <Riyal className="h-3.5 w-3.5" />
-        </span>
+        <PriceWithRiyal
+          price={product.price}
+          className="shrink-0 font-black text-sm text-[#1a1a1a]"
+          riyalClassName="h-3.5 w-3.5"
+        />
       </div>
     </div>
   );
 
   const imageBlock = (
     <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl bg-white">
+      <ProductImageBadge product={product} lang={lang} size="sm" placement="inset" />
       {product.image ? (
         <img
           src={product.image}
@@ -406,7 +638,6 @@ export const ProductListCard = ({
       boxShadow: active ? `inset 0 0 0 2px ${accentColor}` : undefined,
     }}
   >
-    <ProductImageBadge product={product} lang={lang} size="sm" />
     {isEn ? (
       <>
         {textBlock}
@@ -443,9 +674,15 @@ export const ProductDetailCard = ({
       className={`relative flex h-full min-h-0 flex-col overflow-visible rounded-2xl ${className ?? ""}`}
       style={{ background: cardBg }}
     >
-      <ProductImageBadge product={product} lang={lang} size="md" />
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl p-3 pb-0">
-        <div className="relative flex h-full min-h-0 w-full overflow-hidden rounded-2xl bg-white">
+      <div
+        className="flex-none w-full"
+        style={{ paddingInline: PRODUCT_CARD_PAD_X, paddingTop: PRODUCT_CARD_PAD_TOP }}
+      >
+        <div
+          className="relative w-full overflow-hidden rounded-2xl bg-white"
+          style={{ aspectRatio: PRODUCT_IMAGE_ASPECT }}
+        >
+          <ProductImageBadge product={product} lang={lang} size="md" placement="inset" />
           {product.image ? (
             <img
               src={product.image}
@@ -453,11 +690,15 @@ export const ProductDetailCard = ({
               className="absolute inset-0 h-full w-full object-cover object-center"
             />
           ) : (
-            <span className="text-sm font-bold text-muted-foreground/50">{labels[lang].noImage}</span>
+            <span className="flex h-full items-center justify-center text-sm font-bold text-muted-foreground/50">
+              {labels[lang].noImage}
+            </span>
           )}
         </div>
       </div>
-      <ProductCardFooter product={product} lang={lang} cardBg={cardBg} showDescription />
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <ProductCardFooter product={product} lang={lang} cardBg={cardBg} showDescription />
+      </div>
     </div>
   );
 };

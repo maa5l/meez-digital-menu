@@ -47,8 +47,13 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
         subheader={
           !hideHeader && showLang ? (
             <MenuProductSubheaderBar settings={settings}>
-              <div className="flex justify-start" dir="ltr">
-                <MenuLangToggle lang={lang} textColor={palette.textColor} onToggle={toggleLang} />
+              <div className="flex justify-end" dir="ltr">
+                <MenuLangToggle
+                  lang={lang}
+                  textColor={palette.textColor}
+                  onToggle={toggleLang}
+                  variant="tab"
+                />
               </div>
             </MenuProductSubheaderBar>
           ) : undefined

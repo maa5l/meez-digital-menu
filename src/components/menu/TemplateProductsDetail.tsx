@@ -7,8 +7,9 @@ import { useMenuLang } from "@/context/MenuLangContext";
 import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
 import { getMenuUi } from "@/lib/menu-i18n";
 import { getProductsHeaderCustomization, isProductsLangToggleEnabled } from "@/lib/menu-header-settings";
-import { getMenuScrollPaddingTop } from "@/lib/menu-header";
+import { getMenuScrollPaddingTop, menuContentEnter } from "@/lib/menu-header";
 import { getProductsPalette, palettePageStyle } from "@/lib/menu-palette";
+import { cn } from "@/lib/utils";
 
 type Props = {
   settings: MenuSettings;
@@ -66,7 +67,7 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
   const palette = getProductsPalette(settings);
   const bgStyle = palettePageStyle(palette);
   const cardBg = palette.cardColor || "#d4d4d4";
-  const hasSubheader = categories.length > 0 || (!hideHeader && showLang);
+  const hasSubheader = categories.length > 0 || showLang;
   const ui = getMenuUi(lang);
   const scrollPadding = getMenuScrollPaddingTop(hasSubheader, headerVisible, hideHeader);
   const panelGapTop = 36;
@@ -74,13 +75,18 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
   const panelHeight = `calc(100dvh - ${scrollPadding + panelGapTop + panelGapBottom}px)`;
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col" dir={lang === "ar" ? "rtl" : "ltr"} style={bgStyle}>
+    <div
+      className={cn("relative flex h-full min-h-0 flex-col", menuContentEnter)}
+      dir={lang === "ar" ? "rtl" : "ltr"}
+      style={bgStyle}
+      key={lang}
+    >
       <MenuProductTopChrome
         settings={settings}
         lang={lang}
         visible={headerVisible}
         hideHeader={hideHeader}
-        showLangInCompactBar={hideHeader && showLang}
+        showLangInCompactBar={hideHeader && showLang && categories.length === 0}
         onLangToggle={toggleLang}
         scrollRef={scrollRef}
         subheader={
@@ -94,7 +100,7 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
                 lang={lang}
                 onSelect={setActiveCat}
                 onLangToggle={toggleLang}
-                showLang={!hideHeader && showLang}
+                showLang={showLang}
               />
             </MenuProductSubheaderBar>
           ) : undefined
@@ -102,7 +108,11 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
       >
         <div
           dir="ltr"
-          className="grid min-h-0 grid-cols-1 gap-3 px-4 pb-6 pt-2 md:grid-cols-[minmax(240px,34%)_1fr] md:items-stretch md:gap-4 md:px-6 md:pb-6 md:pt-4"
+          key={`${lang}-${activeCat}-${selected?.id ?? "none"}`}
+          className={cn(
+            "grid min-h-0 grid-cols-1 gap-3 px-4 pb-6 pt-2 md:grid-cols-[minmax(240px,34%)_1fr] md:items-stretch md:gap-4 md:px-6 md:pb-6 md:pt-4",
+            menuContentEnter,
+          )}
         >
           <div
             className="order-2 flex flex-col gap-2.5 overflow-y-auto overscroll-y-contain md:order-1 md:pt-8"

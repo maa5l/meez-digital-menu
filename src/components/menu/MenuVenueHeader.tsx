@@ -1,5 +1,4 @@
-import { Logo } from "@/components/Brand";
-import MenuCalorieDisclaimer from "@/components/menu/MenuCalorieDisclaimer";
+import MenuHeaderChromeRow from "@/components/menu/MenuHeaderChromeRow";
 import {
   getCalorieDisclaimerColor,
   getMenuProductHeaderHeight,
@@ -25,35 +24,6 @@ type Props = {
   embedded?: boolean;
   visible?: boolean;
 };
-
-function TopBar({
-  customization,
-  headerFg,
-  overlay,
-}: {
-  customization: MenuHeaderCustomization;
-  headerFg: string;
-  overlay: boolean;
-}) {
-  return (
-    <div className="flex shrink-0 justify-center">
-      {customization.logoImage ? (
-        <img
-          src={customization.logoImage}
-          alt="logo"
-          className={cn(
-            "h-8 w-auto max-w-[110px] object-contain md:h-10 md:max-w-[140px]",
-            overlay && "drop-shadow-md",
-          )}
-        />
-      ) : (
-        <span style={{ color: overlay ? "#fff" : headerFg }} className={overlay ? "drop-shadow-md" : ""}>
-          <Logo className="h-8 w-auto aspect-[1031/736] md:h-10" />
-        </span>
-      )}
-    </div>
-  );
-}
 
 /** هيدر منيو موحّد — يُستخدم لمنتجات المحاصيل والمنتجات */
 const MenuVenueHeader = ({
@@ -109,46 +79,53 @@ const MenuVenueHeader = ({
 
       <div
         className={cn(
-          "relative z-10 flex h-full min-h-0 flex-col gap-0.5 px-4 py-1 md:px-8 md:py-1.5",
+          "relative z-10 flex h-full min-h-0 flex-col px-4 py-2 md:px-8 md:py-3",
           bannerSrc && "pointer-events-none",
         )}
       >
         <div className={cn("shrink-0", bannerSrc && "pointer-events-auto")}>
-          <MenuCalorieDisclaimer lang={lang} textColor={calorieColor} merged />
+          <MenuHeaderChromeRow
+            lang={lang}
+            textColor={calorieColor}
+            headerFg={headerFg}
+            customization={customization}
+            overlay={Boolean(bannerSrc)}
+          />
         </div>
 
-        {bannerSrc ? (
-          <div className="pointer-events-none flex min-h-0 flex-1 flex-col">
-            <div className="flex shrink-0 justify-center pt-0.5 md:pt-1">
-              <TopBar customization={customization} headerFg={headerFg} overlay />
-            </div>
-            <div className="min-h-0 flex-1" aria-hidden />
-            {!bannerHasDesign && (
-              <div className="pb-0.5 text-center">
-                <h1 className="font-display line-clamp-1 text-sm font-black leading-tight text-white drop-shadow-md md:text-lg">
-                  {title}
-                </h1>
-                {customization.featuredSubtitle && (
-                  <p className="line-clamp-1 text-[10px] font-bold text-white/90 drop-shadow-sm">
-                    {customization.featuredSubtitle}
-                  </p>
+        <div
+          className={cn(
+            "flex min-h-0 flex-1 flex-col justify-end pb-1 pt-3 md:pt-4",
+            bannerSrc && "pointer-events-none",
+          )}
+        >
+          {!bannerHasDesign && (
+            <div className={cn("text-center", bannerSrc && "pointer-events-auto")}>
+              <h1
+                className={cn(
+                  "font-display line-clamp-2 font-black leading-tight",
+                  bannerSrc
+                    ? "text-sm text-white drop-shadow-md md:text-lg"
+                    : "text-base md:text-xl",
                 )}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="flex min-h-0 flex-1 flex-col justify-center gap-1">
-            <TopBar customization={customization} headerFg={headerFg} overlay={false} />
-            <h1 className="mt-0.5 line-clamp-1 text-center font-display text-base font-black leading-tight md:text-xl">
-              {title}
-            </h1>
-            {customization.featuredSubtitle && (
-              <p className="line-clamp-1 text-center text-[9px] font-bold opacity-70 md:text-[10px]">
-                {customization.featuredSubtitle}
-              </p>
-            )}
-          </div>
-        )}
+              >
+                {title}
+              </h1>
+              {customization.featuredSubtitle && (
+                <p
+                  className={cn(
+                    "mt-0.5 line-clamp-2 font-bold",
+                    bannerSrc
+                      ? "text-[10px] text-white/90 drop-shadow-sm"
+                      : "text-[9px] opacity-70 md:text-[10px]",
+                  )}
+                >
+                  {customization.featuredSubtitle}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

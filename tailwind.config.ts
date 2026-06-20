@@ -5,6 +5,11 @@ export default {
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
   theme: {
+    fontFamily: {
+      sans: ['"Huwiya"', "system-ui", "sans-serif"],
+      display: ['"Huwiya"', "system-ui", "sans-serif"],
+      body: ['"Huwiya"', "system-ui", "sans-serif"],
+    },
     container: {
       center: true,
       padding: "2rem",
@@ -13,11 +18,6 @@ export default {
       },
     },
     extend: {
-      fontFamily: {
-        sans: ['"Wakad Text"', "system-ui", "sans-serif"],
-        display: ['"Wakad Text"', "system-ui", "sans-serif"],
-        body: ['"Wakad Text"', "system-ui", "sans-serif"],
-      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

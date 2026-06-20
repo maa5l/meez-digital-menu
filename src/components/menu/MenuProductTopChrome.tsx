@@ -6,6 +6,7 @@ import {
   getMenuSubheaderTop,
   MENU_SUBHEADER_HEIGHT,
   headerHideTransition,
+  menuChromeMotion,
 } from "@/lib/menu-header";
 import { getProductsHeaderCustomization } from "@/lib/menu-header-settings";
 import { getProductsPalette } from "@/lib/menu-palette";
@@ -62,7 +63,7 @@ export function MenuProductTopChrome({
 
       {hasSubheader && (
         <div
-          className={cn("fixed inset-x-0 z-[45]", headerHideTransition)}
+          className={cn("fixed inset-x-0 z-[45]", headerHideTransition, menuChromeMotion)}
           style={{ top: subheaderTop }}
         >
           <MenuProductSubheaderBar settings={settings}>{subheader}</MenuProductSubheaderBar>
@@ -72,8 +73,9 @@ export function MenuProductTopChrome({
       <div
         ref={scrollRef}
         className={cn(
-          "flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y min-h-0",
+          "min-h-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-auto overscroll-y-contain",
           headerHideTransition,
+          menuChromeMotion,
         )}
         style={{
           paddingTop: scrollPaddingTop,

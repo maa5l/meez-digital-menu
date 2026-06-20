@@ -1,19 +1,22 @@
 import type { MenuHeaderCustomization } from "@/types/domain";
 
 /** ارتفاع ثابت للهيدر الكامل (إفصاح السعرات + شعار + عنوان) */
-export const MENU_PRODUCT_HEADER_HEIGHT = 288;
+export const MENU_PRODUCT_HEADER_HEIGHT = 430;
 
 /** ارتفاع شريط التصنيفات + اللغة */
 export const MENU_SUBHEADER_HEIGHT = 48;
 
-/** ارتفاع صف إفصاح السعرات في الوضع المدمج */
-export const MENU_CALORIE_ROW_HEIGHT = 40;
+/** ارتفاع صف إفصاح السعرات في الوضع المدمج (3 أسطر عمودية) */
+export const MENU_CALORIE_ROW_HEIGHT = 54;
+
+/** مقاس شعار المنيو (بكسل) */
+export const MENU_LOGO_SIZE_PX = 100;
 
 /** ارتفاع صف الشعار في الوضع المدمج */
-export const MENU_LOGO_ROW_HEIGHT = 44;
+export const MENU_LOGO_ROW_HEIGHT = MENU_LOGO_SIZE_PX;
 
-/** ارتفاع الشريط العلوي عند إخفاء الهيدر (سعرات + شعار) */
-export const MENU_COMPACT_TOP_HEIGHT = MENU_CALORIE_ROW_HEIGHT + MENU_LOGO_ROW_HEIGHT;
+/** ارتفاع الشريط العلوي عند إخفاء الهيدر (سعرات + شعار في صف واحد) */
+export const MENU_COMPACT_TOP_HEIGHT = Math.max(MENU_LOGO_SIZE_PX, MENU_CALORIE_ROW_HEIGHT) + 20;
 
 /** @deprecated استخدم MENU_COMPACT_TOP_HEIGHT */
 export const MENU_CALORIE_BAR_HEIGHT = MENU_COMPACT_TOP_HEIGHT;
@@ -47,6 +50,24 @@ export function getMenuSubheaderTop(headerVisible: boolean, hideHeader = false):
 
 export const headerHideTransition =
   "transition-[transform,opacity,padding-top,top] duration-[420ms] ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[transform,padding-top]";
+
+/** حركة خفيفة لعناصر الهيدر عند تبديل اللغة أو الظهور */
+export const menuChromeMotion =
+  "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none";
+
+/** دخول محتوى المنيو (منتجات، تصنيفات، …) */
+export const menuContentEnter =
+  "animate-in fade-in slide-in-from-bottom-2 duration-300 fill-mode-both motion-reduce:animate-none";
+
+/** محاذاة إفصاح السعرات */
+export function menuCalorieAlignClass(lang: "ar" | "en"): string {
+  return lang === "ar" ? "items-start" : "items-end";
+}
+
+/** محاذاة الشعار — عكس إفصاح السعرات */
+export function menuLogoJustifyClass(lang: "ar" | "en"): string {
+  return lang === "ar" ? "justify-end" : "justify-start";
+}
 
 export function getCalorieDisclaimerColor(
   header: Pick<MenuHeaderCustomization, "calorieTextColor">,

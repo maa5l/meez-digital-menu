@@ -31,6 +31,8 @@ export type Product = {
   badgeText?: string;
   badgeTextEn?: string;
   badgeColor?: string;
+  /** ربط بمحصول من قائمة المحاصيل */
+  cropId?: string;
   cropInfo?: CropInfo;
 };
 

@@ -3,11 +3,12 @@ import type { Config } from "tailwindcss";
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
+    fontFamily: {
+      sans: ['"Huwiya"', "system-ui", "sans-serif"],
+      display: ['"Huwiya"', "system-ui", "sans-serif"],
+      body: ['"Huwiya"', "system-ui", "sans-serif"],
+    },
     extend: {
-      fontFamily: {
-        sans: ["system-ui", "-apple-system", "Segoe UI", "sans-serif"],
-        display: ["system-ui", "-apple-system", "Segoe UI", "sans-serif"],
-      },
       colors: {
         primary: {
           DEFAULT: "hsl(var(--primary))",

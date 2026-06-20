@@ -7,12 +7,13 @@ type Props = {
   allergens?: string;
   allergensEn?: string;
   lang?: MenuLang;
-  size?: "sm" | "md";
+  size?: "xs" | "sm" | "md";
   className?: string;
   emptyPlaceholder?: ReactNode;
 };
 
 const sizeStyles = {
+  xs: { box: "h-5 w-5 rounded-[5px]", icon: "h-2.5 w-2.5" },
   sm: { box: "h-6 w-6 rounded-md", icon: "h-3 w-3" },
   md: { box: "h-9 w-9 rounded-xl", icon: "h-4 w-4" },
 } as const;
@@ -35,7 +36,7 @@ const AllergenIcons = ({
   return (
     <div
       dir="ltr"
-      className={cn("inline-flex max-w-full flex-wrap justify-start gap-1 self-start", className)}
+      className={cn("flex max-w-full flex-wrap gap-1", className)}
       role="list"
       aria-label={lang === "en" ? "Allergens" : "مسببات الحساسية"}
     >

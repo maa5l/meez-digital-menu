@@ -10,6 +10,7 @@ import { fetchDashboardPreviewVenue } from "@/services/core/platform-security";
 import { shouldUseVenueDatabase, invalidateDeviceVenueCache } from "@/services/venue/venue-supabase.service";
 import { usesSupabaseAuth } from "@/config/env";
 import { debounce, throttle } from "@/lib/throttle";
+import { MENU_KIOSK_RESET_EVENT } from "@/lib/menu-kiosk";
 
 const VENUE_UPDATED = "meez:venue-updated";
 
@@ -92,12 +93,16 @@ export function useMenuVenue(
     };
     document.addEventListener("visibilitychange", onVisible);
 
+    const onKioskReset = () => void reloadFull(true);
+    window.addEventListener(MENU_KIOSK_RESET_EVENT, onKioskReset);
+
     return () => {
       window.removeEventListener(VENUE_UPDATED, onUpdate);
       window.removeEventListener("storage", onUpdate);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener(MENU_KIOSK_RESET_EVENT, onKioskReset);
     };
-  }, [ready, reloadDebounced, reloadThrottled]);
+  }, [ready, reloadDebounced, reloadThrottled, reloadFull]);
 
   return venue;
 }

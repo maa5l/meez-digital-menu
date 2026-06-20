@@ -1,9 +1,9 @@
-import { Logo } from "@/components/Brand";
-import MenuCalorieDisclaimer from "@/components/menu/MenuCalorieDisclaimer";
+import MenuHeaderChromeRow from "@/components/menu/MenuHeaderChromeRow";
 import MenuLangToggle from "@/components/menu/MenuLangToggle";
-import { MENU_COMPACT_TOP_HEIGHT } from "@/lib/menu-header";
+import { MENU_COMPACT_TOP_HEIGHT, menuChromeMotion } from "@/lib/menu-header";
 import type { MenuHeaderCustomization } from "@/types/domain";
 import type { MenuLang } from "@/lib/product-i18n";
+import { cn } from "@/lib/utils";
 
 type Props = {
   lang: MenuLang;
@@ -14,7 +14,7 @@ type Props = {
   onLangToggle?: () => void;
 };
 
-/** شريط علوي مدمج — إفصاح السعرات + الشعار + زر اللغة عند إخفاء الهيدر */
+/** شريط علوي مدمج — إفصاح السعرات + الشعار في صف واحد */
 const MenuFixedCalorieBar = ({
   lang,
   textColor,
@@ -24,30 +24,25 @@ const MenuFixedCalorieBar = ({
   onLangToggle,
 }: Props) => (
   <div
-    className="fixed inset-x-0 top-0 z-40 flex flex-col border-b border-black/10 bg-black/[0.04]"
+    className={cn(
+      "fixed inset-x-0 top-0 z-40 border-b border-black/10 bg-black/[0.04]",
+      menuChromeMotion,
+    )}
     style={{ minHeight: MENU_COMPACT_TOP_HEIGHT }}
   >
-    <div className="shrink-0 px-3 py-1 md:px-6">
-      <MenuCalorieDisclaimer lang={lang} textColor={textColor} merged />
-    </div>
-    <div className="relative flex shrink-0 items-center justify-center px-3 pb-1.5 pt-0.5 md:px-6 md:pb-2">
-      {customization.logoImage ? (
-        <img
-          src={customization.logoImage}
-          alt="logo"
-          className="h-7 w-auto max-w-[100px] object-contain md:h-9 md:max-w-[130px]"
-        />
-      ) : (
-        <span style={{ color: headerFg }}>
-          <Logo className="h-7 w-auto aspect-[1031/736] md:h-9" />
-        </span>
-      )}
+    <div className="relative px-3 py-2 md:px-6 md:py-2.5">
+      <MenuHeaderChromeRow
+        lang={lang}
+        textColor={textColor}
+        headerFg={headerFg}
+        customization={customization}
+      />
       {showLang && onLangToggle && (
         <MenuLangToggle
           lang={lang}
           onToggle={onLangToggle}
           textColor={textColor}
-          className="absolute end-3 top-1/2 -translate-y-1/2 md:end-6"
+          className="absolute end-2 top-2 md:end-4"
         />
       )}
     </div>
