@@ -1,6 +1,7 @@
 import { Logo } from "@/components/Brand";
 import MenuCalorieDisclaimer from "@/components/menu/MenuCalorieDisclaimer";
-import { MENU_LOGO_SIZE_PX, menuChromeMotion } from "@/lib/menu-header";
+import { DEFAULT_MENU_LAYOUT_METRICS } from "@/lib/menu-layout-metrics";
+import { menuChromeMotion } from "@/lib/menu-header";
 import type { MenuHeaderCustomization } from "@/types/domain";
 import { cn } from "@/lib/utils";
 
@@ -9,6 +10,7 @@ type Props = {
   textColor: string;
   headerFg: string;
   customization: MenuHeaderCustomization;
+  logoSizePx?: number;
   overlay?: boolean;
   className?: string;
 };
@@ -17,17 +19,22 @@ function MenuHeaderLogo({
   customization,
   headerFg,
   overlay,
-}: Pick<Props, "customization" | "headerFg" | "overlay">) {
+  logoSizePx,
+}: Pick<Props, "customization" | "headerFg" | "overlay" | "logoSizePx">) {
+  const size = logoSizePx ?? DEFAULT_MENU_LAYOUT_METRICS.logoSizePx;
   return customization.logoImage ? (
     <img
       src={customization.logoImage}
       alt="logo"
       className={cn("w-auto object-contain", overlay && "drop-shadow-md")}
-      style={{ height: MENU_LOGO_SIZE_PX, maxHeight: MENU_LOGO_SIZE_PX }}
+      style={{ height: size, maxHeight: size }}
     />
   ) : (
-    <span style={{ color: overlay ? "#fff" : headerFg }} className={overlay ? "drop-shadow-md" : ""}>
-      <Logo className="h-[100px] w-auto aspect-[1031/736]" />
+    <span
+      style={{ color: overlay ? "#fff" : headerFg, height: size, maxHeight: size }}
+      className={cn("inline-flex items-center", overlay && "drop-shadow-md")}
+    >
+      <Logo className="h-full w-auto max-h-full aspect-[1031/736]" />
     </span>
   );
 }
@@ -38,6 +45,7 @@ const MenuHeaderChromeRow = ({
   textColor,
   headerFg,
   customization,
+  logoSizePx,
   overlay = false,
   className,
 }: Props) => {
@@ -47,7 +55,12 @@ const MenuHeaderChromeRow = ({
 
   const logo = (
     <div className="shrink-0">
-      <MenuHeaderLogo customization={customization} headerFg={headerFg} overlay={overlay} />
+      <MenuHeaderLogo
+        customization={customization}
+        headerFg={headerFg}
+        overlay={overlay}
+        logoSizePx={logoSizePx}
+      />
     </div>
   );
 

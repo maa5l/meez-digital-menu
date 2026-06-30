@@ -64,7 +64,7 @@ const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; c
           ) : undefined
         }
       >
-        <div className="flex min-h-[60vh] flex-col gap-5 p-6 md:grid md:grid-cols-[1fr_280px] md:gap-5 md:p-8">
+        <div className="flex min-h-[60vh] flex-col gap-4 p-4 md:grid md:grid-cols-[1fr_260px] md:gap-4 md:p-6">
           <aside className="order-1 flex flex-col gap-3 md:order-2">
             {crops.map((c) => {
               const isActive = c.id === active.id;

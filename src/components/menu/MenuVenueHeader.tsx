@@ -1,7 +1,7 @@
 import MenuHeaderChromeRow from "@/components/menu/MenuHeaderChromeRow";
+import { useMenuLayoutMetrics } from "@/hooks/useMenuLayoutMetrics";
 import {
   getCalorieDisclaimerColor,
-  getMenuProductHeaderHeight,
   headerHideTransition,
 } from "@/lib/menu-header";
 import type { MenuHeaderCustomization, MenuPalette } from "@/types/domain";
@@ -35,9 +35,10 @@ const MenuVenueHeader = ({
   embedded = false,
   visible = true,
 }: Props) => {
+  const layout = useMenuLayoutMetrics();
   const headerBg = customization.headerBgColor ?? `${palette.textColor}18`;
   const headerFg = customization.headerTextColor ?? palette.textColor;
-  const headerHeight = getMenuProductHeaderHeight();
+  const headerHeight = layout.headerHeight;
   const title =
     customization.featuredTitle || (lang === "ar" ? defaultTitleAr : defaultTitleEn);
   const bannerSrc = customization.headerImage || customization.featuredImage;
@@ -79,7 +80,7 @@ const MenuVenueHeader = ({
 
       <div
         className={cn(
-          "relative z-10 flex h-full min-h-0 flex-col px-4 py-2 md:px-8 md:py-3",
+          "relative z-10 flex h-full min-h-0 flex-col px-4 py-1.5 md:px-6 md:py-2",
           bannerSrc && "pointer-events-none",
         )}
       >
@@ -89,13 +90,14 @@ const MenuVenueHeader = ({
             textColor={calorieColor}
             headerFg={headerFg}
             customization={customization}
+            logoSizePx={layout.logoSizePx}
             overlay={Boolean(bannerSrc)}
           />
         </div>
 
         <div
           className={cn(
-            "flex min-h-0 flex-1 flex-col justify-end pb-1 pt-3 md:pt-4",
+            "flex min-h-0 flex-1 flex-col justify-end pb-0.5 pt-2 md:pt-2.5",
             bannerSrc && "pointer-events-none",
           )}
         >

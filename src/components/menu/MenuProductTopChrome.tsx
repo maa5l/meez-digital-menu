@@ -1,10 +1,10 @@
 import MenuProductHeader from "@/components/menu/MenuProductHeader";
 import MenuFixedCalorieBar from "@/components/menu/MenuFixedCalorieBar";
+import { useMenuLayoutMetrics } from "@/hooks/useMenuLayoutMetrics";
 import {
   getCalorieDisclaimerColor,
   getMenuScrollPaddingTop,
   getMenuSubheaderTop,
-  MENU_SUBHEADER_HEIGHT,
   headerHideTransition,
   menuChromeMotion,
 } from "@/lib/menu-header";
@@ -38,9 +38,10 @@ export function MenuProductTopChrome({
   children,
   scrollRef,
 }: Props) {
+  const layout = useMenuLayoutMetrics();
   const hasSubheader = Boolean(subheader);
-  const scrollPaddingTop = getMenuScrollPaddingTop(hasSubheader, visible, hideHeader);
-  const subheaderTop = getMenuSubheaderTop(visible, hideHeader);
+  const scrollPaddingTop = getMenuScrollPaddingTop(hasSubheader, visible, hideHeader, layout);
+  const subheaderTop = getMenuSubheaderTop(visible, hideHeader, layout);
   const headerCustomization = getProductsHeaderCustomization(settings);
   const palette = getProductsPalette(settings);
   const calorieColor = getCalorieDisclaimerColor(headerCustomization, palette.textColor);
@@ -96,10 +97,12 @@ export function MenuProductSubheaderBar({
   settings: MenuSettings;
   children: React.ReactNode;
 }) {
+  const layout = useMenuLayoutMetrics();
+
   return (
     <div
-      className="bg-transparent px-5 py-2 md:px-10 md:py-2.5"
-      style={{ minHeight: MENU_SUBHEADER_HEIGHT }}
+      className="bg-transparent px-4 py-1.5 md:px-8 md:py-2"
+      style={{ minHeight: layout.subheaderHeight }}
       dir="ltr"
     >
       {children}

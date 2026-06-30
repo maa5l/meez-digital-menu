@@ -88,6 +88,12 @@ export function getErrorMessage(error: unknown): string {
   if (error instanceof AppError) return error.message;
   const direct = extractMessage(error);
   if (direct) {
+    if (/failed to fetch|networkerror|load failed/i.test(direct)) {
+      return "تعذّر الاتصال بالخادم. تحقق من الإنترنت وإعدادات Supabase في .env.local ثم أعد تحميل الصفحة.";
+    }
+    if (/PGRST202|Could not find the function/i.test(direct)) {
+      return "قاعدة البيانات تحتاج تحديث. نفّذ: npm run supabase:db:push";
+    }
     const parsed = parseApiDetail(direct);
     return parsed ?? direct;
   }

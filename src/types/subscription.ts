@@ -8,24 +8,25 @@ export type SubscriptionStatus =
   | "expired"
   | "canceled";
 
-export type BillingCycle = "monthly" | "yearly";
-
-export type SubscriptionBanner = "trial" | "warning" | "grace" | "suspended" | "expired" | "canceled" | "error" | null;
+export type SubscriptionBanner = "trial" | "suspended" | "expired" | "canceled" | "error" | null;
 
 /** نتيجة resolve_subscription_access من الخادم */
 export type SubscriptionAccess = {
   allowed: boolean;
   kiosk_allowed: boolean;
+  dashboard_allowed: boolean;
   dashboard_edit_allowed: boolean;
   can_add_devices: boolean;
   status: SubscriptionStatus;
   reason: string | null;
   screen_count: number;
+  device_limit?: number;
   active_device_count: number;
-  grace_ends_at?: string | null;
+  trial_started_at?: string | null;
   trial_ends_at?: string | null;
-  current_period_end?: string | null;
-  billing_cycle?: BillingCycle;
+  subscription_started_at?: string | null;
+  subscription_ends_at?: string | null;
+  manual_activation?: boolean;
   banner: SubscriptionBanner;
 };
 
@@ -33,14 +34,14 @@ export type OwnerSubscription = {
   owner_id: string;
   status: SubscriptionStatus;
   screen_count: number;
-  billing_cycle: BillingCycle;
-  price_per_screen_monthly: number;
-  price_per_screen_yearly: number;
+  device_limit: number;
+  trial_started_at: string | null;
   trial_ends_at: string | null;
-  current_period_start: string | null;
-  current_period_end: string | null;
-  grace_ends_at: string | null;
-  canceled_at: string | null;
+  subscription_started_at: string | null;
+  subscription_ends_at: string | null;
+  manual_activation: boolean;
+  activated_at: string | null;
+  notes: string | null;
   access: SubscriptionAccess;
 };
 
@@ -50,7 +51,6 @@ export type KioskAccessCheck = {
   reason?: string;
   access?: SubscriptionAccess;
   owner_id?: string;
-  /** من get_kiosk_state — لا يكشف owner_id للـ anon */
   subscription_status?: SubscriptionStatus;
   menu_type?: string | null;
   venue_updated_at?: string | null;

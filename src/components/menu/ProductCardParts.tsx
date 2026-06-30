@@ -382,33 +382,33 @@ export const ProductModalDetails = ({
 }: {
   product: Product;
   lang: Lang;
+  /** @deprecated يُتجاهل على الآيباد — يُستخدم للتوافق فقط */
   dense?: boolean;
 }) => {
   const t = labels[lang];
   const localized = localizeProduct(product, lang);
   const isEn = lang === "en";
 
-  const labelCls = dense
-    ? "text-[10px] font-bold leading-normal text-[#1a1a1a]/55"
-    : "text-[11px] font-bold leading-none text-[#1a1a1a]/55 md:text-xs";
-  const nameCls = dense
-    ? "font-display text-base font-bold leading-[1.45] text-[#1a1a1a]"
-    : "font-display text-lg font-black leading-tight text-[#1a1a1a] md:text-xl";
-  const valueCls = dense
-    ? "text-sm font-black leading-normal text-[#1a1a1a]"
-    : "text-base font-black leading-tight text-[#1a1a1a] md:text-lg";
-  const secondaryCls = dense
-    ? "text-xs font-bold leading-normal text-[#1a1a1a]"
-    : "text-sm font-bold text-[#1a1a1a] md:text-base";
-  const bodyCls = dense ? "text-xs leading-relaxed opacity-85" : "text-sm leading-relaxed opacity-85 md:text-base";
-  const sectionMt = dense ? "mt-3 pt-3" : "mt-5 pt-4 md:mt-6 md:pt-5";
-  const gridGap = dense ? "gap-x-4 gap-y-3" : "gap-x-5 gap-y-4 md:gap-x-6 md:gap-y-5";
-  const allergenSize = dense ? ("sm" as const) : ("md" as const);
-  const rowSize = dense ? ("modalCompact" as const) : ("modal" as const);
+  const labelCls =
+    "text-[11px] font-bold leading-normal text-[#1a1a1a]/55 md:text-xs";
+  const nameCls =
+    "font-display text-lg font-black leading-tight text-[#1a1a1a] md:text-xl";
+  const valueCls =
+    "text-base font-black leading-tight text-[#1a1a1a] md:text-lg";
+  const secondaryCls =
+    "text-sm font-bold leading-normal text-[#1a1a1a] md:text-base";
+  const bodyCls =
+    "text-sm leading-relaxed text-[#1a1a1a]/85 md:text-[15px] md:leading-relaxed";
+  const sectionMt = dense
+    ? "mt-3.5 border-t border-black/10 pt-3.5 md:mt-4 md:pt-4"
+    : "mt-4 border-t border-black/10 pt-4 md:mt-5 md:pt-5";
+  const gridGap = "gap-x-5 gap-y-3.5 md:gap-x-6 md:gap-y-4";
+  const allergenSize = "md" as const;
+  const rowSize = "modal" as const;
 
   const cell = (side: "start" | "end") =>
     cn(
-      "flex min-w-0 flex-col gap-1",
+      "flex min-w-0 flex-col gap-1.5",
       side === "start" ? "items-start text-left" : "items-end text-right",
     );
 
@@ -426,7 +426,7 @@ export const ProductModalDetails = ({
               <div className={valueCls}>
                 <PriceWithRiyal
                   price={product.price}
-                  riyalClassName={dense ? "h-3.5 w-3.5" : "h-4 w-4 md:h-5 md:w-5"}
+                  riyalClassName="h-4 w-4 md:h-5 md:w-5"
                 />
               </div>
             </div>
@@ -452,7 +452,7 @@ export const ProductModalDetails = ({
               <div className={valueCls}>
                 <PriceWithRiyal
                   price={product.price}
-                  riyalClassName={dense ? "h-3.5 w-3.5" : "h-4 w-4 md:h-5 md:w-5"}
+                  riyalClassName="h-4 w-4 md:h-5 md:w-5"
                 />
               </div>
             </div>
@@ -481,8 +481,8 @@ export const ProductModalDetails = ({
       </div>
 
       {localized.description?.trim() && (
-        <div className={cn("border-t border-black/10", sectionMt)}>
-          <div className={cn("mb-1 font-bold opacity-50", labelCls, isEn ? "text-left" : "text-right")}>
+        <div className={sectionMt}>
+          <div className={cn("mb-1.5 font-bold opacity-50", labelCls, isEn ? "text-left" : "text-right")}>
             {t.description}
           </div>
           <p
@@ -496,11 +496,11 @@ export const ProductModalDetails = ({
 
       {product.cropInfo && (
         <div
-          className={cn("border-t border-black/10", sectionMt, isEn ? "text-left" : "text-right")}
+          className={cn(sectionMt, isEn ? "text-left" : "text-right")}
           dir={isEn ? "ltr" : "rtl"}
         >
-          <div className={cn("mb-2 font-bold opacity-50", labelCls)}>{t.crop}</div>
-          <div className={cn("grid grid-cols-2", dense ? "gap-x-4 gap-y-2" : "gap-x-6 gap-y-3 md:gap-x-8 md:gap-y-4")}>
+          <div className={cn("mb-2.5 font-bold opacity-50", labelCls)}>{t.crop}</div>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3 md:gap-x-8 md:gap-y-3.5">
             {cropModalFields.map(([key, labelKey]) => {
               const value = product.cropInfo![key]?.trim();
               if (!value) return null;

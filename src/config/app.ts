@@ -15,8 +15,11 @@ export const ROUTES = {
   dashboardLinkDevice: "/dashboard/link-device",
   dashboardTheme: "/dashboard/theme",
   dashboardSubscription: "/dashboard/subscription",
-  dashboardPayment: "/dashboard/subscription/pay",
   dashboardSettings: "/dashboard/settings",
+  subscriptionExpired: "/subscription-expired",
+  admin: "/admin",
+  adminCustomers: "/admin/customers",
+  adminCustomer: "/admin/customers/:id",
 } as const;
 
 /** أنماط مسموحة للألوان في إعدادات المنيو */

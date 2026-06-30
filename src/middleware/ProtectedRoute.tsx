@@ -6,6 +6,7 @@ import { getActiveSession } from "@/services/auth/auth.service";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { appEnv } from "@/config/env";
 import { VenueDataProvider } from "@/context/VenueDataContext";
+import { SubscriptionGate } from "@/middleware/SubscriptionGate";
 import { logger } from "@/lib/logger";
 
 type Props = {
@@ -39,5 +40,9 @@ export function ProtectedRoute({ children }: Props) {
     return <Navigate to={ROUTES.auth} state={{ from: location.pathname }} replace />;
   }
 
-  return <VenueDataProvider>{children}</VenueDataProvider>;
+  return (
+    <VenueDataProvider>
+      <SubscriptionGate>{children}</SubscriptionGate>
+    </VenueDataProvider>
+  );
 }

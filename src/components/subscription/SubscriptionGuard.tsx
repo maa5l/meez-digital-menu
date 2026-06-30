@@ -1,20 +1,15 @@
 import type { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
-import { ROUTES } from "@/config/app";
 import { SubscriptionBanner } from "@/components/subscription/SubscriptionBanner";
 
 type Props = {
   children: ReactNode;
-  /** يتطلب صلاحية تعديل (منتجات، أجهزة، ثيم…) */
   requireEdit?: boolean;
-  /** يتطلب إمكانية إضافة أجهزة */
   requireAddDevices?: boolean;
 };
 
 /**
  * حماية واجهة لوحة التحكم — القرار الحقيقي على الخادم (RPC/RLS).
- * هذا المكوّن للـ UX فقط.
  */
 export function SubscriptionGuard({
   children,
@@ -31,17 +26,13 @@ export function SubscriptionGuard({
     );
   }
 
-  if (!access.allowed && !["trial", "past_due", "grace_period"].includes(access.status)) {
-    return <Navigate to={ROUTES.dashboardSubscription} replace />;
-  }
-
   if (requireEdit && !access.dashboard_edit_allowed) {
     return (
       <div>
         <SubscriptionBanner access={access} />
         <div className="bg-card rounded-2xl border border-border p-8 text-center">
           <p className="text-muted-foreground">
-            التعديل غير متاح في حالة «{access.status}». جدّد الاشتراك من صفحة الاشتراك.
+            التعديل غير متاح في حالة «{access.status}». تواصل مع فريق ميز لتفعيل الاشتراك.
           </p>
         </div>
       </div>

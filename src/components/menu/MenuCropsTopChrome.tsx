@@ -1,11 +1,11 @@
 import MenuCropsHeader from "@/components/menu/MenuCropsHeader";
 import MenuFixedCalorieBar from "@/components/menu/MenuFixedCalorieBar";
 import { MenuProductSubheaderBar } from "@/components/menu/MenuProductTopChrome";
+import { useMenuLayoutMetrics } from "@/hooks/useMenuLayoutMetrics";
 import {
   getCalorieDisclaimerColor,
   getMenuScrollPaddingTop,
   getMenuSubheaderTop,
-  MENU_SUBHEADER_HEIGHT,
   headerHideTransition,
 } from "@/lib/menu-header";
 import { getCropsHeaderCustomization } from "@/lib/menu-header-settings";
@@ -38,9 +38,10 @@ export function MenuCropsTopChrome({
   children,
   scrollRef,
 }: Props) {
+  const layout = useMenuLayoutMetrics();
   const hasSubheader = Boolean(subheader);
-  const scrollPaddingTop = getMenuScrollPaddingTop(hasSubheader, visible, hideHeader);
-  const subheaderTop = getMenuSubheaderTop(visible, hideHeader);
+  const scrollPaddingTop = getMenuScrollPaddingTop(hasSubheader, visible, hideHeader, layout);
+  const subheaderTop = getMenuSubheaderTop(visible, hideHeader, layout);
   const headerCustomization = getCropsHeaderCustomization(settings);
   const palette = getCropsPalette(settings);
   const calorieColor = getCalorieDisclaimerColor(headerCustomization, palette.textColor);
@@ -87,4 +88,4 @@ export function MenuCropsTopChrome({
   );
 }
 
-export { MENU_SUBHEADER_HEIGHT };
+export { MENU_SUBHEADER_HEIGHT } from "@/lib/menu-header";

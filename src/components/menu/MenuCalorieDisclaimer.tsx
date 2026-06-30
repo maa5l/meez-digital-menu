@@ -74,16 +74,16 @@ const MenuCalorieDisclaimer = ({
   const L = copy[lang];
   const compact = embedded || merged;
   const textSize = compact
-    ? "text-[8px] leading-tight md:text-[10px]"
+    ? "text-[8px] leading-tight md:text-[9px]"
     : "text-[9px] leading-snug md:text-[11px]";
-  const iconInner = compact ? "h-4 w-4 shrink-0 md:h-5 md:w-5" : "h-5 w-5 shrink-0";
+  const iconInner = compact ? "h-3.5 w-3.5 shrink-0 md:h-4 md:w-4" : "h-5 w-5 shrink-0";
 
   const list = (
     <ul
       className={cn(
         "flex w-full flex-col",
         menuChromeMotion,
-        compact ? "gap-0.5 md:gap-1" : "gap-1 md:gap-1.5",
+        compact ? "gap-0.5" : "gap-1 md:gap-1.5",
         menuCalorieAlignClass(lang),
         className,
       )}

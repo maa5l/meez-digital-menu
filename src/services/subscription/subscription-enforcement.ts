@@ -11,62 +11,57 @@ import { cachedFetch } from "@/lib/request-cache";
 import { logger } from "@/lib/logger";
 import type { SubscriptionInfo } from "@/types/venue";
 import { TRIAL_SUBSCRIPTION } from "@/lib/venue-store";
-import { BILLING } from "@/config/billing";
+import { SUBSCRIPTION } from "@/config/subscription";
 import { fetchKioskState } from "@/services/venue/venue-supabase.service";
-
-const GRACE_DAYS = 5;
 
 function emptyAccess(status: SubscriptionStatus = "expired"): SubscriptionAccess {
   return {
     allowed: false,
     kiosk_allowed: false,
+    dashboard_allowed: false,
     dashboard_edit_allowed: false,
     can_add_devices: false,
     status,
     reason: `subscription_${status}`,
     screen_count: 0,
+    device_limit: 0,
     active_device_count: 0,
     banner: status === "expired" ? "expired" : "error",
   };
 }
 
-/** قواعد الوصول — مرآة لـ resolve_subscription_access في SQL (للتطوير المحلي فقط) */
+/** مرآة لـ resolve_subscription_access — للتطوير المحلي فقط */
 export function resolveAccessFromStatus(
   status: SubscriptionStatus,
-  screenCount: number,
+  deviceLimit: number,
   activeDevices: number,
 ): SubscriptionAccess {
   const effectiveScreens =
-    status === "trial" ? BILLING.trialMaxScreens : Math.max(0, screenCount);
+    status === "trial" ? SUBSCRIPTION.trialMaxScreens : Math.max(0, deviceLimit);
 
-  const kiosk_allowed = ["active", "trial", "past_due", "grace_period"].includes(status);
-  const dashboard_edit_allowed = ["active", "trial"].includes(status);
-  const can_add_devices =
-    ["active", "trial"].includes(status) && activeDevices < effectiveScreens;
-
-  const banner: SubscriptionAccess["banner"] =
-    status === "past_due"
-        ? "warning"
-        : status === "grace_period"
-          ? "grace"
-          : status === "suspended"
-            ? "suspended"
-            : status === "expired"
-              ? "expired"
-              : status === "canceled"
-                ? "canceled"
-                : null;
+  const allowed = status === "trial" || status === "active";
 
   return {
-    allowed: kiosk_allowed,
-    kiosk_allowed,
-    dashboard_edit_allowed,
-    can_add_devices,
+    allowed,
+    kiosk_allowed: allowed,
+    dashboard_allowed: allowed,
+    dashboard_edit_allowed: allowed,
+    can_add_devices: allowed && activeDevices < effectiveScreens,
     status,
-    reason: kiosk_allowed ? null : `subscription_${status}`,
+    reason: allowed ? null : `subscription_${status}`,
     screen_count: effectiveScreens,
+    device_limit: deviceLimit,
     active_device_count: activeDevices,
-    banner,
+    banner:
+      status === "trial"
+        ? "trial"
+        : status === "suspended"
+          ? "suspended"
+          : status === "expired"
+            ? "expired"
+            : status === "canceled"
+              ? "canceled"
+              : null,
   };
 }
 
@@ -75,21 +70,17 @@ export function subscriptionInfoFromAccess(access: SubscriptionAccess): Subscrip
     access.status === "trial"
       ? "تجربة مجانية"
       : access.status === "active"
-        ? "باقة نشطة"
-        : access.status === "grace_period"
-          ? "فترة سماح"
-          : access.status === "past_due"
-            ? "دفع متأخر"
-            : "غير نشط";
+        ? "اشتراك نشط"
+        : "غير نشط";
 
-  const renewsOn = access.current_period_end
-    ? new Date(access.current_period_end).toLocaleDateString("ar-SA")
-    : access.grace_ends_at
-      ? new Date(access.grace_ends_at).toLocaleDateString("ar-SA")
+  const renewsOn = access.subscription_ends_at
+    ? new Date(access.subscription_ends_at).toLocaleDateString("ar-SA")
+    : access.trial_ends_at
+      ? new Date(access.trial_ends_at).toLocaleDateString("ar-SA")
       : "—";
 
   let daysLeft = 0;
-  const end = access.trial_ends_at ?? access.grace_ends_at ?? access.current_period_end;
+  const end = access.trial_ends_at ?? access.subscription_ends_at;
   if (end) {
     daysLeft = Math.max(0, Math.ceil((Date.parse(end) - Date.now()) / 86400000));
   }
@@ -99,7 +90,7 @@ export function subscriptionInfoFromAccess(access: SubscriptionAccess): Subscrip
     status: access.status,
     screens: access.active_device_count,
     maxScreens: access.screen_count,
-    pricePerScreen: BILLING.pricePerScreenMonthly,
+    pricePerScreen: 0,
     renewsOn,
     daysLeft,
   };
@@ -113,47 +104,77 @@ function parseAccess(raw: unknown): SubscriptionAccess | null {
   return {
     allowed: Boolean(o.allowed),
     kiosk_allowed: Boolean(o.kiosk_allowed),
+    dashboard_allowed: Boolean(o.dashboard_allowed ?? o.allowed),
     dashboard_edit_allowed: Boolean(o.dashboard_edit_allowed),
     can_add_devices: Boolean(o.can_add_devices),
     status,
     reason: typeof o.reason === "string" ? o.reason : null,
     screen_count: Number(o.screen_count ?? 0),
+    device_limit: Number(o.device_limit ?? o.screen_count ?? 0),
     active_device_count: Number(o.active_device_count ?? 0),
-    grace_ends_at: (o.grace_ends_at as string) ?? null,
+    trial_started_at: (o.trial_started_at as string) ?? null,
     trial_ends_at: (o.trial_ends_at as string) ?? null,
-    current_period_end: (o.current_period_end as string) ?? null,
-    billing_cycle: o.billing_cycle as SubscriptionAccess["billing_cycle"],
+    subscription_started_at: (o.subscription_started_at as string) ?? null,
+    subscription_ends_at: (o.subscription_ends_at as string) ?? null,
+    manual_activation: Boolean(o.manual_activation),
     banner: (o.banner as SubscriptionAccess["banner"]) ?? null,
   };
 }
 
-export async function fetchOwnerSubscription(): Promise<OwnerSubscription | null> {
-  if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) return null;
+export type SubscriptionFetchResult =
+  | { ok: true; data: OwnerSubscription }
+  | { ok: false; isNetwork: boolean; code?: string; message: string };
 
-  const { data, error } = await getSupabase().rpc("get_owner_subscription");
-  if (error) {
-    logger.error("subscription.fetch_failed", { message: error.message });
-    throw error;
+export async function fetchOwnerSubscription(): Promise<SubscriptionFetchResult> {
+  if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
+    return { ok: false, isNetwork: false, message: "supabase_not_configured" };
   }
 
-  if (!data || typeof data !== "object") return null;
-  const row = data as Record<string, unknown>;
-  const access = parseAccess(row.access) ?? emptyAccess("trial");
+  try {
+    const { data, error } = await getSupabase().rpc("get_owner_subscription");
+    if (error) {
+      const message = error.message ?? "subscription_fetch_failed";
+      const isNetwork = /failed to fetch|networkerror|load failed/i.test(message);
+      const isReadOnlyTxn = /25006|read-only transaction/i.test(message);
+      logger.error("subscription.fetch_failed", { message, code: error.code });
+      return {
+        ok: false,
+        isNetwork,
+        code: isReadOnlyTxn ? "25006" : error.code,
+        message,
+      };
+    }
 
-  return {
-    owner_id: String(row.owner_id ?? ""),
-    status: (row.status as SubscriptionStatus) ?? access.status,
-    screen_count: Number(row.screen_count ?? access.screen_count),
-    billing_cycle: (row.billing_cycle as OwnerSubscription["billing_cycle"]) ?? "monthly",
-    price_per_screen_monthly: Number(row.price_per_screen_monthly ?? 45),
-    price_per_screen_yearly: Number(row.price_per_screen_yearly ?? 450),
-    trial_ends_at: (row.trial_ends_at as string) ?? null,
-    current_period_start: (row.current_period_start as string) ?? null,
-    current_period_end: (row.current_period_end as string) ?? null,
-    grace_ends_at: (row.grace_ends_at as string) ?? null,
-    canceled_at: (row.canceled_at as string) ?? null,
-    access,
-  };
+    if (!data || typeof data !== "object") {
+      return { ok: false, isNetwork: false, message: "invalid_subscription_response" };
+    }
+
+    const row = data as Record<string, unknown>;
+    const access = parseAccess(row.access) ?? emptyAccess("expired");
+
+    return {
+      ok: true,
+      data: {
+        owner_id: String(row.owner_id ?? ""),
+        status: (row.status as SubscriptionStatus) ?? access.status,
+        screen_count: Number(row.screen_count ?? access.screen_count),
+        device_limit: Number(row.device_limit ?? row.screen_count ?? access.screen_count),
+        trial_started_at: (row.trial_started_at as string) ?? null,
+        trial_ends_at: (row.trial_ends_at as string) ?? null,
+        subscription_started_at: (row.subscription_started_at as string) ?? null,
+        subscription_ends_at: (row.subscription_ends_at as string) ?? null,
+        manual_activation: Boolean(row.manual_activation),
+        activated_at: (row.activated_at as string) ?? null,
+        notes: typeof row.notes === "string" ? row.notes : null,
+        access,
+      },
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const isNetwork = /failed to fetch|networkerror|load failed/i.test(message);
+    logger.error("subscription.fetch_exception", { message });
+    return { ok: false, isNetwork, message };
+  }
 }
 
 export async function ensureSubscriptionRecord(): Promise<void> {
@@ -257,14 +278,10 @@ export async function activateDeviceWithLicense(
 
 export async function recordDeviceHeartbeat(deviceCode: string): Promise<boolean> {
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) return true;
-
-  const normalized = deviceCode.trim().toUpperCase();
-  // check_kiosk_access يحدّث last_seen_at — لا حاجة لاستدعاء record_device_heartbeat
-  const check = await checkKioskAccess(normalized);
+  const check = await checkKioskAccess(deviceCode.trim().toUpperCase());
   return check.allowed;
 }
 
-/** وصول محلي من SubscriptionInfo في venue (mock / بدون Supabase) */
 export function accessFromVenueSubscription(
   sub: SubscriptionInfo,
   activeDevices: number,
@@ -276,5 +293,3 @@ export function accessFromVenueSubscription(
 export function defaultTrialAccess(): SubscriptionAccess {
   return resolveAccessFromStatus("trial", TRIAL_SUBSCRIPTION.maxScreens, 0);
 }
-
-export { GRACE_DAYS };

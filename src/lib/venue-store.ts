@@ -29,7 +29,7 @@ export const TRIAL_SUBSCRIPTION: SubscriptionInfo = {
   maxScreens: 1,
   pricePerScreen: 0,
   renewsOn: "—",
-  daysLeft: 14,
+  daysLeft: 7,
 };
 
 export function createEmptyVenueData(): VenueData {

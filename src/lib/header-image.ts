@@ -1,7 +1,11 @@
 import { processImageFile, validateImageDimensions } from "./canvas-image";
 import { HEADER_IMAGE_SPEC } from "./header-image-spec";
 
-export { HEADER_IMAGE_SPEC } from "./header-image-spec";
+export {
+  HEADER_IMAGE_SPEC,
+  formatHeaderImageDisplayLabel,
+  formatHeaderImageSpecLabel,
+} from "./header-image-spec";
 
 export function validateHeaderImageDimensions(
   width: number,

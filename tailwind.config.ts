@@ -18,6 +18,12 @@ export default {
       },
     },
     extend: {
+      screens: {
+        /** iPad portrait and mini */
+        ipad: "768px",
+        /** iPad landscape and larger tablets */
+        "ipad-lg": "1024px",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

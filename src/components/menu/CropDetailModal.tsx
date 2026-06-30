@@ -26,18 +26,18 @@ const CropDetailModal = ({ crop, lang, accent, featured, onClose }: Props) => {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md md:p-6"
       onClick={onClose}
       dir={lang === "ar" ? "rtl" : "ltr"}
       role="dialog"
       aria-modal="true"
     >
       <div
-        className="flex w-full max-w-md flex-col overflow-hidden rounded-[2rem] bg-white shadow-2xl max-h-[92vh]"
+        className="flex w-full max-w-[min(94vw,520px)] flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-2xl max-h-[min(90dvh,680px)] md:max-w-[min(92vw,640px)] md:flex-row md:max-h-[min(88dvh,560px)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="relative min-h-[10rem] shrink-0 overflow-hidden px-6 pb-8 pt-5"
+          className="relative min-h-[8rem] shrink-0 overflow-hidden px-5 pb-6 pt-4 md:w-[42%] md:min-h-0 md:flex md:flex-col md:justify-end md:px-6 md:pb-6 md:pt-5"
           style={{ background: surface.background, color: surface.foreground }}
         >
           {showHeroImage && surface.imageUrl && (
@@ -75,8 +75,8 @@ const CropDetailModal = ({ crop, lang, accent, featured, onClose }: Props) => {
           </div>
         </div>
 
-        <div className="overflow-y-auto px-6 pb-8 pt-2 text-center text-[#1a1a1a]">
-          <CropFieldsGrid crop={crop} lang={lang} size="modal" className="gap-5" />
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-3 text-center text-[#1a1a1a] md:px-6 md:pb-6 md:pt-4">
+          <CropFieldsGrid crop={crop} lang={lang} size="modal" className="gap-4 md:gap-5" />
           <CropNotes crop={crop} lang={lang} className="border-black/10" />
         </div>
       </div>

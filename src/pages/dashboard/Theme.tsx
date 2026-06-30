@@ -17,7 +17,11 @@ import {
 import { useVenueData } from "@/hooks/useVenueData";
 import { toast } from "sonner";
 import { processHeaderImageFile } from "@/lib/header-image";
-import { HEADER_IMAGE_SPEC } from "@/lib/header-image-spec";
+import {
+  HEADER_IMAGE_SPEC,
+  formatHeaderImageDisplayLabel,
+  formatHeaderImageSpecLabel,
+} from "@/lib/header-image-spec";
 import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
 import { getCurrentUserId } from "@/lib/venue-store";
 import { usesSupabaseAuth } from "@/config/env";
@@ -352,19 +356,29 @@ const HeaderCustomizeBlock = ({
 
     <UploadRow
       label="بانر الهيدر"
-      hint={`JPG أو PNG — يُعاد القياس تلقائياً إلى ${HEADER_IMAGE_SPEC.recommendedWidth}×${HEADER_IMAGE_SPEC.recommendedHeight} بكسل (نسبة 3:1)`}
+      hint={`JPG أو PNG — يُعاد القياس تلقائياً إلى ${formatHeaderImageSpecLabel()}`}
       preview={
         header.headerImage ? (
-          <img src={header.headerImage} alt="" className="w-20 aspect-[3/1] rounded-lg object-contain border bg-muted" />
+          <img src={header.headerImage} alt="" className="w-24 aspect-[3/1] rounded-lg object-cover border bg-muted" />
         ) : undefined
       }
       onUpload={onHeaderImageUpload}
       onClear={header.headerImage ? () => onPatch({ headerImage: undefined }) : undefined}
     />
+    <div className="rounded-lg border border-accent/30 bg-accent/5 px-3 py-2.5 space-y-1">
+      <p className="text-[11px] font-bold text-foreground">
+        المقاس الرسمي للآيباد: {formatHeaderImageSpecLabel()}
+      </p>
+      <p className="text-[10px] leading-relaxed text-muted-foreground">
+        يُعرض على الشاشة بحوالي {formatHeaderImageDisplayLabel()}. الحد الأدنى{" "}
+        {HEADER_IMAGE_SPEC.minWidth}×{HEADER_IMAGE_SPEC.minHeight} — الحد الأقصى{" "}
+        {HEADER_IMAGE_SPEC.maxWidth}×{HEADER_IMAGE_SPEC.maxHeight} بكسل. الصور الأصغر أو الأكبر تُرفض أو
+        تُعاد معالجتها تلقائياً مع الحفاظ على نسبة 3:1.
+      </p>
+    </div>
     <p className="rounded-lg border border-dashed border-border/80 bg-muted/30 px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
-      <span className="font-bold text-foreground/80">ملاحظة:</span> صمّم البانر بعرض الشاشة (مثلاً آيباد أفقي). الحد الأدنى{" "}
-      {HEADER_IMAGE_SPEC.minWidth}×{HEADER_IMAGE_SPEC.minHeight} بكسل. إن كان البانر يحتوي شعاراً أو نصاً جاهزاً، اترك «عنوان الهيدر»
-      فارغاً — وإلا سيظهر العنوان فوق الصورة.
+      <span className="font-bold text-foreground/80">ملاحظة:</span> صمّم البانر بعرض الشاشة (آيباد أفقي). إن كان
+      البانر يحتوي شعاراً أو نصاً جاهزاً، اترك «عنوان الهيدر» فارغاً — وإلا سيظهر العنوان فوق الصورة.
     </p>
 
     <UploadRow

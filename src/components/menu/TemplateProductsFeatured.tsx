@@ -81,11 +81,11 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
           ) : undefined
         }
       >
-        <div className="px-5 pb-8 pt-8 md:px-10 md:pt-10">
+        <div className="px-4 pb-6 pt-4 md:px-8 md:pb-6 md:pt-5">
           <div
             key={`${lang}-${activeCat}`}
             className={cn(
-              "grid grid-cols-2 gap-3 pt-2 md:grid-cols-3 md:gap-4 md:pt-3 lg:grid-cols-4",
+              "grid grid-cols-2 gap-2.5 pt-1 md:grid-cols-3 md:gap-3 md:pt-2 lg:grid-cols-4",
               menuContentEnter,
             )}
           >

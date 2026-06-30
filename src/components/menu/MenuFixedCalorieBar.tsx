@@ -1,6 +1,7 @@
 import MenuHeaderChromeRow from "@/components/menu/MenuHeaderChromeRow";
 import MenuLangToggle from "@/components/menu/MenuLangToggle";
-import { MENU_COMPACT_TOP_HEIGHT, menuChromeMotion } from "@/lib/menu-header";
+import { useMenuLayoutMetrics } from "@/hooks/useMenuLayoutMetrics";
+import { menuChromeMotion } from "@/lib/menu-header";
 import type { MenuHeaderCustomization } from "@/types/domain";
 import type { MenuLang } from "@/lib/product-i18n";
 import { cn } from "@/lib/utils";
@@ -22,20 +23,24 @@ const MenuFixedCalorieBar = ({
   customization,
   showLang = false,
   onLangToggle,
-}: Props) => (
+}: Props) => {
+  const layout = useMenuLayoutMetrics();
+
+  return (
   <div
     className={cn(
       "fixed inset-x-0 top-0 z-40 border-b border-black/10 bg-black/[0.04]",
       menuChromeMotion,
     )}
-    style={{ minHeight: MENU_COMPACT_TOP_HEIGHT }}
+    style={{ minHeight: layout.compactTopHeight }}
   >
-    <div className="relative px-3 py-2 md:px-6 md:py-2.5">
+    <div className="relative px-3 py-1.5 md:px-5 md:py-2">
       <MenuHeaderChromeRow
         lang={lang}
         textColor={textColor}
         headerFg={headerFg}
         customization={customization}
+        logoSizePx={layout.logoSizePx}
       />
       {showLang && onLangToggle && (
         <MenuLangToggle
@@ -47,6 +52,7 @@ const MenuFixedCalorieBar = ({
       )}
     </div>
   </div>
-);
+  );
+};
 
 export default MenuFixedCalorieBar;

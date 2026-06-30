@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "@/middleware/ProtectedRoute";
 import { PublicOnlyRoute } from "@/middleware/PublicOnlyRoute";
+import { AdminProtectedRoute } from "@/middleware/AdminProtectedRoute";
 
 const Index = lazy(() => import("@/pages/Index"));
 const Auth = lazy(() => import("@/pages/Auth"));
@@ -9,6 +10,7 @@ const DeviceCode = lazy(() => import("@/pages/DeviceCode"));
 const DevicePairing = lazy(() => import("@/pages/DevicePairing"));
 const MenuDisplay = lazy(() => import("@/pages/MenuDisplay"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
+const SubscriptionExpired = lazy(() => import("@/pages/SubscriptionExpired"));
 const Overview = lazy(() => import("@/pages/dashboard/Overview"));
 const Categories = lazy(() => import("@/pages/dashboard/Categories"));
 const Products = lazy(() => import("@/pages/dashboard/Products"));
@@ -17,8 +19,10 @@ const Devices = lazy(() => import("@/pages/dashboard/Devices"));
 const LinkDevice = lazy(() => import("@/pages/dashboard/LinkDevice"));
 const Theme = lazy(() => import("@/pages/dashboard/Theme"));
 const Subscription = lazy(() => import("@/pages/dashboard/Subscription"));
-const PaymentCheckout = lazy(() => import("@/pages/dashboard/PaymentCheckout"));
 const Settings = lazy(() => import("@/pages/dashboard/Settings"));
+const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
+const AdminCustomers = lazy(() => import("@/pages/admin/AdminCustomers"));
+const AdminCustomerDetail = lazy(() => import("@/pages/admin/AdminCustomerDetail"));
 
 function PageLoader() {
   return (
@@ -45,6 +49,7 @@ export function AppRoutes() {
           <Route path="/display" element={<DeviceCode />} />
           <Route path="/pair" element={<DevicePairing />} />
           <Route path="/menu" element={<MenuDisplay />} />
+          <Route path="/subscription-expired" element={<SubscriptionExpired />} />
 
           <Route
             path="/dashboard"
@@ -111,19 +116,36 @@ export function AppRoutes() {
             }
           />
           <Route
-            path="/dashboard/subscription/pay"
-            element={
-              <ProtectedRoute>
-                <PaymentCheckout />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/dashboard/settings"
             element={
               <ProtectedRoute>
                 <Settings />
               </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/admin"
+            element={
+              <AdminProtectedRoute>
+                <AdminDashboard />
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/customers"
+            element={
+              <AdminProtectedRoute>
+                <AdminCustomers />
+              </AdminProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/customers/:id"
+            element={
+              <AdminProtectedRoute minRole="admin">
+                <AdminCustomerDetail />
+              </AdminProtectedRoute>
             }
           />
 

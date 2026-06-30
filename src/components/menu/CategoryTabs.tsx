@@ -59,8 +59,8 @@ const CategoryTabs = ({
               onClick={() => onSelect(c.id)}
               dir={lang === "en" ? "ltr" : "rtl"}
               className={cn(
-                "touch-manipulation shrink-0 self-center rounded-full border bg-transparent px-5 py-2",
-                "text-sm font-bold transition-colors",
+                "touch-manipulation shrink-0 self-center rounded-full border bg-transparent px-4 py-1.5",
+                "text-sm font-bold transition-colors md:px-5 md:py-2",
                 active ? "border-current" : "border-transparent",
               )}
               style={{

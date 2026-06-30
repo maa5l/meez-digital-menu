@@ -12,6 +12,9 @@ import { getCurrentUserId, syncVenueNameFromProfile } from "@/lib/venue-store";
 import { updateUserProfile } from "@/services/auth/profile-supabase.service";
 import { usesSupabaseAuth } from "@/config/env";
 import { getErrorMessage } from "@/lib/errors";
+import { useAdminProfile } from "@/hooks/useAdminProfile";
+import { ROUTES } from "@/config/app";
+import { Shield } from "lucide-react";
 
 const Settings = () => {
   const { profile, loading: profileLoading, refresh } = useUserProfile();
@@ -22,6 +25,7 @@ const Settings = () => {
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
   const supabaseLinked = usesSupabaseAuth();
+  const { profile: adminProfile } = useAdminProfile();
 
   useEffect(() => {
     if (!profile) return;
@@ -159,6 +163,22 @@ const Settings = () => {
             فتح صفحة الثيم <ArrowLeft className="w-4 h-4" />
           </div>
         </Link>
+
+        {adminProfile?.isAdmin && (
+          <Link
+            to={ROUTES.admin}
+            className="bg-card border border-border rounded-3xl p-6 flex flex-col justify-between hover:border-primary/30 transition-colors lg:col-span-2"
+          >
+            <div>
+              <Shield className="w-10 h-10 mb-4 text-primary" />
+              <h3 className="font-display font-bold text-xl mb-1">لوحة الإدارة</h3>
+              <p className="text-sm text-muted-foreground">إدارة العملاء والاشتراكات اليدوية</p>
+            </div>
+            <div className="mt-6 inline-flex items-center gap-2 font-bold text-primary">
+              فتح لوحة الإدارة <ArrowLeft className="w-4 h-4" />
+            </div>
+          </Link>
+        )}
       </div>
     </DashboardLayout>
   );

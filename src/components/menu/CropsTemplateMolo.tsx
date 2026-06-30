@@ -59,7 +59,7 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
           ) : undefined
         }
       >
-        <div className="flex min-h-[50vh] flex-col px-6 py-8 md:px-10">
+        <div className="flex min-h-[50vh] flex-col px-4 py-5 md:px-8 md:py-6">
           <div className="flex-1 overflow-x-auto overflow-y-hidden">
             <div className="flex h-full snap-x snap-mandatory gap-5">
               {ordered.map((c) => {

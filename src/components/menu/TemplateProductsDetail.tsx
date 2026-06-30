@@ -5,6 +5,7 @@ import { MenuProductSubheaderBar, MenuProductTopChrome } from "@/components/menu
 import { ProductDetailCard, ProductListCard } from "@/components/menu/ProductCardParts";
 import { useMenuLang } from "@/context/MenuLangContext";
 import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
+import { useMenuLayoutMetrics } from "@/hooks/useMenuLayoutMetrics";
 import { getMenuUi } from "@/lib/menu-i18n";
 import { getProductsHeaderCustomization, isProductsLangToggleEnabled } from "@/lib/menu-header-settings";
 import { getMenuScrollPaddingTop, menuContentEnter } from "@/lib/menu-header";
@@ -67,11 +68,12 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
   const palette = getProductsPalette(settings);
   const bgStyle = palettePageStyle(palette);
   const cardBg = palette.cardColor || "#d4d4d4";
+  const layout = useMenuLayoutMetrics();
   const hasSubheader = categories.length > 0 || showLang;
   const ui = getMenuUi(lang);
-  const scrollPadding = getMenuScrollPaddingTop(hasSubheader, headerVisible, hideHeader);
-  const panelGapTop = 36;
-  const panelGapBottom = 24;
+  const scrollPadding = getMenuScrollPaddingTop(hasSubheader, headerVisible, hideHeader, layout);
+  const panelGapTop = 12;
+  const panelGapBottom = 16;
   const panelHeight = `calc(100dvh - ${scrollPadding + panelGapTop + panelGapBottom}px)`;
 
   return (
@@ -110,12 +112,12 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
           dir="ltr"
           key={`${lang}-${activeCat}-${selected?.id ?? "none"}`}
           className={cn(
-            "grid min-h-0 grid-cols-1 gap-3 px-4 pb-6 pt-2 md:grid-cols-[minmax(240px,34%)_1fr] md:items-stretch md:gap-4 md:px-6 md:pb-6 md:pt-4",
+            "grid min-h-0 grid-cols-1 gap-2.5 px-4 pb-5 pt-2 md:grid-cols-[minmax(220px,32%)_1fr] md:items-stretch md:gap-3 md:px-6 md:pb-5 md:pt-3",
             menuContentEnter,
           )}
         >
           <div
-            className="order-2 flex flex-col gap-2.5 overflow-y-auto overscroll-y-contain md:order-1 md:pt-8"
+            className="order-2 flex flex-col gap-2 overflow-y-auto overscroll-y-contain md:order-1 md:pt-4"
             style={{ height: panelHeight, maxHeight: panelHeight }}
           >
             {visibleProducts.map((p) => (
@@ -132,7 +134,7 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
           </div>
 
           <div
-            className="order-1 flex w-full flex-col md:order-2 md:pt-8"
+            className="order-1 flex w-full flex-col md:order-2 md:pt-4"
             style={{ height: panelHeight, maxHeight: panelHeight }}
           >
             {selected ? (

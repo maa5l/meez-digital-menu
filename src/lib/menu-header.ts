@@ -1,32 +1,41 @@
 import type { MenuHeaderCustomization } from "@/types/domain";
+import {
+  DEFAULT_MENU_LAYOUT_METRICS,
+  getMenuLayoutMetrics,
+  type MenuLayoutMetrics,
+} from "@/lib/menu-layout-metrics";
 
-/** ارتفاع ثابت للهيدر الكامل (إفصاح السعرات + شعار + عنوان) */
-export const MENU_PRODUCT_HEADER_HEIGHT = 430;
+/** @deprecated استخدم getMenuLayoutMetrics — قيمة افتراضية للآيباد أفقي */
+export const MENU_PRODUCT_HEADER_HEIGHT = DEFAULT_MENU_LAYOUT_METRICS.headerHeight;
 
-/** ارتفاع شريط التصنيفات + اللغة */
-export const MENU_SUBHEADER_HEIGHT = 48;
+/** @deprecated استخدم getMenuLayoutMetrics */
+export const MENU_SUBHEADER_HEIGHT = DEFAULT_MENU_LAYOUT_METRICS.subheaderHeight;
 
-/** ارتفاع صف إفصاح السعرات في الوضع المدمج (3 أسطر عمودية) */
-export const MENU_CALORIE_ROW_HEIGHT = 54;
+/** @deprecated استخدم getMenuLayoutMetrics */
+export const MENU_CALORIE_ROW_HEIGHT = DEFAULT_MENU_LAYOUT_METRICS.calorieRowHeight;
 
-/** مقاس شعار المنيو (بكسل) */
-export const MENU_LOGO_SIZE_PX = 100;
+/** @deprecated استخدم getMenuLayoutMetrics */
+export const MENU_LOGO_SIZE_PX = DEFAULT_MENU_LAYOUT_METRICS.logoSizePx;
 
-/** ارتفاع صف الشعار في الوضع المدمج */
-export const MENU_LOGO_ROW_HEIGHT = MENU_LOGO_SIZE_PX;
+/** @deprecated استخدم getMenuLayoutMetrics */
+export const MENU_LOGO_ROW_HEIGHT = DEFAULT_MENU_LAYOUT_METRICS.logoSizePx;
 
-/** ارتفاع الشريط العلوي عند إخفاء الهيدر (سعرات + شعار في صف واحد) */
-export const MENU_COMPACT_TOP_HEIGHT = Math.max(MENU_LOGO_SIZE_PX, MENU_CALORIE_ROW_HEIGHT) + 20;
+/** @deprecated استخدم getMenuLayoutMetrics */
+export const MENU_COMPACT_TOP_HEIGHT = DEFAULT_MENU_LAYOUT_METRICS.compactTopHeight;
 
 /** @deprecated استخدم MENU_COMPACT_TOP_HEIGHT */
-export const MENU_CALORIE_BAR_HEIGHT = MENU_COMPACT_TOP_HEIGHT;
+export const MENU_CALORIE_BAR_HEIGHT = DEFAULT_MENU_LAYOUT_METRICS.compactTopHeight;
 
-export function getMenuProductHeaderHeight(_settings?: unknown): number {
-  return MENU_PRODUCT_HEADER_HEIGHT;
+export function getMenuProductHeaderHeight(viewportWidth?: number): number {
+  const m = viewportWidth != null ? getMenuLayoutMetrics(viewportWidth) : DEFAULT_MENU_LAYOUT_METRICS;
+  return m.headerHeight;
 }
 
-export function getMenuTopChromeHeight(hasSubheader: boolean): number {
-  return MENU_PRODUCT_HEADER_HEIGHT + (hasSubheader ? MENU_SUBHEADER_HEIGHT : 0);
+export function getMenuTopChromeHeight(
+  hasSubheader: boolean,
+  metrics: MenuLayoutMetrics = DEFAULT_MENU_LAYOUT_METRICS,
+): number {
+  return metrics.headerHeight + (hasSubheader ? metrics.subheaderHeight : 0);
 }
 
 /** مساحة أعلى منطقة التمرير — تتقلص عند إخفاء الهيدر مع الإبقاء على شريط التصنيفات */
@@ -34,18 +43,23 @@ export function getMenuScrollPaddingTop(
   hasSubheader: boolean,
   headerVisible: boolean,
   hideHeader = false,
+  metrics: MenuLayoutMetrics = DEFAULT_MENU_LAYOUT_METRICS,
 ): number {
   if (hideHeader) {
-    return MENU_COMPACT_TOP_HEIGHT + (hasSubheader ? MENU_SUBHEADER_HEIGHT : 0);
+    return metrics.compactTopHeight + (hasSubheader ? metrics.subheaderHeight : 0);
   }
-  if (headerVisible) return getMenuTopChromeHeight(hasSubheader);
-  return hasSubheader ? MENU_SUBHEADER_HEIGHT : 0;
+  if (headerVisible) return getMenuTopChromeHeight(hasSubheader, metrics);
+  return hasSubheader ? metrics.subheaderHeight : 0;
 }
 
 /** موضع شريط التصنيفات الثابت تحت الهيدر أو أعلى الشاشة عند إخفائه */
-export function getMenuSubheaderTop(headerVisible: boolean, hideHeader = false): number {
-  if (hideHeader) return MENU_COMPACT_TOP_HEIGHT;
-  return headerVisible ? MENU_PRODUCT_HEADER_HEIGHT : 0;
+export function getMenuSubheaderTop(
+  headerVisible: boolean,
+  hideHeader = false,
+  metrics: MenuLayoutMetrics = DEFAULT_MENU_LAYOUT_METRICS,
+): number {
+  if (hideHeader) return metrics.compactTopHeight;
+  return headerVisible ? metrics.headerHeight : 0;
 }
 
 export const headerHideTransition =

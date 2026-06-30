@@ -3,6 +3,8 @@ export type ImageOutputSpec = {
   recommendedHeight: number;
   minWidth: number;
   minHeight: number;
+  maxWidth?: number;
+  maxHeight?: number;
   jpegQuality: number;
   fillColor?: string;
 };
@@ -138,10 +140,15 @@ async function decodeImageFile(file: File): Promise<DecodedImage> {
 export function validateImageDimensions(
   width: number,
   height: number,
-  spec: Pick<ImageOutputSpec, "minWidth" | "minHeight">,
+  spec: Pick<ImageOutputSpec, "minWidth" | "minHeight" | "maxWidth" | "maxHeight">,
 ): string | null {
   if (width < spec.minWidth || height < spec.minHeight) {
     return `الصورة صغيرة جداً. الحد الأدنى ${spec.minWidth}×${spec.minHeight} بكسل (الحالية ${width}×${height}).`;
+  }
+  if (spec.maxWidth != null && spec.maxHeight != null) {
+    if (width > spec.maxWidth || height > spec.maxHeight) {
+      return `الصورة كبيرة جداً. الحد الأقصى ${spec.maxWidth}×${spec.maxHeight} بكسل (الحالية ${width}×${height}). صغّرها قبل الرفع.`;
+    }
   }
   return null;
 }

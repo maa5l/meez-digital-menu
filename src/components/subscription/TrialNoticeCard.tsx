@@ -1,6 +1,6 @@
 import { Clock, MonitorSmartphone } from "lucide-react";
 import type { SubscriptionAccess } from "@/types/subscription";
-import { BILLING } from "@/config/billing";
+import { SUBSCRIPTION } from "@/config/subscription";
 
 type Props = {
   access: SubscriptionAccess;
@@ -13,7 +13,7 @@ export function TrialNoticeCard({ access }: Props) {
   const daysLeft =
     access.trial_ends_at != null
       ? Math.max(0, Math.ceil((Date.parse(access.trial_ends_at) - Date.now()) / 86400000))
-      : BILLING.trialDays;
+      : SUBSCRIPTION.trialDays;
 
   return (
     <div
@@ -38,14 +38,14 @@ export function TrialNoticeCard({ access }: Props) {
                   {new Date(access.trial_ends_at).toLocaleDateString("ar-SA")}).
                 </>
               ) : (
-                <>لديك {BILLING.trialDays} يوماً لتجربة المنصة.</>
+                <>لديك {SUBSCRIPTION.trialDays} أيام لتجربة المنصة.</>
               )}
             </p>
             <p className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
               <MonitorSmartphone className="w-4 h-4 text-accent shrink-0" aria-hidden />
               <span>
-                التجربة تشمل <strong className="text-primary">شاشة واحدة فقط</strong> — فعّل
-                الاشتراك أدناه لإضافة المزيد من الشاشات.
+                التجربة تشمل <strong className="text-primary">شاشة واحدة فقط</strong>.
+                بعد انتهائها تواصل معنا لتفعيل الاشتراك.
               </span>
             </p>
           </div>

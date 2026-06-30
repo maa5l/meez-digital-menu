@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { AlertTriangle, Clock, CreditCard, Ban } from "lucide-react";
+import { AlertTriangle, Clock, Ban } from "lucide-react";
 import type { SubscriptionAccess } from "@/types/subscription";
 import { ROUTES } from "@/config/app";
 import { Button } from "@/components/ui/button";
@@ -15,38 +15,24 @@ function messageFor(access: SubscriptionAccess): { title: string; body: string; 
         icon: Clock,
         title: "فترة تجريبية",
         body: access.trial_ends_at
-          ? `تنتهي التجربة في ${new Date(access.trial_ends_at).toLocaleDateString("ar-SA")}. فعّل الاشتراك للاستمرار.`
+          ? `تنتهي التجربة في ${new Date(access.trial_ends_at).toLocaleDateString("ar-SA")}.`
           : "أنت على الباقة التجريبية.",
-      };
-    case "warning":
-      return {
-        icon: AlertTriangle,
-        title: "دفع متأخر",
-        body: "يرجى تحديث طريقة الدفع. بعض الصلاحيات محدودة حتى السداد.",
-      };
-    case "grace":
-      return {
-        icon: Clock,
-        title: "فترة سماح",
-        body: access.grace_ends_at
-          ? `المنيو يعمل حتى ${new Date(access.grace_ends_at).toLocaleDateString("ar-SA")}. التعديلات والأجهزة الجديدة موقوفة.`
-          : "فترة سماح — أكمل الدفع لتجنب إيقاف الشاشات.",
       };
     case "suspended":
       return {
         icon: Ban,
         title: "الاشتراك موقوف",
-        body: "شاشات المنيو متوقفة. جدّد الاشتراك لإعادة التفعيل.",
+        body: "تم إيقاف الحساب. تواصل مع فريق ميز.",
       };
     case "expired":
     case "canceled":
       return {
         icon: Ban,
         title: access.status === "canceled" ? "اشتراك ملغى" : "انتهى الاشتراك",
-        body: "الوصول محدود. جدّد الاشتراك لمتابعة استخدام المنصة.",
+        body: "تواصل مع فريق ميز لتفعيل حسابك.",
       };
     default:
-      return { icon: CreditCard, title: "", body: "" };
+      return { icon: AlertTriangle, title: "", body: "" };
   }
 }
 
@@ -74,7 +60,7 @@ export function SubscriptionBanner({ access }: Props) {
       </div>
       <Link to={ROUTES.dashboardSubscription} className="shrink-0">
         <Button variant={isError ? "destructive" : "default"} size="sm">
-          إدارة الاشتراك
+          حالة الاشتراك
         </Button>
       </Link>
     </div>

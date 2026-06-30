@@ -117,6 +117,11 @@ function mapPasswordAuthError(error: unknown): Error {
   if (msg.includes("invalid login credentials") || msg.includes("invalid credentials")) {
     return new Error("البريد أو كلمة المرور غير صحيحة.");
   }
+  if (/failed to fetch|networkerror|load failed/i.test(msg)) {
+    return new Error(
+      "تعذّر الاتصال بـ Supabase. تحقق من الإنترنت و VITE_SUPABASE_URL في .env.local",
+    );
+  }
   return error instanceof Error ? error : new Error(String((error as { message?: string }).message));
 }
 
