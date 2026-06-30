@@ -10,19 +10,20 @@ export function useVenueData(): [
   { loading: boolean },
 ] {
   const ctx = useVenueDataContext();
-  if (ctx) {
-    return [ctx.data, ctx.update, { loading: ctx.loading }];
-  }
-
-  const [data, setData] = useState<VenueData>(() => loadCurrentVenueData());
-  const update = useCallback(
+  const [fallbackData, setFallbackData] = useState<VenueData>(() => loadCurrentVenueData());
+  const fallbackUpdate = useCallback(
     (patch: Partial<VenueData> | ((prev: VenueData) => VenueData)) => {
-      setData((prev) => {
+      setFallbackData((prev) => {
         const next = typeof patch === "function" ? patch(prev) : { ...prev, ...patch };
         return next;
       });
     },
     [],
   );
-  return [data, update, { loading: false }];
+
+  if (ctx) {
+    return [ctx.data, ctx.update, { loading: ctx.loading }];
+  }
+
+  return [fallbackData, fallbackUpdate, { loading: false }];
 }

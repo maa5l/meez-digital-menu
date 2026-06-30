@@ -21,7 +21,7 @@ import { usesSupabaseAuth } from "@/config/env";
 import { logger } from "@/lib/logger";
 import { ensureSubscriptionRecord } from "@/services/subscription/subscription-enforcement";
 
-/** OTP disabled temporarily for debugging — login uses signInWithPassword only. */
+/** OTP disabled — login uses signInWithPassword only until SMS/email OTP is re-enabled. */
 
 async function hydrateVenueForUser(userId: string, venueName?: string): Promise<void> {
   if (shouldUseVenueDatabase()) {
@@ -189,6 +189,7 @@ export async function signUp(
   if (data.session) {
     await afterSupabaseAuth(data.session, venueName);
     syncSessionFromSupabase(data.session);
+    logger.audit("auth.register", { email: normalizedEmail });
     return { needsEmailConfirmation: false };
   }
 
@@ -208,6 +209,7 @@ export async function signUp(
 export { usesSupabaseAuth };
 
 export async function signOut(): Promise<void> {
+  logger.audit("auth.logout");
   if (isSupabaseConfigured()) {
     await getSupabase().auth.signOut();
   }

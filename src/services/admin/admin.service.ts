@@ -1,3 +1,4 @@
+import type { PostgrestError } from "@supabase/supabase-js";
 import type {
   AdminCustomer,
   AdminCustomerList,
@@ -7,7 +8,30 @@ import type {
   AdminSubscriptionAction,
 } from "@/types/admin";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import { ROUTES } from "@/config/app";
 import { logger } from "@/lib/logger";
+
+function isPostgrestError(err: unknown): err is PostgrestError {
+  return Boolean(err && typeof err === "object" && "code" in err && "message" in err);
+}
+
+/** رسالة خطأ RPC مفهومة للمستخدم */
+export function formatAdminRpcError(err: unknown): string {
+  if (isPostgrestError(err)) {
+    if (err.code === "PGRST202") {
+      return "خدمة الإدارة غير مفعّلة — طبّق migrations على Supabase";
+    }
+    if (err.message.includes("admin_forbidden")) {
+      return "حسابك ليس مديراً — شغّل bootstrap-admin.sql";
+    }
+    if (err.message.includes("admin_insufficient_role")) {
+      return "صلاحياتك لا تسمح بهذا الإجراء";
+    }
+    return err.message;
+  }
+  if (err instanceof Error) return err.message;
+  return "تعذّر تحميل بيانات الإدارة";
+}
 
 function parseAdminProfile(raw: unknown): AdminProfile | null {
   if (!raw || typeof raw !== "object") return null;
@@ -94,7 +118,10 @@ export async function fetchAdminCustomers(
     p_limit: limit,
     p_offset: offset,
   });
-  if (error) throw error;
+  if (error) {
+    logger.error("admin.customers_failed", { message: error.message, code: error.code });
+    throw error;
+  }
   if (!data || typeof data !== "object") return { total: 0, customers: [] };
   const o = data as Record<string, unknown>;
   const rows = Array.isArray(o.customers) ? o.customers : [];
@@ -157,4 +184,10 @@ export function adminRoleLabel(role: AdminRole): string {
 
 export function canAdminMutate(role: AdminRole): boolean {
   return role === "super_admin" || role === "admin";
+}
+
+/** بعد تسجيل الدخول — مدير المنصة يُوجَّه إلى /admin */
+export async function resolvePostAuthRoute(fallback: string): Promise<string> {
+  const admin = await fetchMyAdminProfile();
+  return admin?.isAdmin ? ROUTES.admin : fallback;
 }

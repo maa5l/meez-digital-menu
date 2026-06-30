@@ -23,6 +23,7 @@ import {
   syncDeviceActivationsToCloud,
 } from "@/lib/venue-store";
 import { invalidateOwnerVenueCache } from "@/services/venue/venue-supabase.service";
+import { THEME_PREVIEW_DRAFT_KEY } from "@/lib/theme-preview-draft";
 
 const VENUE_UPDATED = "meez:venue-updated";
 
@@ -42,6 +43,7 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
     () => Boolean(userId && isSupabaseConfigured() && !appEnv.useLocalMockAuth),
   );
   const mountedRef = useRef(true);
+  const initialCloudLoadDoneRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -61,12 +63,18 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (force) invalidateOwnerVenueCache(userId);
-      setLoading(true);
+      const showSpinner = !initialCloudLoadDoneRef.current;
+      if (showSpinner) setLoading(true);
       try {
         const venue = await pullVenueFromCloud(userId);
-        if (mountedRef.current) setData(venue);
+        if (mountedRef.current) {
+          setData(venue);
+          initialCloudLoadDoneRef.current = true;
+        }
       } finally {
-        if (mountedRef.current) setLoading(false);
+        if (mountedRef.current && (showSpinner || initialCloudLoadDoneRef.current)) {
+          setLoading(false);
+        }
       }
     },
     [userId, reloadLocal],
@@ -117,11 +125,15 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const onUpdate = () => reloadLocal();
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === THEME_PREVIEW_DRAFT_KEY) return;
+      onUpdate();
+    };
     window.addEventListener(VENUE_UPDATED, onUpdate);
-    window.addEventListener("storage", onUpdate);
+    window.addEventListener("storage", onStorage);
     return () => {
       window.removeEventListener(VENUE_UPDATED, onUpdate);
-      window.removeEventListener("storage", onUpdate);
+      window.removeEventListener("storage", onStorage);
     };
   }, [reloadLocal]);
 
@@ -129,6 +141,7 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
     (patch: Partial<VenueData> | ((prev: VenueData) => VenueData)) => {
       setData((prev) => {
         const next = typeof patch === "function" ? patch(prev) : { ...prev, ...patch };
+        if (next === prev) return prev;
         saveCurrentVenueData(next);
         window.dispatchEvent(new Event(VENUE_UPDATED));
         return next;

@@ -6,6 +6,16 @@ export type Category = {
   icon?: string;
 };
 
+export type CropBrewingInfo = {
+  method?: string;
+  methodEn?: string;
+  waterTemp?: string;
+  ratio?: string;
+  grindSize?: string;
+  grindSizeEn?: string;
+  brewTime?: string;
+};
+
 export type CropInfo = {
   beanName: string;
   country: string;
@@ -137,4 +147,25 @@ export type Crop = {
   textColor?: string;
   bgType?: "color" | "gradient" | "image";
   gradientColors?: string[];
+  /** حقول اختيارية — كتالوج القهوة المتخصصة */
+  region?: string;
+  regionEn?: string;
+  farm?: string;
+  farmEn?: string;
+  producer?: string;
+  producerEn?: string;
+  roastLevel?: string;
+  roastLevelEn?: string;
+  roastDate?: string;
+  description?: string;
+  descriptionEn?: string;
+  aroma?: string;
+  aromaEn?: string;
+  acidity?: string;
+  acidityEn?: string;
+  body?: string;
+  bodyEn?: string;
+  sweetness?: string;
+  sweetnessEn?: string;
+  brewing?: CropBrewingInfo;
 };

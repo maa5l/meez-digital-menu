@@ -117,7 +117,7 @@ function sanitizeSettings(input: MenuSettings): MenuSettings {
 }
 
 /** @deprecated يُستخدم للترحيل فقط — الإعدادات الحالية في venue-store */
-export const loadMenuSettings = (): MenuSettings => {
+const loadMenuSettings = (): MenuSettings => {
   if (typeof window === "undefined") return defaultMenuSettings;
 
   let raw = getLocalJson<MenuSettings | null>(STORAGE_KEYS.MENU_SETTINGS, null);
@@ -141,8 +141,8 @@ export const loadMenuSettings = (): MenuSettings => {
   return sanitizeSettings(parsed.data);
 };
 
-/** @deprecated — استخدم useMenuSettings / venue-store */
-export const saveMenuSettings = (s: MenuSettings) => {
+/** @deprecated — استخدم venue-store */
+const saveMenuSettings = (s: MenuSettings) => {
   const safe = sanitizeSettings(s);
   setLocalJson(STORAGE_KEYS.MENU_SETTINGS, safe);
 };

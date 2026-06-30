@@ -13,6 +13,8 @@ type Props = {
   logoSizePx?: number;
   overlay?: boolean;
   className?: string;
+  /** عنصر إضافي بجانب الشعار — مثل زر اللغة */
+  trailing?: React.ReactNode;
 };
 
 function MenuHeaderLogo({
@@ -48,13 +50,15 @@ const MenuHeaderChromeRow = ({
   logoSizePx,
   overlay = false,
   className,
+  trailing,
 }: Props) => {
   const calories = (
     <MenuCalorieDisclaimer lang={lang} textColor={textColor} merged />
   );
 
   const logo = (
-    <div className="shrink-0">
+    <div className="flex shrink-0 items-center gap-2">
+      {trailing}
       <MenuHeaderLogo
         customization={customization}
         headerFg={headerFg}

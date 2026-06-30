@@ -7,14 +7,6 @@ import {
 import type { MenuHeaderCustomization, MenuPalette } from "@/types/domain";
 import { cn } from "@/lib/utils";
 
-export {
-  getMenuProductHeaderHeight,
-  getMenuTopChromeHeight,
-  MENU_PRODUCT_HEADER_HEIGHT,
-  MENU_SUBHEADER_HEIGHT,
-  headerHideTransition,
-} from "@/lib/menu-header";
-
 type Props = {
   customization: MenuHeaderCustomization;
   palette: MenuPalette;
@@ -23,6 +15,9 @@ type Props = {
   defaultTitleEn: string;
   embedded?: boolean;
   visible?: boolean;
+  /** @deprecated استخدم chromeTrailing */
+  headerTrailing?: React.ReactNode;
+  chromeTrailing?: React.ReactNode;
 };
 
 /** هيدر منيو موحّد — يُستخدم لمنتجات المحاصيل والمنتجات */
@@ -34,6 +29,8 @@ const MenuVenueHeader = ({
   defaultTitleEn,
   embedded = false,
   visible = true,
+  headerTrailing,
+  chromeTrailing,
 }: Props) => {
   const layout = useMenuLayoutMetrics();
   const headerBg = customization.headerBgColor ?? `${palette.textColor}18`;
@@ -45,12 +42,14 @@ const MenuVenueHeader = ({
   const bannerHasDesign = Boolean(customization.headerImage);
   const calorieFallback = bannerSrc ? "#ffffff" : headerFg;
   const calorieColor = getCalorieDisclaimerColor(customization, calorieFallback);
+  const trailing = chromeTrailing ?? headerTrailing;
 
   return (
     <header
       className={cn(
-        "flex w-full flex-col overflow-hidden border-b border-black/10",
+        "flex w-full shrink-0 flex-col overflow-hidden border-b border-black/10",
         !embedded && "fixed inset-x-0 top-0 z-40",
+        embedded && "relative",
         !embedded && headerHideTransition,
         !embedded &&
           (visible
@@ -92,23 +91,24 @@ const MenuVenueHeader = ({
             customization={customization}
             logoSizePx={layout.logoSizePx}
             overlay={Boolean(bannerSrc)}
+            trailing={trailing}
           />
         </div>
 
         <div
           className={cn(
-            "flex min-h-0 flex-1 flex-col justify-end pb-0.5 pt-2 md:pt-2.5",
+            "flex min-h-0 flex-1 flex-col justify-end pb-0.5 pt-1 md:pt-1.5",
             bannerSrc && "pointer-events-none",
           )}
         >
           {!bannerHasDesign && (
-            <div className={cn("text-center", bannerSrc && "pointer-events-auto")}>
+            <div className={cn("max-w-full overflow-hidden px-2 text-center", bannerSrc && "pointer-events-auto")}>
               <h1
                 className={cn(
-                  "font-display line-clamp-2 font-black leading-tight",
+                  "font-display mx-auto max-w-full break-words font-black leading-tight line-clamp-2",
                   bannerSrc
-                    ? "text-sm text-white drop-shadow-md md:text-lg"
-                    : "text-base md:text-xl",
+                    ? "text-[11px] text-white drop-shadow-md sm:text-xs md:text-sm ipad-lg:text-base"
+                    : "text-sm md:text-lg ipad-lg:text-xl",
                 )}
               >
                 {title}
@@ -116,9 +116,9 @@ const MenuVenueHeader = ({
               {customization.featuredSubtitle && (
                 <p
                   className={cn(
-                    "mt-0.5 line-clamp-2 font-bold",
+                    "mx-auto mt-0.5 max-w-full break-words line-clamp-2 font-bold",
                     bannerSrc
-                      ? "text-[10px] text-white/90 drop-shadow-sm"
+                      ? "text-[9px] text-white/90 drop-shadow-sm sm:text-[10px] md:text-xs"
                       : "text-[9px] opacity-70 md:text-[10px]",
                   )}
                 >

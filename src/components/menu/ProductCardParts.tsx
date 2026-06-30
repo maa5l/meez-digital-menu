@@ -653,20 +653,112 @@ export const ProductListCard = ({
   );
 };
 
+/** لوحة صورة المنتج فقط — التفاصيل عند الضغط */
+export const ProductImagePanel = ({
+  product,
+  lang,
+  cardBg,
+  hint,
+  onOpen,
+  className,
+}: {
+  product: Product;
+  lang: Lang;
+  cardBg: string;
+  hint: string;
+  onOpen: () => void;
+  className?: string;
+}) => {
+  const localized = localizeProduct(product, lang);
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={cn(
+        "relative h-full min-h-0 w-full overflow-hidden rounded-2xl touch-manipulation transition-transform active:scale-[0.995]",
+        className,
+      )}
+      style={{ background: cardBg }}
+      aria-label={`${localized.name} — ${hint}`}
+    >
+      <ProductImageBadge product={product} lang={lang} size="md" placement="inset" />
+      {product.image ? (
+        <img
+          src={product.image}
+          alt={localized.name}
+          className="absolute inset-0 h-full w-full object-cover object-center"
+          decoding="async"
+        />
+      ) : (
+        <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-muted-foreground/50">
+          {labels[lang].noImage}
+        </span>
+      )}
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 via-black/20 to-transparent px-4 pb-3 pt-10"
+        aria-hidden
+      >
+        <span className="block text-center text-[10px] font-bold text-white/90 md:text-xs">{hint}</span>
+      </div>
+    </button>
+  );
+};
+
 export const ProductDetailCard = ({
   product,
   lang,
   cardBg,
   accentColor,
   className,
+  variant = "default",
 }: {
   product: Product;
   lang: Lang;
   cardBg: string;
   accentColor: string;
   className?: string;
+  /** panel = ملء لوحة التفاصيل في قالب القائمة (آيباد) */
+  variant?: "default" | "panel";
 }) => {
   const localized = localizeProduct(product, lang);
+  const isPanel = variant === "panel";
+
+  if (isPanel) {
+    return (
+      <div
+        dir={lang === "en" ? "ltr" : "rtl"}
+        className={cn(
+          "relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl",
+          className,
+        )}
+        style={{ background: cardBg }}
+      >
+        <div
+          className="flex min-h-0 flex-1 flex-col"
+          style={{ paddingInline: PRODUCT_CARD_PAD_X, paddingTop: PRODUCT_CARD_PAD_TOP }}
+        >
+          <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-white">
+            <ProductImageBadge product={product} lang={lang} size="md" placement="inset" />
+            {product.image ? (
+              <img
+                src={product.image}
+                alt={localized.name}
+                className="absolute inset-0 h-full w-full object-contain object-center"
+              />
+            ) : (
+              <span className="flex h-full items-center justify-center text-sm font-bold text-muted-foreground/50">
+                {labels[lang].noImage}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="min-h-0 max-h-[42%] shrink-0 overflow-y-auto overscroll-y-contain">
+          <ProductCardFooter product={product} lang={lang} cardBg={cardBg} showDescription />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

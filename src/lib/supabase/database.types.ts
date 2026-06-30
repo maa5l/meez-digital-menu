@@ -11,6 +11,8 @@ export type Database = {
           venue_name: string | null;
           phone: string | null;
           role: string;
+          last_activity_at: string | null;
+          internal_notes: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -21,6 +23,8 @@ export type Database = {
           venue_name?: string | null;
           phone?: string | null;
           role?: string;
+          last_activity_at?: string | null;
+          internal_notes?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -31,6 +35,8 @@ export type Database = {
           venue_name?: string | null;
           phone?: string | null;
           role?: string;
+          last_activity_at?: string | null;
+          internal_notes?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -68,12 +74,20 @@ export type Database = {
       subscriptions: {
         Row: {
           owner_id: string;
-          status: string;
+          status: Database["public"]["Enums"]["subscription_status"];
           screen_count: number;
+          device_limit: number | null;
           billing_cycle: string;
           price_per_screen_monthly: number;
           price_per_screen_yearly: number;
+          trial_started_at: string | null;
           trial_ends_at: string | null;
+          subscription_started_at: string | null;
+          subscription_ends_at: string | null;
+          activated_by: string | null;
+          activated_at: string | null;
+          manual_activation: boolean;
+          notes: string | null;
           current_period_start: string | null;
           current_period_end: string | null;
           grace_ends_at: string | null;
@@ -86,12 +100,20 @@ export type Database = {
         };
         Insert: {
           owner_id: string;
-          status?: string;
+          status?: Database["public"]["Enums"]["subscription_status"];
           screen_count?: number;
+          device_limit?: number | null;
           billing_cycle?: string;
           price_per_screen_monthly?: number;
           price_per_screen_yearly?: number;
+          trial_started_at?: string | null;
           trial_ends_at?: string | null;
+          subscription_started_at?: string | null;
+          subscription_ends_at?: string | null;
+          activated_by?: string | null;
+          activated_at?: string | null;
+          manual_activation?: boolean;
+          notes?: string | null;
           current_period_start?: string | null;
           current_period_end?: string | null;
           grace_ends_at?: string | null;
@@ -104,12 +126,20 @@ export type Database = {
         };
         Update: {
           owner_id?: string;
-          status?: string;
+          status?: Database["public"]["Enums"]["subscription_status"];
           screen_count?: number;
+          device_limit?: number | null;
           billing_cycle?: string;
           price_per_screen_monthly?: number;
           price_per_screen_yearly?: number;
+          trial_started_at?: string | null;
           trial_ends_at?: string | null;
+          subscription_started_at?: string | null;
+          subscription_ends_at?: string | null;
+          activated_by?: string | null;
+          activated_at?: string | null;
+          manual_activation?: boolean;
+          notes?: string | null;
           current_period_start?: string | null;
           current_period_end?: string | null;
           grace_ends_at?: string | null;
@@ -129,6 +159,111 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      admin_users: {
+        Row: {
+          user_id: string;
+          role: Database["public"]["Enums"]["admin_role"];
+          full_name: string | null;
+          email: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          role?: Database["public"]["Enums"]["admin_role"];
+          full_name?: string | null;
+          email: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          role?: Database["public"]["Enums"]["admin_role"];
+          full_name?: string | null;
+          email?: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      admin_logs: {
+        Row: {
+          id: string;
+          admin_id: string | null;
+          action: string;
+          target_owner_id: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          admin_id?: string | null;
+          action: string;
+          target_owner_id?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          admin_id?: string | null;
+          action?: string;
+          target_owner_id?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      subscription_history: {
+        Row: {
+          id: string;
+          owner_id: string;
+          previous_status: Database["public"]["Enums"]["subscription_status"] | null;
+          new_status: Database["public"]["Enums"]["subscription_status"];
+          previous_device_limit: number | null;
+          new_device_limit: number | null;
+          previous_subscription_ends_at: string | null;
+          new_subscription_ends_at: string | null;
+          changed_by: string | null;
+          change_source: string;
+          notes: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_id: string;
+          previous_status?: Database["public"]["Enums"]["subscription_status"] | null;
+          new_status: Database["public"]["Enums"]["subscription_status"];
+          previous_device_limit?: number | null;
+          new_device_limit?: number | null;
+          previous_subscription_ends_at?: string | null;
+          new_subscription_ends_at?: string | null;
+          changed_by?: string | null;
+          change_source?: string;
+          notes?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          previous_status?: Database["public"]["Enums"]["subscription_status"] | null;
+          new_status?: Database["public"]["Enums"]["subscription_status"];
+          previous_device_limit?: number | null;
+          new_device_limit?: number | null;
+          previous_subscription_ends_at?: string | null;
+          new_subscription_ends_at?: string | null;
+          changed_by?: string | null;
+          change_source?: string;
+          notes?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Relationships: [];
       };
       audit_logs: {
         Row: {
@@ -152,56 +287,46 @@ export type Database = {
           metadata?: Json;
           created_at?: string;
         };
-        Relationships: [
-          {
-            foreignKeyName: "audit_logs_owner_id_fkey";
-            columns: ["owner_id"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-        ];
+        Relationships: [];
       };
       device_activations: {
         Row: {
           code: string;
           owner_id: string;
+          device_id: string;
           menu_type: "products" | "crops" | null;
           activated_at: string;
           device_name: string | null;
-          status: string;
+          status: Database["public"]["Enums"]["device_license_status"];
           linked_at: string;
           last_seen_at: string | null;
+          created_at: string;
         };
         Insert: {
           code: string;
           owner_id: string;
+          device_id?: string;
           menu_type?: "products" | "crops" | null;
           activated_at?: string;
           device_name?: string | null;
-          status?: string;
+          status?: Database["public"]["Enums"]["device_license_status"];
           linked_at?: string;
           last_seen_at?: string | null;
+          created_at?: string;
         };
         Update: {
           code?: string;
           owner_id?: string;
+          device_id?: string;
           menu_type?: "products" | "crops" | null;
           activated_at?: string;
           device_name?: string | null;
-          status?: string;
+          status?: Database["public"]["Enums"]["device_license_status"];
           linked_at?: string;
           last_seen_at?: string | null;
+          created_at?: string;
         };
-        Relationships: [
-          {
-            foreignKeyName: "device_activations_owner_id_fkey";
-            columns: ["owner_id"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-        ];
+        Relationships: [];
       };
       device_pairing_sessions: {
         Row: {
@@ -225,15 +350,7 @@ export type Database = {
           expires_at?: string;
           created_at?: string;
         };
-        Relationships: [
-          {
-            foreignKeyName: "device_pairing_sessions_owner_id_fkey";
-            columns: ["owner_id"];
-            isOneToOne: false;
-            referencedRelation: "profiles";
-            referencedColumns: ["id"];
-          },
-        ];
+        Relationships: [];
       };
     };
     Views: Record<string, never>;
@@ -255,11 +372,11 @@ export type Database = {
         Returns: string;
       };
       claim_device_pairing_session: {
-        Args: { session_id: string; code: string };
-        Returns: undefined;
+        Args: { p_session_id: string; p_code: string };
+        Returns: boolean;
       };
       get_device_pairing_session_code: {
-        Args: { session_id: string };
+        Args: { p_session_id: string };
         Returns: string;
       };
       create_device_verification_code: {
@@ -319,11 +436,7 @@ export type Database = {
         Returns: Json;
       };
       activate_device_with_license: {
-        Args: {
-          license: string;
-          device: string;
-          app_env?: string;
-        };
+        Args: { license: string; device: string; app_env?: string };
         Returns: Json;
       };
       register_device_with_license: {
@@ -371,20 +484,47 @@ export type Database = {
         Args: Record<string, never>;
         Returns: undefined;
       };
-      resolve_subscription_access: {
+      get_my_admin_profile: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      admin_get_dashboard_stats: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      admin_list_customers: {
+        Args: {
+          p_search?: string | null;
+          p_status?: string | null;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: Json;
+      };
+      admin_get_customer: {
         Args: { p_owner_id: string };
         Returns: Json;
       };
-      confirm_subscription_payment: {
+      admin_update_subscription: {
         Args: {
-          p_screen_count: number;
-          p_billing_cycle: string;
-          p_card_last4?: string | null;
+          p_owner_id: string;
+          p_action: string;
+          p_device_limit?: number | null;
+          p_subscription_ends_at?: string | null;
+          p_notes?: string | null;
+          p_internal_notes?: string | null;
         };
         Returns: Json;
       };
     };
-    Enums: Record<string, never>;
+    Enums: {
+      admin_role: "super_admin" | "admin" | "support";
+      subscription_status: "trial" | "active" | "expired" | "suspended" | "canceled";
+      device_license_status: "active" | "inactive" | "suspended";
+    };
     CompositeTypes: Record<string, never>;
   };
 };
+
+export type AdminRole = Database["public"]["Enums"]["admin_role"];
+export type SubscriptionStatus = Database["public"]["Enums"]["subscription_status"];

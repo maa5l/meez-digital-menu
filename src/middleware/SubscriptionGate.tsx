@@ -1,10 +1,11 @@
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
-import SubscriptionExpired from "@/pages/SubscriptionExpired";
 import { appEnv } from "@/config/env";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { useEffect, useState } from "react";
 import { fetchMyAdminProfile } from "@/services/admin/admin.service";
 import { SupabaseConnectionError } from "@/components/SupabaseConnectionError";
+
+const SubscriptionExpired = lazy(() => import("@/pages/SubscriptionExpired"));
 
 type Props = {
   children: React.ReactNode;
@@ -57,7 +58,17 @@ export function SubscriptionGate({ children }: Props) {
   }
 
   if (!access.dashboard_allowed) {
-    return <SubscriptionExpired />;
+    return (
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-background" aria-busy="true">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
+        <SubscriptionExpired />
+      </Suspense>
+    );
   }
 
   return <>{children}</>;

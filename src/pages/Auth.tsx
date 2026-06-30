@@ -7,6 +7,7 @@ import { Sparkles, Loader2 } from "lucide-react";
 import { Logo } from "@/components/Brand";
 import { loginSchema, signupSchema } from "@/validations/auth.schema";
 import { signInWithPassword, signUp, usesSupabaseAuth } from "@/services/auth/auth.service";
+import { resolvePostAuthRoute } from "@/services/admin/admin.service";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { appEnv } from "@/config/env";
 import { checkRateLimit } from "@/security/rate-limit";
@@ -54,7 +55,7 @@ const Auth = () => {
     try {
       await signInWithPassword(parsed.data.email, parsed.data.password);
       toast.success("مرحبًا بعودتك");
-      navigate(redirectTo, { replace: true });
+      navigate(await resolvePostAuthRoute(redirectTo), { replace: true });
     } catch (error) {
       setFieldError(getErrorMessage(error));
     } finally {
@@ -82,7 +83,7 @@ const Auth = () => {
     try {
       await signUp(parsed.data.email, parsed.data.password, parsed.data.venueName);
       toast.success("تم إنشاء الحساب — مرحباً بك");
-      navigate(redirectTo, { replace: true });
+      navigate(await resolvePostAuthRoute(redirectTo), { replace: true });
     } catch (error) {
       setFieldError(getErrorMessage(error));
     } finally {

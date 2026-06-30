@@ -1,140 +1,75 @@
-import { cropFieldLabels, localizeCrop } from "@/lib/crop-i18n";
+import { localizeCrop } from "@/lib/crop-i18n";
 import type { Crop } from "@/types/domain";
 import type { MenuLang } from "@/lib/product-i18n";
 import { cn } from "@/lib/utils";
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 
-type Lang = MenuLang;
-
-/** عنوان المحصول — لغة واحدة، وسط، خط كبير */
-export const CropTitle = ({
+/** عنصر القائمة الجانبية — بطاقة محصول مدمجة */
+export const CropListItemLabel = ({
   crop,
   lang,
-  className,
+  accentColor,
+  active,
+  featured,
 }: {
   crop: Crop;
-  lang: Lang;
-  className?: string;
+  lang: MenuLang;
+  accentColor?: string;
+  active?: boolean;
+  featured?: boolean;
 }) => {
   const localized = localizeCrop(crop, lang);
-  return (
-    <div className={cn("text-center", className)}>
-      <h2
-        dir={lang === "ar" ? "rtl" : "ltr"}
-        className="font-display text-3xl font-black leading-tight md:text-4xl lg:text-5xl"
-      >
-        {localized.beanName}
-      </h2>
-    </div>
-  );
-};
-
-/** حقل واحد — تسمية + قيمة بالوسط */
-export const CropField = ({
-  label,
-  value,
-  lang,
-  size = "card",
-}: {
-  label: string;
-  value: string;
-  lang: Lang;
-  size?: "card" | "modal";
-}) => (
-  <div className="text-center">
-    <div
-      className={cn(
-        "font-bold opacity-70",
-        size === "modal" ? "text-sm md:text-base" : "text-sm md:text-lg",
-      )}
-    >
-      {label}
-    </div>
-    <div
-      dir={lang === "ar" ? "rtl" : "ltr"}
-      className={cn(
-        "mt-1.5 font-display font-black leading-snug",
-        size === "modal" ? "text-xl md:text-2xl" : "text-xl md:text-2xl lg:text-3xl",
-      )}
-    >
-      {value || "—"}
-    </div>
-  </div>
-);
-
-/** شبكة حقول المحصول — عمود واحد في وسط الكرت */
-export const CropFieldsGrid = ({
-  crop,
-  lang,
-  size = "card",
-  className,
-}: {
-  crop: Crop;
-  lang: Lang;
-  size?: "card" | "modal";
-  className?: string;
-}) => {
-  const L = cropFieldLabels[lang];
-  const localized = localizeCrop(crop, lang);
+  const subtitle = [localized.country, localized.process]
+    .filter((v) => v && v !== "—")
+    .join(" · ");
 
   return (
     <div
       className={cn(
-        "mx-auto w-full text-center",
-        size === "modal"
-          ? "grid max-w-lg grid-cols-2 gap-x-4 gap-y-5"
-          : "flex max-w-[14rem] flex-col items-center gap-5 sm:max-w-xs sm:gap-6",
-        className,
+        "flex w-full items-center gap-3 text-start",
+        lang === "ar" ? "flex-row-reverse" : "flex-row",
       )}
     >
-      <CropField size={size} lang={lang} label={L.country} value={localized.country} />
-      <CropField size={size} lang={lang} label={L.process} value={localized.process} />
-      <CropField size={size} lang={lang} label={L.variety} value={localized.variety} />
-      <CropField size={size} lang={lang} label={L.altitude} value={localized.altitude} />
-    </div>
-  );
-};
-
-/** ملاحظات — لغة واحدة، وسط */
-export const CropNotes = ({
-  crop,
-  lang,
-  borderColor,
-  className,
-}: {
-  crop: Crop;
-  lang: Lang;
-  borderColor?: string;
-  className?: string;
-}) => {
-  const localized = localizeCrop(crop, lang);
-  if (!localized.notes) return null;
-
-  return (
-    <div
-      className={cn("mt-8 border-t pt-6 text-center", className)}
-      style={borderColor ? { borderColor: `${borderColor}25` } : undefined}
-    >
-      <p
-        dir={lang === "ar" ? "rtl" : "ltr"}
-        className="text-lg font-bold leading-relaxed md:text-xl lg:text-2xl"
-      >
-        {localized.notes}
-      </p>
-    </div>
-  );
-};
-
-/** عنصر القائمة الجانبية */
-export const CropListItemLabel = ({ crop, lang }: { crop: Crop; lang: Lang }) => {
-  const localized = localizeCrop(crop, lang);
-  return (
-    <div className="text-center">
-      <div
-        dir={lang === "ar" ? "rtl" : "ltr"}
-        className="font-display text-sm font-black leading-tight md:text-base lg:text-lg"
-      >
-        {localized.beanName}
+      <div className="min-w-0 flex-1">
+        <div
+          dir={lang === "ar" ? "rtl" : "ltr"}
+          className={cn(
+            "truncate font-display font-black leading-tight",
+            active ? "text-white" : "text-[#1a1a1a]",
+            "text-sm md:text-base",
+          )}
+        >
+          {localized.beanName}
+        </div>
+        {subtitle && (
+          <div
+            className={cn(
+              "mt-0.5 truncate text-xs font-semibold",
+              active ? "text-white/75" : "text-[#1a1a1a]/50",
+            )}
+          >
+            {subtitle}
+          </div>
+        )}
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        {featured && (
+          <Sparkles
+            className={cn("h-3.5 w-3.5", active ? "text-white/90" : "opacity-70")}
+            style={!active && accentColor ? { color: accentColor } : undefined}
+            aria-hidden
+          />
+        )}
+        {lang === "ar" ? (
+          <ChevronLeft className={cn("h-4 w-4", active ? "text-white/70" : "text-[#1a1a1a]/30")} />
+        ) : (
+          <ChevronRight className={cn("h-4 w-4", active ? "text-white/70" : "text-[#1a1a1a]/30")} />
+        )}
       </div>
     </div>
   );
 };
+
+export { default as CropDetailView } from "@/components/menu/crop/CropDetailView";
+export { default as CropCarouselCard } from "@/components/menu/crop/CropCarouselCard";
+export { default as CropHeroImage } from "@/components/menu/crop/CropHeroImage";

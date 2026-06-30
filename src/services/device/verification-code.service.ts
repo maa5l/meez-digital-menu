@@ -19,7 +19,7 @@ function storageKey(ownerId: string): string {
   return `${VERIFICATION_PREFIX}${ownerId}`;
 }
 
-function useCloud(): boolean {
+function isCloudVerificationEnabled(): boolean {
   return isSupabaseConfigured() && !appEnv.useLocalMockAuth;
 }
 
@@ -30,19 +30,19 @@ function verificationErrorMessage(error: { message?: string; code?: string }): s
     msg.includes("create_device_verification_code") ||
     msg.includes("Could not find the function")
   ) {
-    return "دوال كود التحقق غير موجودة. نفّذ supabase/FIX_VERIFICATION_CODE.sql في Supabase SQL Editor.";
+    return "دوال كود التحقق غير موجودة. طبّق migrations في supabase/migrations/.";
   }
   if (msg.includes("profiles") && msg.includes("does not exist")) {
-    return "جدول profiles غير موجود. نفّذ supabase/FIX_VERIFICATION_CODE.sql في SQL Editor (الملف الكامل).";
+    return "جدول profiles غير موجود. طبّق migrations في supabase/migrations/.";
   }
   if (msg.includes("device_pairing_sessions") && msg.includes("does not exist")) {
-    return "جدول device_pairing_sessions غير موجود. نفّذ supabase/FIX_VERIFICATION_CODE.sql في SQL Editor.";
+    return "جدول device_pairing_sessions غير موجود. طبّق migrations في supabase/migrations/.";
   }
   if (error.code === "42501" || msg.toLowerCase().includes("row-level security")) {
-    return "صلاحيات غير كافية. تأكد من تسجيل الدخول ثم نفّذ FIX_VERIFICATION_CODE.sql.";
+    return "صلاحيات غير كافية. تأكد من تسجيل الدخول وتطبيق migrations.";
   }
   if (appEnv.isDev) return msg || "خطأ غير معروف";
-  return "تعذّر إنشاء كود التحقق. نفّذ supabase/FIX_VERIFICATION_CODE.sql في Supabase.";
+  return "تعذّر إنشاء كود التحقق. تحقق من Supabase وتطبيق migrations.";
 }
 
 async function createVerificationCodeInTable(
@@ -67,7 +67,7 @@ export async function createVerificationCode(ownerId: string): Promise<{
 }> {
   const code = generateDeviceCode();
 
-  if (useCloud()) {
+  if (isCloudVerificationEnabled()) {
     const supabase = getSupabase();
     const { data, error } = await supabase.rpc("create_device_verification_code", {
       p_code: code,
@@ -130,7 +130,7 @@ export async function verifyLoginVerificationCode(
   const normalized = code.trim().toUpperCase();
   if (!isValidDeviceCode(normalized)) return false;
 
-  if (!useCloud()) {
+  if (!isCloudVerificationEnabled()) {
     if (typeof window === "undefined") return false;
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -233,7 +233,7 @@ export async function ensureOwnerVerificationSession(
     return { ok: false, normalizedCode: normalized, reason: "invalid_format" };
   }
 
-  if (!useCloud()) {
+  if (!isCloudVerificationEnabled()) {
     const valid = await validateVerificationCode(normalized);
     logger.info("verification.ensure_local", { normalizedCode: normalized, valid });
     return { ok: valid, normalizedCode: normalized, reason: "local_mock" };
@@ -335,7 +335,7 @@ export async function verifyOwnerVerificationCode(code: string): Promise<boolean
   const normalized = code.trim().toUpperCase();
   if (!isValidDeviceCode(normalized)) return false;
 
-  if (!useCloud()) {
+  if (!isCloudVerificationEnabled()) {
     return validateVerificationCode(normalized);
   }
 
@@ -353,7 +353,7 @@ export async function verifyOwnerVerificationCode(code: string): Promise<boolean
 
 export async function consumeVerificationCode(code: string): Promise<void> {
   const normalized = code.trim().toUpperCase();
-  if (!useCloud()) return;
+  if (!isCloudVerificationEnabled()) return;
 
   const { error } = await getSupabase().rpc("consume_verification_code", {
     p_code: normalized,
@@ -369,7 +369,7 @@ export async function validateVerificationCode(code: string): Promise<boolean> {
   const normalized = code.trim().toUpperCase();
   if (!isValidDeviceCode(normalized)) return false;
 
-  if (useCloud()) {
+  if (isCloudVerificationEnabled()) {
     const { data, error } = await getSupabase().rpc("validate_device_verification_code", {
       p_code: normalized,
     });

@@ -23,7 +23,9 @@ type Props = {
   onLangToggle?: () => void;
   subheader?: React.ReactNode;
   children: React.ReactNode;
-  scrollRef: React.Ref<HTMLDivElement>;
+  scrollRef?: React.Ref<HTMLDivElement>;
+  /** panel = ملء الشاشة بدون تمرير عمودي للصفحة (قائمة + تفاصيل) */
+  layoutMode?: "scroll" | "panel";
 };
 
 /** هيدر ثابت + تصنيفات/لغة مثبتة تحته مباشرة */
@@ -37,6 +39,7 @@ export function MenuProductTopChrome({
   subheader,
   children,
   scrollRef,
+  layoutMode = "scroll",
 }: Props) {
   const layout = useMenuLayoutMetrics();
   const hasSubheader = Boolean(subheader);
@@ -46,45 +49,73 @@ export function MenuProductTopChrome({
   const palette = getProductsPalette(settings);
   const calorieColor = getCalorieDisclaimerColor(headerCustomization, palette.textColor);
   const headerFg = headerCustomization.headerTextColor ?? palette.textColor;
+  const panelFlow = layoutMode === "panel";
+
+  const headerNode = hideHeader ? (
+    <MenuFixedCalorieBar
+      lang={lang}
+      textColor={calorieColor}
+      headerFg={headerFg}
+      customization={headerCustomization}
+      showLang={showLangInCompactBar}
+      onLangToggle={onLangToggle}
+      embedded={panelFlow}
+    />
+  ) : (
+    <MenuProductHeader
+      settings={settings}
+      lang={lang}
+      visible={visible}
+      embedded={panelFlow}
+    />
+  );
+
+  const subheaderNode = hasSubheader ? (
+    <MenuProductSubheaderBar settings={settings}>{subheader}</MenuProductSubheaderBar>
+  ) : null;
+
+  const contentNode = (
+    <div
+      ref={scrollRef}
+      className={cn(
+        "min-h-0 flex-1",
+        headerHideTransition,
+        menuChromeMotion,
+        panelFlow
+          ? "flex h-0 flex-col overflow-hidden"
+          : "touch-pan-y overflow-x-hidden overflow-y-auto overscroll-y-contain",
+      )}
+      style={{
+        paddingTop: panelFlow ? undefined : scrollPaddingTop,
+        WebkitOverflowScrolling: panelFlow ? undefined : "touch",
+      }}
+    >
+      {children}
+    </div>
+  );
+
+  if (panelFlow) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {headerNode}
+        {subheaderNode && <div className="relative z-[45] shrink-0">{subheaderNode}</div>}
+        {contentNode}
+      </div>
+    );
+  }
 
   return (
     <>
-      {hideHeader ? (
-        <MenuFixedCalorieBar
-          lang={lang}
-          textColor={calorieColor}
-          headerFg={headerFg}
-          customization={headerCustomization}
-          showLang={showLangInCompactBar}
-          onLangToggle={onLangToggle}
-        />
-      ) : (
-        <MenuProductHeader settings={settings} lang={lang} visible={visible} />
-      )}
-
-      {hasSubheader && (
+      {headerNode}
+      {subheaderNode && (
         <div
           className={cn("fixed inset-x-0 z-[45]", headerHideTransition, menuChromeMotion)}
           style={{ top: subheaderTop }}
         >
-          <MenuProductSubheaderBar settings={settings}>{subheader}</MenuProductSubheaderBar>
+          {subheaderNode}
         </div>
       )}
-
-      <div
-        ref={scrollRef}
-        className={cn(
-          "min-h-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-auto overscroll-y-contain",
-          headerHideTransition,
-          menuChromeMotion,
-        )}
-        style={{
-          paddingTop: scrollPaddingTop,
-          WebkitOverflowScrolling: "touch",
-        }}
-      >
-        {children}
-      </div>
+      {contentNode}
     </>
   );
 }

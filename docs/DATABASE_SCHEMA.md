@@ -1,4 +1,7 @@
-# Database Schema — Dynamic Menu System
+# Database Schema
+
+> **Source of truth:** `supabase/migrations/` (Supabase Postgres).  
+> The legacy FastAPI/Alembic schema below is **deprecated** and kept for historical reference only.
 
 ## ERD (مبسّط)
 

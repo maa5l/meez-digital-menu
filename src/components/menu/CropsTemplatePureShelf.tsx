@@ -1,71 +1,54 @@
-import { useCallback, useRef, useState } from "react";
+import { useState } from "react";
 import type { Crop, MenuSettings } from "@/types/domain";
-import { Sparkles } from "lucide-react";
 import CropDetailModal from "@/components/menu/CropDetailModal";
 import CropFeatureCard from "@/components/menu/CropFeatureCard";
 import { CropListItemLabel } from "@/components/menu/CropDisplay";
-import MenuLangToggle from "@/components/menu/MenuLangToggle";
 import { MenuCropsTopChrome } from "@/components/menu/MenuCropsTopChrome";
-import { MenuProductSubheaderBar } from "@/components/menu/MenuProductTopChrome";
 import { useMenuLang } from "@/context/MenuLangContext";
-import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
-import { cropFieldLabels } from "@/lib/crop-i18n";
 import { getCropsHeaderCustomization, isCropsLangToggleEnabled } from "@/lib/menu-header-settings";
 import { getCropsPalette, palettePageStyle } from "@/lib/menu-palette";
+import { menuContentEnter } from "@/lib/menu-header";
+import { cn } from "@/lib/utils";
 
 /**
- * Crops Template — "Featured Detail + Side List".
- * Mobile: القائمة أولاً ثم بطاقة التفاصيل تحتها مباشرة.
+ * Crops Template — قائمة جانبية + بطاقة تفاصيل كتالوج قهوة.
  */
 const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; crops: Crop[] }) => {
   const { lang, toggleLang } = useMenuLang();
   const [modal, setModal] = useState<Crop | null>(null);
-  const detailRef = useRef<HTMLDivElement>(null);
   const cropsHeader = getCropsHeaderCustomization(settings);
   const showLang = isCropsLangToggleEnabled(settings);
   const hideHeader = cropsHeader.hideHeader === true;
-  const autoHideHeader = !hideHeader && cropsHeader.autoHideHeaderOnScroll !== false;
-  const { scrollRef, headerVisible } = useProductTemplateScroll(autoHideHeader);
 
   const initial = crops.find((c) => c.id === settings.featuredCropId) || crops[0]!;
   const [active, setActive] = useState<Crop>(initial);
   const palette = getCropsPalette(settings);
   const pageBg = palettePageStyle(palette);
 
-  const selectCrop = useCallback((crop: Crop) => {
-    setActive(crop);
-    requestAnimationFrame(() => {
-      detailRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    });
-  }, []);
-
   return (
-    <div className="relative flex h-full min-h-0 flex-col" dir={lang === "ar" ? "rtl" : "ltr"} style={pageBg}>
+    <div
+      className={cn("relative flex h-full min-h-0 flex-col overflow-hidden", menuContentEnter)}
+      dir={lang === "ar" ? "rtl" : "ltr"}
+      style={pageBg}
+      key={lang}
+    >
       <MenuCropsTopChrome
         settings={settings}
         lang={lang}
-        visible={headerVisible}
+        visible
         hideHeader={hideHeader}
+        showLang={!hideHeader && showLang}
         showLangInCompactBar={hideHeader && showLang}
         onLangToggle={toggleLang}
-        scrollRef={scrollRef}
-        subheader={
-          !hideHeader && showLang ? (
-            <MenuProductSubheaderBar settings={settings}>
-              <div className="flex justify-end" dir="ltr">
-                <MenuLangToggle
-                  lang={lang}
-                  textColor={palette.textColor}
-                  onToggle={toggleLang}
-                  variant="tab"
-                />
-              </div>
-            </MenuProductSubheaderBar>
-          ) : undefined
-        }
+        layoutMode="panel"
       >
-        <div className="flex min-h-[60vh] flex-col gap-4 p-4 md:grid md:grid-cols-[1fr_260px] md:gap-4 md:p-6">
-          <aside className="order-1 flex flex-col gap-3 md:order-2">
+        <div
+          className={cn(
+            "grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-hidden p-3 md:grid-cols-[minmax(200px,28%)_1fr] md:items-stretch md:gap-4 md:p-4 ipad-lg:grid-cols-[minmax(220px,26%)_1fr] ipad-lg:p-5",
+            menuContentEnter,
+          )}
+        >
+          <aside className="order-2 flex min-h-0 flex-col gap-2 overflow-y-auto overscroll-y-contain md:order-1">
             {crops.map((c) => {
               const isActive = c.id === active.id;
               const isFeatured = c.id === settings.featuredCropId;
@@ -73,30 +56,38 @@ const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; c
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => selectCrop(c)}
-                  className="relative w-full rounded-2xl px-5 py-4 text-center transition-all"
+                  onClick={() => setActive(c)}
+                  className={cn(
+                    "w-full rounded-2xl px-4 py-3.5 text-start transition-all touch-manipulation",
+                    "ring-1 ring-black/[0.04]",
+                    isActive ? "shadow-md" : "bg-white/60 hover:bg-white/90",
+                  )}
                   style={{
-                    background: isActive ? palette.accentColor : `${palette.textColor}15`,
+                    background: isActive ? palette.accentColor : undefined,
                     color: isActive ? "#fff" : palette.textColor,
+                    boxShadow: isActive ? `0 4px 20px ${palette.accentColor}35` : undefined,
                   }}
                 >
-                  <CropListItemLabel crop={c} lang={lang} />
-                  {isFeatured && (
-                    <Sparkles
-                      className="absolute end-3 top-3 h-3.5 w-3.5 opacity-90"
-                      aria-label={cropFieldLabels[lang].featured}
-                    />
-                  )}
+                  <CropListItemLabel
+                    crop={c}
+                    lang={lang}
+                    accentColor={palette.accentColor}
+                    active={isActive}
+                    featured={isFeatured}
+                  />
                 </button>
               );
             })}
           </aside>
 
-          <div ref={detailRef} className="order-2 md:order-1">
+          <div className="order-1 min-h-0 overflow-hidden md:order-2">
             <CropFeatureCard
               crop={active}
               lang={lang}
+              accentColor={palette.accentColor}
               fallbackTextColor={palette.textColor}
+              featured={active.id === settings.featuredCropId}
+              className="h-full max-h-full"
               onOpen={() => setModal(active)}
             />
           </div>

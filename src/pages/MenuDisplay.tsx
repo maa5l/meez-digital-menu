@@ -198,29 +198,31 @@ const MenuDisplayShell = ({
           {ui.gracePeriodBanner}
         </div>
       )}
-      {type === "crops" ? (
-        cropsEmpty ? (
-          <MenuEmptyState settings={settings} type="crops" />
-        ) : cropsTpl === "molo" ? (
-          <CropsTemplateMolo settings={settings} crops={venue.crops} />
+      <div className="min-h-0 flex-1 overflow-hidden">
+        {type === "crops" ? (
+          cropsEmpty ? (
+            <MenuEmptyState settings={settings} type="crops" />
+          ) : cropsTpl === "molo" ? (
+            <CropsTemplateMolo settings={settings} crops={venue.crops} />
+          ) : (
+            <CropsTemplatePureShelf settings={settings} crops={venue.crops} />
+          )
+        ) : productsEmpty ? (
+          <MenuEmptyState settings={settings} type="products" />
+        ) : settings.productTemplate === "detail" ? (
+          <TemplateProductsDetail
+            settings={settings}
+            categories={venue.categories}
+            products={venue.products}
+          />
         ) : (
-          <CropsTemplatePureShelf settings={settings} crops={venue.crops} />
-        )
-      ) : productsEmpty ? (
-        <MenuEmptyState settings={settings} type="products" />
-      ) : settings.productTemplate === "detail" ? (
-        <TemplateProductsDetail
-          settings={settings}
-          categories={venue.categories}
-          products={venue.products}
-        />
-      ) : (
-        <TemplateProductsFeatured
-          settings={settings}
-          categories={venue.categories}
-          products={venue.products}
-        />
-      )}
+          <TemplateProductsFeatured
+            settings={settings}
+            categories={venue.categories}
+            products={venue.products}
+          />
+        )}
+      </div>
     </div>
   );
 };

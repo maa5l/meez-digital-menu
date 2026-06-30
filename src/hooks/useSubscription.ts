@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { OwnerSubscription, SubscriptionAccess } from "@/types/subscription";
 import { appEnv } from "@/config/env";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -36,6 +36,7 @@ export function useSubscription(): {
   const [loading, setLoading] = useState(
     () => Boolean(isSupabaseConfigured() && !appEnv.useLocalMockAuth),
   );
+  const initialLoadDoneRef = useRef(false);
 
   const localAccess = accessFromVenueSubscription(
     venue.subscription,
@@ -57,7 +58,8 @@ export function useSubscription(): {
       return;
     }
 
-    setLoading(true);
+    const showSpinner = !initialLoadDoneRef.current;
+    if (showSpinner) setLoading(true);
     try {
       const { data: authData } = await getSupabase().auth.getSession();
       if (!authData.session?.user?.id) {
@@ -71,6 +73,7 @@ export function useSubscription(): {
       if (result.ok) {
         setSubscription(result.data);
         setLoadState({ kind: "ok" });
+        initialLoadDoneRef.current = true;
       } else if (result.isNetwork) {
         setSubscription(null);
         setLoadState({ kind: "network_error", message: result.message });
@@ -92,7 +95,7 @@ export function useSubscription(): {
           : { kind: "server_error", message },
       );
     } finally {
-      setLoading(false);
+      if (showSpinner || initialLoadDoneRef.current) setLoading(false);
     }
   }, []);
 
@@ -102,7 +105,9 @@ export function useSubscription(): {
 
   useEffect(() => {
     if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) return;
-    const { data: sub } = getSupabase().auth.onAuthStateChange(() => {
+    const { data: sub } = getSupabase().auth.onAuthStateChange((event) => {
+      // تجديد التوكن يحدث باستمرار — لا نعيد تحميل الواجهة عنده
+      if (event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") return;
       void refresh();
     });
     return () => sub.subscription.unsubscribe();
@@ -137,12 +142,15 @@ export function useSyncVenueSubscription(): void {
       }
       return { ...v, subscription: next };
     });
+    // access fields listed individually to avoid syncing on unrelated access mutations
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     access.status,
     access.screen_count,
     access.active_device_count,
     access.trial_ends_at,
     access.subscription_ends_at,
+    access.dashboard_allowed,
     updateVenue,
   ]);
 }

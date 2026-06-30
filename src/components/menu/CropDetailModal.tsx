@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { X, Sparkles } from "lucide-react";
-import type { Crop } from "@/types/domain";
-import { CropFieldsGrid, CropNotes, CropTitle } from "@/components/menu/CropDisplay";
+import CropDetailView from "@/components/menu/crop/CropDetailView";
 import { cropFieldLabels } from "@/lib/crop-i18n";
-import { resolveCropSurface } from "@/lib/crop-surface";
+import type { Crop } from "@/types/domain";
+import { cn } from "@/lib/utils";
 
 type Props = {
   crop: Crop;
@@ -13,71 +13,87 @@ type Props = {
   onClose: () => void;
 };
 
+/** نافذة تفاصيل المحصول — ملء شاشة الآيباد */
 const CropDetailModal = ({ crop, lang, accent, featured, onClose }: Props) => {
   const L = cropFieldLabels[lang];
-  const [imageFailed, setImageFailed] = useState(false);
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    setImageFailed(false);
-  }, [crop.id, crop.image]);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
 
-  const surface = resolveCropSurface(crop, { textColor: "#1a1a1a", cardColor: "#f4f4f5" });
-  const showHeroImage = surface.hasImageBg && !imageFailed;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-4 backdrop-blur-md md:p-6"
+      className="fixed inset-0 z-[60] flex bg-black/75 backdrop-blur-sm"
       onClick={onClose}
       dir={lang === "ar" ? "rtl" : "ltr"}
       role="dialog"
       aria-modal="true"
+      aria-labelledby="crop-modal-title"
     >
       <div
-        className="flex w-full max-w-[min(94vw,520px)] flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-2xl max-h-[min(90dvh,680px)] md:max-w-[min(92vw,640px)] md:flex-row md:max-h-[min(88dvh,560px)]"
+        className={cn(
+          "relative flex h-[100dvh] w-full max-w-full flex-col overflow-hidden bg-[#faf8f5]",
+          "pb-[env(safe-area-inset-bottom)]",
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         <div
-          className="relative min-h-[8rem] shrink-0 overflow-hidden px-5 pb-6 pt-4 md:w-[42%] md:min-h-0 md:flex md:flex-col md:justify-end md:px-6 md:pb-6 md:pt-5"
-          style={{ background: surface.background, color: surface.foreground }}
-        >
-          {showHeroImage && surface.imageUrl && (
-            <>
-              <img
-                src={surface.imageUrl}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover"
-                onError={() => setImageFailed(true)}
-              />
-              <div className="absolute inset-0 bg-black/45" aria-hidden />
-            </>
+          className={cn(
+            "z-20 flex shrink-0 items-center justify-between border-b border-black/[0.05] bg-[#faf8f5]/95 px-4 py-3 backdrop-blur-md md:px-6",
+            "pt-[max(0.75rem,env(safe-area-inset-top))]",
+            lang === "ar" ? "flex-row-reverse" : "flex-row",
           )}
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="relative z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-[#1a1a1a] shadow-sm"
-            aria-label={L.close}
-          >
-            <X className="h-5 w-5" />
-          </button>
-
-          <div className="relative z-10 mt-6">
+        >
+          <div className="flex min-w-0 items-center gap-2">
             {featured && (
               <span
-                className="mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-white"
+                className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold text-white"
                 style={{ background: accent }}
               >
-                <Sparkles className="h-3.5 w-3.5" />
+                <Sparkles className="h-3 w-3" aria-hidden />
                 {L.featured}
               </span>
             )}
-            <CropTitle crop={crop} lang={lang} />
+            <span
+              id="crop-modal-title"
+              className="truncate text-xs font-bold uppercase tracking-wider text-[#1a1a1a]/40"
+            >
+              {crop.beanName}
+            </span>
           </div>
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={onClose}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-[#1a1a1a] shadow-sm ring-1 ring-black/[0.08] touch-manipulation"
+            aria-label={L.close}
+          >
+            <X className="h-5 w-5" aria-hidden />
+          </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-3 text-center text-[#1a1a1a] md:px-6 md:pb-6 md:pt-4">
-          <CropFieldsGrid crop={crop} lang={lang} size="modal" className="gap-4 md:gap-5" />
-          <CropNotes crop={crop} lang={lang} className="border-black/10" />
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 md:px-6 md:py-5 ipad-lg:px-8">
+          <CropDetailView
+            crop={crop}
+            lang={lang}
+            accentColor={accent}
+            featured={false}
+            variant="full"
+          />
         </div>
       </div>
     </div>

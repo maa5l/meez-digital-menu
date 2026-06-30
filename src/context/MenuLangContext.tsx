@@ -18,5 +18,6 @@ export function MenuLangProvider({ children }: { children: ReactNode }) {
 /** لغة المنيو — يستخدم السياق إن وُجد، وإلا حالة محلية */
 export function useMenuLang() {
   const ctx = useContext(MenuLangContext);
-  return ctx ?? useMenuLangState();
+  const local = useMenuLangState();
+  return ctx ?? local;
 }

@@ -13,19 +13,19 @@ const PROFILE_SELECT =
 function profileErrorMessage(error: { message?: string; code?: string }): string {
   const msg = error.message ?? "خطأ غير معروف";
   if (error.code === "PGRST204" && msg.includes("phone")) {
-    return "عمود phone غير موجود. نفّذ supabase/FIX_PROFILES_PHONE.sql في Supabase SQL Editor.";
+    return "عمود phone غير موجود. طبّق migrations في supabase/migrations/ على المشروع.";
   }
   if (msg.includes("relation") && msg.includes("profiles")) {
-    return "جدول profiles غير موجود. نفّذ supabase/FIX_PROFILES.sql في SQL Editor.";
+    return "جدول profiles غير موجود. طبّق migrations في supabase/migrations/.";
   }
   if (error.code === "42501" || msg.toLowerCase().includes("row-level security")) {
-    return "صلاحيات profiles ناقصة. نفّذ supabase/FIX_PROFILES.sql في SQL Editor.";
+    return "صلاحيات profiles ناقصة. تأكد من تسجيل الدخول وتطبيق migrations.";
   }
   if (error.code === "PGRST202" || msg.includes("ensure_profile")) {
-    return "دالة ensure_profile غير موجودة. نفّذ supabase/FIX_PROFILES_PHONE.sql في SQL Editor.";
+    return "دالة ensure_profile غير موجودة. طبّق migrations في supabase/migrations/.";
   }
   if (appEnv.isDev) return `${msg}${error.code ? ` (${error.code})` : ""}`;
-  return "تعذّر حفظ الملف الشخصي. نفّذ supabase/FIX_PROFILES_PHONE.sql ثم أعد المحاولة.";
+  return "تعذّر حفظ الملف الشخصي. تحقق من اتصال Supabase وتطبيق migrations.";
 }
 
 function isMissingPhoneColumn(error: { message?: string; code?: string }): boolean {

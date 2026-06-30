@@ -89,3 +89,14 @@ export function getCalorieDisclaimerColor(
 ): string {
   return header.calorieTextColor ?? fallback;
 }
+
+/** ارتفاع منطقة محتوى المنيو — يملأ الشاشة تحت الهيدر (آيباد) */
+export function getMenuPanelContentHeight(
+  scrollPaddingTop: number,
+  bottomInset = 12,
+): string {
+  return `calc(100dvh - ${scrollPaddingTop + bottomInset}px)`;
+}
+
+/** @deprecated استخدم getMenuPanelContentHeight */
+export const getMenuCropsContentHeight = getMenuPanelContentHeight;

@@ -1,148 +1,69 @@
-# API Documentation — Meez Menu API v1
+# API Reference (Supabase RPCs)
 
-**Base URL:** `http://localhost:8000/api/v1`  
-**Swagger:** `http://localhost:8000/docs`
+The production API is **Supabase Postgres RPCs** called from the React app via `@supabase/supabase-js`.
+
+There is no separate REST API required for dashboard, admin, or kiosk flows.
 
 ## Authentication
 
-```http
-POST /auth/token
-Content-Type: application/json
+All owner/admin RPCs require a valid Supabase session (`auth.uid()`).
 
-{ "email": "owner@meez.app", "password": "MeezOwner2026!" }
-```
+## Owner / dashboard
 
-Response:
-```json
-{
-  "access_token": "eyJ...",
-  "token_type": "bearer",
-  "user_id": "uuid",
-  "venue_id": "uuid",
-  "role": "owner"
-}
-```
+| RPC | Purpose |
+|-----|---------|
+| `ensure_profile` | Create/update profile on login |
+| `ensure_venue_for_owner` | Link venue row to owner |
+| `ensure_subscription_for_owner` | Create 7-day trial if missing |
+| `get_owner_subscription` | Subscription + access flags |
+| `get_dashboard_preview_venue` | Venue JSON for preview (subscription-gated) |
+| `update_venue_data` | Authoritative venue JSONB writes |
+| `get_owner_venue` | Read venue for owner |
+| `list_owner_devices` | Active devices |
+| `deactivate_all_my_devices` | Deactivate all owner devices |
 
-All protected routes: `Authorization: Bearer <access_token>`
+## Device pairing / licensing
 
-### RBAC
+| RPC | Purpose |
+|-----|---------|
+| `create_device_pairing_session` | Start pairing from dashboard |
+| `claim_device_pairing_session` | iPad claims code |
+| `get_device_pairing_session_code` | Dashboard polls for code |
+| `create_device_verification_code` | Verification flow |
+| `register_device_with_license` | Register device with subscription check |
+| `activate_device_with_license` | Activate licensed device |
 
-| Role | Read | Write |
-|------|------|-------|
-| viewer | ✓ | |
-| staff | ✓ | ✓ |
-| owner | ✓ | ✓ |
-| admin | ✓ | ✓ |
+## Kiosk (public / device)
 
----
+| RPC | Purpose |
+|-----|---------|
+| `get_kiosk_venue` | Menu payload by device code |
+| `get_kiosk_state` | Kiosk state + rate limit gate |
+| `check_kiosk_access` | Access check |
+| `record_device_heartbeat` | Heartbeat |
 
-## Health
+## Platform admin
 
-`GET /health` → `{ "status": "ok", "service": "meez-menu-api" }`
+| RPC | Min role | Purpose |
+|-----|----------|---------|
+| `get_my_admin_profile` | authenticated | Admin role probe |
+| `admin_get_dashboard_stats` | support | Dashboard metrics |
+| `admin_list_customers` | support | Customer search/list |
+| `admin_get_customer` | support | Customer detail + history |
+| `admin_update_subscription` | admin | activate/suspend/extend/trial reset |
 
----
+Role ranks: `support` < `admin` < `super_admin`.
 
-## Products
+## Service role only (never expose to browser)
 
-| Method | Path | Auth |
-|--------|------|------|
-| POST | `/products` | staff+ |
-| GET | `/products?page=1&page_size=20` | viewer+ |
-| GET | `/products/search?q=latte` | viewer+ |
-| GET | `/products/{id}` | viewer+ |
-| PATCH | `/products/{id}` | staff+ |
-| DELETE | `/products/{id}` | staff+ (soft) |
+- `refresh_subscription_state`
+- `resolve_subscription_access`
+- `write_audit_log`
+- `deactivate_all_devices_for_owner`
+- `process_billing_webhook` (removed in manual subscription migration)
 
----
+## Migrations
 
-## Crops
+Schema and RPC definitions live in `supabase/migrations/`. Apply in order through the latest file before production.
 
-| Method | Path |
-|--------|------|
-| POST | `/crops` |
-| GET | `/crops` |
-| GET | `/crops/{id}` |
-| PATCH | `/crops/{id}` |
-| DELETE | `/crops/{id}` |
-
----
-
-## Categories
-
-| Method | Path |
-|--------|------|
-| POST | `/categories` |
-| GET | `/categories` |
-| PATCH | `/categories/{id}` |
-| DELETE | `/categories/{id}` |
-
----
-
-## Images
-
-`POST /images` — `multipart/form-data`
-
-| Field | Type |
-|-------|------|
-| file | binary (required) |
-| alt_text | string |
-| type | product \| crop \| general |
-
-Limits: 5MB, JPEG/PNG/WebP/GIF. Rate limit: 20/min.
-
----
-
-## Menu (Dynamic)
-
-`GET /menu?no_cache=false`
-
-Builds menu from DB — menu_items or auto-generated sections.
-
-```json
-{
-  "venue_id": "uuid",
-  "role": "owner",
-  "menu": [
-    {
-      "title": "Products",
-      "type": "product",
-      "items": [
-        {
-          "id": "uuid",
-          "name": "Latte",
-          "type": "product",
-          "image": "http://localhost:8000/uploads/....jpg",
-          "price": 18,
-          "description": "...",
-          "meta": { "category": "مشروبات" }
-        }
-      ]
-    }
-  ],
-  "generated_at": "2026-05-17T12:00:00+00:00",
-  "cached": false
-}
-```
-
----
-
-## Auth / Register
-
-`POST /auth/register` — creates venue + first user as `owner`.
-
-```json
-{
-  "name": "أحمد",
-  "email": "owner@cafe.com",
-  "password": "SecurePass123",
-  "venue_slug": "my-cafe"
-}
-```
-
----
-
-## Environment
-
-See `backend/.env.example` and `docker-compose.api.yml`.
-
-Frontend: set `VITE_API_BASE_URL=http://localhost:8000/api/v1`
+See `docs/MANUAL_SUBSCRIPTION.md` for admin bootstrap and trial policy.

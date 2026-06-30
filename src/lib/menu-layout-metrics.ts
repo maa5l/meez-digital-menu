@@ -1,3 +1,5 @@
+import { HEADER_IMAGE_SPEC } from "@/lib/header-image-spec";
+
 /** مقاسات تخطيط المنيو حسب عرض الشاشة — مُحسَّنة للآيباد */
 export type MenuViewportTier = "compact" | "ipad-portrait" | "ipad-landscape";
 
@@ -10,24 +12,28 @@ export type MenuLayoutMetrics = {
   compactTopHeight: number;
 };
 
+/** ارتفاع بانر الهيدر على العرض — نفس نسبة العرض في header-image-spec */
+const HEADER_DISPLAY_RATIO =
+  HEADER_IMAGE_SPEC.displayHeight / HEADER_IMAGE_SPEC.displayWidth;
+
 const METRICS_BY_TIER: Record<MenuViewportTier, Omit<MenuLayoutMetrics, "tier">> = {
   compact: {
     headerHeight: 200,
-    subheaderHeight: 40,
+    subheaderHeight: 44,
     logoSizePx: 64,
     calorieRowHeight: 46,
     compactTopHeight: 84,
   },
   "ipad-portrait": {
     headerHeight: 220,
-    subheaderHeight: 42,
+    subheaderHeight: 48,
     logoSizePx: 72,
     calorieRowHeight: 48,
     compactTopHeight: 92,
   },
   "ipad-landscape": {
     headerHeight: 240,
-    subheaderHeight: 44,
+    subheaderHeight: 52,
     logoSizePx: 72,
     calorieRowHeight: 48,
     compactTopHeight: 92,
@@ -45,9 +51,28 @@ export function getMenuViewportTier(viewportWidth: number): MenuViewportTier {
   return "compact";
 }
 
+/** ارتفاع الهيدر المتناسب مع عرض الشاشة (بانر 1024×240 على الآيباد أفقي) */
+export function getBannerHeaderHeight(viewportWidth: number): number {
+  return Math.round(viewportWidth * HEADER_DISPLAY_RATIO);
+}
+
+function resolveHeaderHeight(viewportWidth: number, tier: MenuViewportTier): number {
+  const proportional = getBannerHeaderHeight(viewportWidth);
+  const floor = METRICS_BY_TIER[tier].headerHeight;
+  if (tier === "compact") {
+    return Math.max(floor, Math.min(proportional, 220));
+  }
+  return Math.max(floor, proportional);
+}
+
 export function getMenuLayoutMetrics(viewportWidth: number): MenuLayoutMetrics {
   const tier = getMenuViewportTier(viewportWidth);
-  return { tier, ...METRICS_BY_TIER[tier] };
+  const base = METRICS_BY_TIER[tier];
+  return {
+    tier,
+    ...base,
+    headerHeight: resolveHeaderHeight(viewportWidth, tier),
+  };
 }
 
 /** قيم افتراضية للآيباد أفقي — للاستيراد الثابت حيث لا يتوفر عرض الشاشة */

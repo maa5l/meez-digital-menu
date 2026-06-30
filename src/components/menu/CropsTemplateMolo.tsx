@@ -1,28 +1,49 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Crop, MenuSettings } from "@/types/domain";
-import { Sparkles } from "lucide-react";
+import CropCarouselCard from "@/components/menu/crop/CropCarouselCard";
 import CropDetailModal from "@/components/menu/CropDetailModal";
-import { CropFieldsGrid, CropNotes, CropTitle } from "@/components/menu/CropDisplay";
-import MenuLangToggle from "@/components/menu/MenuLangToggle";
 import { MenuCropsTopChrome } from "@/components/menu/MenuCropsTopChrome";
-import { MenuProductSubheaderBar } from "@/components/menu/MenuProductTopChrome";
 import { useMenuLang } from "@/context/MenuLangContext";
-import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
-import { cropFieldLabels } from "@/lib/crop-i18n";
 import { getCropsHeaderCustomization, isCropsLangToggleEnabled } from "@/lib/menu-header-settings";
 import { getCropsPalette, palettePageStyle } from "@/lib/menu-palette";
+import { menuContentEnter } from "@/lib/menu-header";
+import { cn } from "@/lib/utils";
+
+const CROP_CARD_ASPECT = 3 / 4;
 
 /**
- * Crops Template — "Featured Header + Cards Carousel".
+ * Crops Template — عرض أفقي بطاقات كتالوج قهوة متخصصة (تمرير يمين/يسار فقط).
  */
 const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops: Crop[] }) => {
   const { lang, toggleLang } = useMenuLang();
   const [modal, setModal] = useState<Crop | null>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [cardHeight, setCardHeight] = useState(0);
   const cropsHeader = getCropsHeaderCustomization(settings);
   const showLang = isCropsLangToggleEnabled(settings);
   const hideHeader = cropsHeader.hideHeader === true;
-  const autoHideHeader = !hideHeader && cropsHeader.autoHideHeaderOnScroll !== false;
-  const { scrollRef, headerVisible } = useProductTemplateScroll(autoHideHeader);
+  const headerVisible = true;
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+
+    const measure = () => {
+      const h = el.clientHeight;
+      if (h > 0) setCardHeight(h);
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener("resize", measure);
+    window.addEventListener("orientationchange", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("orientationchange", measure);
+    };
+  }, [hideHeader, headerVisible]);
 
   const ordered = settings.featuredCropId
     ? [
@@ -33,92 +54,50 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
 
   const palette = getCropsPalette(settings);
   const bgStyle = palettePageStyle(palette);
+  const cardWidth = cardHeight > 0 ? Math.round(cardHeight * CROP_CARD_ASPECT) : undefined;
 
   return (
-    <div className="relative h-full flex flex-col min-h-0" dir={lang === "ar" ? "rtl" : "ltr"} style={bgStyle}>
+    <div
+      className={cn("relative flex h-full min-h-0 flex-col overflow-hidden", menuContentEnter)}
+      dir={lang === "ar" ? "rtl" : "ltr"}
+      style={bgStyle}
+      key={lang}
+    >
       <MenuCropsTopChrome
         settings={settings}
         lang={lang}
         visible={headerVisible}
         hideHeader={hideHeader}
+        showLang={!hideHeader && showLang}
         showLangInCompactBar={hideHeader && showLang}
         onLangToggle={toggleLang}
-        scrollRef={scrollRef}
-        subheader={
-          !hideHeader && showLang ? (
-            <MenuProductSubheaderBar settings={settings}>
-              <div className="flex justify-end" dir="ltr">
-                <MenuLangToggle
-                  lang={lang}
-                  textColor={palette.textColor}
-                  onToggle={toggleLang}
-                  variant="tab"
-                />
-              </div>
-            </MenuProductSubheaderBar>
-          ) : undefined
-        }
+        scrollAxis="horizontal"
+        layoutMode="panel"
       >
-        <div className="flex min-h-[50vh] flex-col px-4 py-5 md:px-8 md:py-6">
-          <div className="flex-1 overflow-x-auto overflow-y-hidden">
-            <div className="flex h-full snap-x snap-mandatory gap-5">
-              {ordered.map((c) => {
-                const isFeatured = c.id === settings.featuredCropId;
-                const fg = c.textColor || palette.textColor;
-                let bg: string = c.cardColor || `${palette.textColor}15`;
-                const showImage = c.bgType === "image" && c.image;
-                if (c.bgType === "gradient" && c.gradientColors?.length) {
-                  bg = `linear-gradient(135deg, ${c.gradientColors.join(", ")})`;
-                } else if (c.bgType === "color" && c.cardColor) {
-                  bg = c.cardColor;
-                }
-                return (
-                  <article
-                    key={c.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setModal(c)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setModal(c);
-                      }
-                    }}
-                    className="snap-center shrink-0 w-[72vw] md:w-[400px] h-[min(70vh,560px)] rounded-[2rem] p-7 md:p-9 flex flex-col items-center justify-center relative overflow-hidden cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.99]"
-                    style={{
-                      background: bg,
-                      color: fg,
-                      ...(isFeatured ? { boxShadow: `0 0 0 3px ${palette.accentColor}` } : {}),
-                    }}
-                  >
-                    {showImage && (
-                      <>
-                        <img src={c.image} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/35" />
-                      </>
-                    )}
-                    {isFeatured && (
-                      <div
-                        className="absolute top-4 end-4 flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full"
-                        style={{ background: palette.accentColor, color: "#fff" }}
-                      >
-                        <Sparkles className="w-3.5 h-3.5" /> {cropFieldLabels[lang].featured}
-                      </div>
-                    )}
-
-                    <div className="relative z-10 flex w-full flex-col items-center justify-center gap-5 md:gap-6">
-                      <CropTitle crop={c} lang={lang} />
-                      <CropFieldsGrid crop={c} lang={lang} />
-                      <CropNotes
-                        crop={c}
-                        lang={lang}
-                        borderColor={fg}
-                        className="mt-0 w-full max-w-xs border-t pt-4"
-                      />
-                    </div>
-                  </article>
-                );
-              })}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 md:px-5 md:pt-2 ipad-lg:px-6">
+          <div
+            ref={trackRef}
+            className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            <div
+              className={cn(
+                "flex h-full min-h-0 items-center gap-3 py-0.5 md:gap-4",
+                lang === "ar" ? "flex-row-reverse" : "flex-row",
+              )}
+            >
+              {ordered.map((c) => (
+                <CropCarouselCard
+                  key={c.id}
+                  crop={c}
+                  lang={lang}
+                  accentColor={palette.accentColor}
+                  fallbackTextColor={palette.textColor}
+                  featured={c.id === settings.featuredCropId}
+                  cardHeight={cardHeight}
+                  cardWidth={cardWidth}
+                  onClick={() => setModal(c)}
+                />
+              ))}
             </div>
           </div>
         </div>

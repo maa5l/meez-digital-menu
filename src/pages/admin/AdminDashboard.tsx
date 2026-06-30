@@ -1,14 +1,17 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   fetchAdminDashboardStats,
 } from "@/services/admin/admin.service";
 import type { AdminDashboardStats } from "@/types/admin";
-import { Users, MonitorSmartphone, UserPlus, AlertTriangle } from "lucide-react";
+import { ROUTES } from "@/config/app";
+import { Users, MonitorSmartphone, UserPlus, AlertTriangle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
-const StatCard = ({
+const StatCard = memo(function StatCard({
   title,
   value,
   icon: Icon,
@@ -16,17 +19,19 @@ const StatCard = ({
   title: string;
   value: number;
   icon: React.ComponentType<{ className?: string }>;
-}) => (
-  <Card>
-    <CardHeader className="flex flex-row items-center justify-between pb-2">
-      <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
-      <Icon className="w-4 h-4 text-muted-foreground" />
-    </CardHeader>
-    <CardContent>
-      <div className="text-3xl font-display font-black">{value}</div>
-    </CardContent>
-  </Card>
-);
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        <Icon className="w-4 h-4 text-muted-foreground" aria-hidden />
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-display font-black">{value}</div>
+      </CardContent>
+    </Card>
+  );
+});
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
@@ -42,8 +47,8 @@ const AdminDashboard = () => {
   return (
     <AdminLayout title="لوحة الإدارة" subtitle="نظرة عامة على المنصة">
       {loading ? (
-        <div className="py-16 flex justify-center">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="py-16 flex justify-center" aria-busy="true">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" role="status" />
         </div>
       ) : stats ? (
         <>
@@ -55,6 +60,15 @@ const AdminDashboard = () => {
             <StatCard title="معلّقة" value={stats.suspendedCustomers} icon={AlertTriangle} />
             <StatCard title="الأجهزة النشطة" value={stats.totalDevices} icon={MonitorSmartphone} />
             <StatCard title="تسجيلات (7 أيام)" value={stats.newRegistrations7d} icon={UserPlus} />
+          </div>
+
+          <div className="mb-8">
+            <Button asChild>
+              <Link to={ROUTES.adminCustomers}>
+                إدارة العملاء
+                <ArrowLeft className="w-4 h-4 mr-2" />
+              </Link>
+            </Button>
           </div>
 
           <Card>
@@ -84,7 +98,11 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
         </>
-      ) : null}
+      ) : (
+        <p className="text-muted-foreground text-center py-12" role="alert">
+          تعذّر تحميل الإحصائيات.
+        </p>
+      )}
     </AdminLayout>
   );
 };

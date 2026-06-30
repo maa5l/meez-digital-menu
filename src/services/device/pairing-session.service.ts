@@ -17,13 +17,13 @@ function pairingKey(sessionId: string): string {
   return `${PAIRING_SESSION_PREFIX}${sessionId}`;
 }
 
-function useCloudPairing(): boolean {
+function isCloudPairingEnabled(): boolean {
   return isSupabaseConfigured() && !appEnv.useLocalMockAuth;
 }
 
 /** إنشاء جلسة ربط من لوحة التحكم */
 export async function createPairingSession(ownerId: string): Promise<string> {
-  if (useCloudPairing()) {
+  if (isCloudPairingEnabled()) {
     const { data, error } = await getSupabase().rpc("create_device_pairing_session");
     if (error) {
       logger.error("pairing.session_create_failed", { message: error.message });
@@ -47,7 +47,7 @@ export async function claimPairingSession(sessionId: string, code: string): Prom
   const normalized = code.trim().toUpperCase();
   if (!isValidDeviceCode(normalized)) return false;
 
-  if (useCloudPairing()) {
+  if (isCloudPairingEnabled()) {
     const { data, error } = await getSupabase().rpc("claim_device_pairing_session", {
       p_session_id: sessionId,
       p_code: normalized,
@@ -72,7 +72,7 @@ export async function fetchPairingSessionCode(
   sessionId: string,
   ownerId: string,
 ): Promise<string | null> {
-  if (useCloudPairing()) {
+  if (isCloudPairingEnabled()) {
     const { data, error } = await getSupabase().rpc("get_device_pairing_session_code", {
       p_session_id: sessionId,
     });

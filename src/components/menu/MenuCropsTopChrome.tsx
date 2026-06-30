@@ -19,11 +19,16 @@ type Props = {
   lang: MenuLang;
   visible: boolean;
   hideHeader?: boolean;
+  showLang?: boolean;
   showLangInCompactBar?: boolean;
   onLangToggle?: () => void;
   subheader?: React.ReactNode;
   children: React.ReactNode;
-  scrollRef: React.Ref<HTMLDivElement>;
+  scrollRef?: React.Ref<HTMLDivElement>;
+  /** أفقي = بطاقات بالعرض بدون تمرير عمودي */
+  scrollAxis?: "vertical" | "horizontal";
+  /** panel = ملء الشاشة تحت الهيدر بدون تمرير الصفحة */
+  layoutMode?: "scroll" | "panel";
 };
 
 /** هيدر ثابت لمنيو المحاصيل + شريط فرعي (مثل المنتجات) */
@@ -32,11 +37,14 @@ export function MenuCropsTopChrome({
   lang,
   visible,
   hideHeader = false,
+  showLang = false,
   showLangInCompactBar = false,
   onLangToggle,
   subheader,
   children,
   scrollRef,
+  scrollAxis = "vertical",
+  layoutMode = "scroll",
 }: Props) {
   const layout = useMenuLayoutMetrics();
   const hasSubheader = Boolean(subheader);
@@ -46,46 +54,77 @@ export function MenuCropsTopChrome({
   const palette = getCropsPalette(settings);
   const calorieColor = getCalorieDisclaimerColor(headerCustomization, palette.textColor);
   const headerFg = headerCustomization.headerTextColor ?? palette.textColor;
+  const panelFlow = layoutMode === "panel";
+
+  const headerNode = hideHeader ? (
+    <MenuFixedCalorieBar
+      lang={lang}
+      textColor={calorieColor}
+      headerFg={headerFg}
+      customization={headerCustomization}
+      showLang={showLangInCompactBar}
+      onLangToggle={onLangToggle}
+      embedded={panelFlow}
+    />
+  ) : (
+    <MenuCropsHeader
+      settings={settings}
+      lang={lang}
+      visible={visible}
+      embedded={panelFlow}
+      showLang={showLang}
+      onLangToggle={onLangToggle}
+    />
+  );
+
+  const subheaderNode = hasSubheader ? (
+    <MenuProductSubheaderBar settings={settings}>{subheader}</MenuProductSubheaderBar>
+  ) : null;
+
+  const contentNode = (
+    <div
+      ref={scrollRef}
+      className={cn(
+        "flex min-h-0 flex-1 flex-col",
+        (panelFlow || scrollAxis === "horizontal") && "h-0 overflow-hidden",
+        scrollAxis === "horizontal" && "touch-pan-x",
+        headerHideTransition,
+        layoutMode === "scroll" &&
+          scrollAxis !== "horizontal" &&
+          "touch-pan-y overflow-x-hidden overflow-y-auto overscroll-y-contain",
+      )}
+      style={{
+        paddingTop: panelFlow ? undefined : scrollPaddingTop,
+        WebkitOverflowScrolling:
+          panelFlow || scrollAxis === "horizontal" ? undefined : "touch",
+      }}
+    >
+      {children}
+    </div>
+  );
+
+  if (panelFlow) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {headerNode}
+        {subheaderNode && <div className="relative z-[45] shrink-0">{subheaderNode}</div>}
+        {contentNode}
+      </div>
+    );
+  }
 
   return (
     <>
-      {hideHeader ? (
-        <MenuFixedCalorieBar
-          lang={lang}
-          textColor={calorieColor}
-          headerFg={headerFg}
-          customization={headerCustomization}
-          showLang={showLangInCompactBar}
-          onLangToggle={onLangToggle}
-        />
-      ) : (
-        <MenuCropsHeader settings={settings} lang={lang} visible={visible} />
-      )}
-
-      {hasSubheader && (
+      {headerNode}
+      {subheaderNode && (
         <div
           className={cn("fixed inset-x-0 z-[45]", headerHideTransition)}
           style={{ top: subheaderTop }}
         >
-          <MenuProductSubheaderBar settings={settings}>{subheader}</MenuProductSubheaderBar>
+          {subheaderNode}
         </div>
       )}
-
-      <div
-        ref={scrollRef}
-        className={cn(
-          "flex-1 overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y min-h-0",
-          headerHideTransition,
-        )}
-        style={{
-          paddingTop: scrollPaddingTop,
-          WebkitOverflowScrolling: "touch",
-        }}
-      >
-        {children}
-      </div>
+      {contentNode}
     </>
   );
 }
-
-export { MENU_SUBHEADER_HEIGHT } from "@/lib/menu-header";

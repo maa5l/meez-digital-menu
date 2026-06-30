@@ -6,6 +6,7 @@ import {
   loadVenueForDevice,
   syncVenueForDeviceIfStale,
 } from "@/lib/venue-store";
+import { mergeVenueWithPreviewDraft, THEME_PREVIEW_DRAFT_EVENT, THEME_PREVIEW_DRAFT_KEY } from "@/lib/theme-preview-draft";
 import { fetchDashboardPreviewVenue } from "@/services/core/platform-security";
 import { shouldUseVenueDatabase, invalidateDeviceVenueCache } from "@/services/venue/venue-supabase.service";
 import { usesSupabaseAuth } from "@/config/env";
@@ -53,7 +54,7 @@ export function useMenuVenue(
             if (rpcItems >= localItems) next = fromRpc;
           }
         }
-        if (mountedRef.current) setVenue(next);
+        if (mountedRef.current) setVenue(mergeVenueWithPreviewDraft(next));
         return;
       }
       if (deviceCode && shouldUseVenueDatabase()) {
@@ -84,9 +85,26 @@ export function useMenuVenue(
   useEffect(() => {
     if (!ready) return;
 
+    const applyPreviewDraft = () => {
+      if (!isPreview || !mountedRef.current) return;
+      setVenue(mergeVenueWithPreviewDraft(loadCurrentVenueData()));
+    };
+
+    const applyPreviewDraftDebounced = debounce(applyPreviewDraft, 400);
+
     const onUpdate = () => reloadDebounced(false);
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === THEME_PREVIEW_DRAFT_KEY) {
+        if (isPreview) applyPreviewDraftDebounced();
+        return;
+      }
+      onUpdate();
+    };
+
     window.addEventListener(VENUE_UPDATED, onUpdate);
-    window.addEventListener("storage", onUpdate);
+    window.addEventListener("storage", onStorage);
+    window.addEventListener(THEME_PREVIEW_DRAFT_EVENT, applyPreviewDraftDebounced);
 
     const onVisible = () => {
       if (!document.hidden) reloadThrottled();
@@ -98,11 +116,12 @@ export function useMenuVenue(
 
     return () => {
       window.removeEventListener(VENUE_UPDATED, onUpdate);
-      window.removeEventListener("storage", onUpdate);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(THEME_PREVIEW_DRAFT_EVENT, applyPreviewDraftDebounced);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener(MENU_KIOSK_RESET_EVENT, onKioskReset);
     };
-  }, [ready, reloadDebounced, reloadThrottled, reloadFull]);
+  }, [ready, reloadDebounced, reloadThrottled, reloadFull, isPreview]);
 
   return venue;
 }

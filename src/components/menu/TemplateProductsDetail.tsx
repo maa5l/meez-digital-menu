@@ -2,13 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import type { Category, Product, MenuSettings } from "@/types/domain";
 import CategoryTabs from "@/components/menu/CategoryTabs";
 import { MenuProductSubheaderBar, MenuProductTopChrome } from "@/components/menu/MenuProductTopChrome";
-import { ProductDetailCard, ProductListCard } from "@/components/menu/ProductCardParts";
+import { ProductImagePanel, ProductListCard } from "@/components/menu/ProductCardParts";
+import ProductDetailModal from "@/components/menu/ProductDetailModal";
 import { useMenuLang } from "@/context/MenuLangContext";
 import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
-import { useMenuLayoutMetrics } from "@/hooks/useMenuLayoutMetrics";
 import { getMenuUi } from "@/lib/menu-i18n";
 import { getProductsHeaderCustomization, isProductsLangToggleEnabled } from "@/lib/menu-header-settings";
-import { getMenuScrollPaddingTop, menuContentEnter } from "@/lib/menu-header";
+import { menuContentEnter } from "@/lib/menu-header";
 import { getProductsPalette, palettePageStyle } from "@/lib/menu-palette";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,7 @@ type Props = {
 const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
   const { lang, toggleLang } = useMenuLang();
   const [activeCat, setActiveCat] = useState(() => categories[0]?.id ?? "");
+  const [modal, setModal] = useState<Product | null>(null);
   const productsHeader = getProductsHeaderCustomization(settings);
   const hideHeader = productsHeader.hideHeader === true;
   const showLang = isProductsLangToggleEnabled(settings);
@@ -68,17 +69,12 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
   const palette = getProductsPalette(settings);
   const bgStyle = palettePageStyle(palette);
   const cardBg = palette.cardColor || "#d4d4d4";
-  const layout = useMenuLayoutMetrics();
   const hasSubheader = categories.length > 0 || showLang;
   const ui = getMenuUi(lang);
-  const scrollPadding = getMenuScrollPaddingTop(hasSubheader, headerVisible, hideHeader, layout);
-  const panelGapTop = 12;
-  const panelGapBottom = 16;
-  const panelHeight = `calc(100dvh - ${scrollPadding + panelGapTop + panelGapBottom}px)`;
 
   return (
     <div
-      className={cn("relative flex h-full min-h-0 flex-col", menuContentEnter)}
+      className={cn("relative flex h-full min-h-0 flex-col overflow-hidden", menuContentEnter)}
       dir={lang === "ar" ? "rtl" : "ltr"}
       style={bgStyle}
       key={lang}
@@ -91,6 +87,7 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
         showLangInCompactBar={hideHeader && showLang && categories.length === 0}
         onLangToggle={toggleLang}
         scrollRef={scrollRef}
+        layoutMode="panel"
         subheader={
           hasSubheader ? (
             <MenuProductSubheaderBar settings={settings}>
@@ -112,14 +109,11 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
           dir="ltr"
           key={`${lang}-${activeCat}-${selected?.id ?? "none"}`}
           className={cn(
-            "grid min-h-0 grid-cols-1 gap-2.5 px-4 pb-5 pt-2 md:grid-cols-[minmax(220px,32%)_1fr] md:items-stretch md:gap-3 md:px-6 md:pb-5 md:pt-3",
+            "grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-hidden px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 md:grid-cols-[minmax(220px,30%)_1fr] md:items-stretch md:gap-3 md:px-5 md:pt-3 ipad-lg:grid-cols-[minmax(240px,28%)_1fr] ipad-lg:px-6",
             menuContentEnter,
           )}
         >
-          <div
-            className="order-2 flex flex-col gap-2 overflow-y-auto overscroll-y-contain md:order-1 md:pt-4"
-            style={{ height: panelHeight, maxHeight: panelHeight }}
-          >
+          <aside className="order-2 flex min-h-0 flex-col gap-2 overflow-y-auto overscroll-y-contain md:order-1 md:py-1">
             {visibleProducts.map((p) => (
               <ProductListCard
                 key={p.id}
@@ -131,19 +125,17 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
                 onClick={() => setSelected(p)}
               />
             ))}
-          </div>
+          </aside>
 
-          <div
-            className="order-1 flex w-full flex-col md:order-2 md:pt-4"
-            style={{ height: panelHeight, maxHeight: panelHeight }}
-          >
+          <div className="order-1 min-h-0 overflow-hidden md:order-2">
             {selected ? (
-              <ProductDetailCard
+              <ProductImagePanel
                 product={selected}
                 lang={lang}
                 cardBg={cardBg}
-                accentColor={palette.accentColor}
-                className="h-full min-h-0 w-full"
+                hint={ui.tapForDetails}
+                onOpen={() => setModal(selected)}
+                className="h-full"
               />
             ) : (
               <div
@@ -156,6 +148,10 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
           </div>
         </div>
       </MenuProductTopChrome>
+
+      {modal && (
+        <ProductDetailModal product={modal} lang={lang} onClose={() => setModal(null)} />
+      )}
     </div>
   );
 };

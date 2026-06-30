@@ -1,648 +1,611 @@
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import { ThemeEditorNav, ThemeEditorNavMobile } from "@/components/dashboard/theme/ThemeEditorNav";
+import {
+  AdvancedCollapsible,
+  ColorPickerField,
+  ImageUploadField,
+  TemplateOptionCard,
+  ToggleChip,
+} from "@/components/dashboard/theme/ThemeFields";
+import { ThemePreviewFrame, ThemePreviewOrientationToggle, type PreviewOrientation } from "@/components/dashboard/theme/ThemePreviewFrame";
+import { ThemeCard, ThemeFieldGroup, ThemeSectionPanel } from "@/components/dashboard/theme/ThemeSectionPanel";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { GalleryHorizontal, Minus, ExternalLink, Palette, Coffee, UtensilsCrossed, Sparkles, Upload, X, Star, ListChecks, LayoutTemplate, Loader2, Save } from "lucide-react";
-import type { ChangeEvent, ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
-import { defaultMenuSettings, type MenuSettings } from "@/lib/mockData";
-import type { MenuHeaderCustomization, MenuPalette } from "@/types/domain";
-import { getCropsPalette, getProductsPalette } from "@/lib/menu-palette";
+import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
 import {
   getCropsHeaderCustomization,
   getProductsHeaderCustomization,
-  patchCropsHeader,
-  patchProductsHeader,
 } from "@/lib/menu-header-settings";
-import { useVenueData } from "@/hooks/useVenueData";
-import { toast } from "sonner";
-import { processHeaderImageFile } from "@/lib/header-image";
 import {
   HEADER_IMAGE_SPEC,
   formatHeaderImageDisplayLabel,
   formatHeaderImageSpecLabel,
 } from "@/lib/header-image-spec";
-import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
-import { getCurrentUserId } from "@/lib/venue-store";
-import { usesSupabaseAuth } from "@/config/env";
-import { getErrorMessage } from "@/lib/errors";
+import { useThemeEditor } from "@/pages/dashboard/theme/useThemeEditor";
+import { THEME_SECTIONS, type ThemeSectionId } from "@/pages/dashboard/theme/theme-sections";
+import {
+  Coffee,
+  ExternalLink,
+  GalleryHorizontal,
+  ListChecks,
+  Loader2,
+  Minus,
+  Palette,
+  RotateCcw,
+  Save,
+  Star,
+  UtensilsCrossed,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 
 const Theme = () => {
-  const [venue, updateVenue] = useVenueData();
-  const [settings, setSettings] = useState<MenuSettings>(() => ({
-    ...defaultMenuSettings,
-    ...venue.menuSettings,
-  }));
-  const [saving, setSaving] = useState(false);
-  const { products, crops } = venue;
+  const editor = useThemeEditor();
+  const [section, setSection] = useState<ThemeSectionId>("overview");
+  const [previewOrientation, setPreviewOrientation] = useState<PreviewOrientation>("landscape");
 
-  useEffect(() => {
-    setSettings({ ...defaultMenuSettings, ...venue.menuSettings });
-  }, [venue.menuSettings]);
+  const productsHeader = getProductsHeaderCustomization(editor.settings);
+  const cropsHeader = getCropsHeaderCustomization(editor.settings);
 
-  const dirty = useMemo(
-    () => JSON.stringify(settings) !== JSON.stringify({ ...defaultMenuSettings, ...venue.menuSettings }),
-    [settings, venue.menuSettings],
-  );
+  const productsPreviewUrl = "/menu?preview=1";
+  const cropsPreviewUrl = "/menu?type=crops&preview=1";
 
-  const update = (next: MenuSettings) => setSettings(next);
+  const sectionMeta = THEME_SECTIONS.find((s) => s.id === section)!;
 
-  const onSave = async () => {
-    const userId = getCurrentUserId();
-    if (!userId) {
-      toast.error("سجّل الدخول أولاً");
-      return;
-    }
-    setSaving(true);
-    try {
-      updateVenue((v) => ({
-        ...v,
-        menuSettings: { ...defaultMenuSettings, ...settings },
-      }));
-      window.dispatchEvent(new Event("meez:venue-updated"));
-      toast.success(usesSupabaseAuth() ? "تم حفظ التعديلات في قاعدة البيانات" : "تم حفظ التعديلات محلياً");
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const reset = () => {
-    setSettings(defaultMenuSettings);
-    updateVenue((v) => ({ ...v, menuSettings: defaultMenuSettings }));
-    toast.success("تمت إعادة الثيم للوضع الافتراضي");
-  };
-
-  const productsColors = getProductsPalette(settings);
-  const cropsColors = getCropsPalette(settings);
-  const cropsHeader = getCropsHeaderCustomization(settings);
-
-  const patchProductsColors = (patch: Partial<MenuPalette>) =>
-    update({
-      ...settings,
-      productsColors: { ...productsColors, ...patch },
-    });
-
-  const patchCropsColors = (patch: Partial<MenuPalette>) =>
-    update({
-      ...settings,
-      cropsColors: { ...cropsColors, ...patch },
-    });
-
-  const onUploadProductsImage = (key: "featuredImage" | "logoImage" | "headerImage") =>
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      try {
-        if (key === "headerImage") {
-          const loading = toast.loading("جاري معالجة الصورة…");
-          try {
-            const dataUrl = await processHeaderImageFile(file);
-            update(patchProductsHeader(settings, { headerImage: dataUrl }));
-            toast.success("تم رفع صورة الهيدر — احفظ التعديلات", { id: loading });
-          } catch (err) {
-            toast.error(err instanceof Error ? err.message : "تعذّر رفع الصورة", { id: loading });
-            e.target.value = "";
-            return;
-          }
-          e.target.value = "";
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          update(patchProductsHeader(settings, { [key]: result }));
-          toast.success("تم رفع الصورة — احفظ التعديلات");
-        };
-        reader.onerror = () => toast.error("تعذّر قراءة الملف");
-        reader.readAsDataURL(file);
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "تعذّر رفع الصورة");
-        e.target.value = "";
-      }
-    };
-
-  const onUploadCropsImage = (key: "logoImage" | "headerImage") =>
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      try {
-        if (key === "headerImage") {
-          const loading = toast.loading("جاري معالجة الصورة…");
-          try {
-            const dataUrl = await processHeaderImageFile(file);
-            update(patchCropsHeader(settings, { headerImage: dataUrl }));
-            toast.success("تم رفع بانر هيدر المحاصيل — احفظ التعديلات", { id: loading });
-          } catch (err) {
-            toast.error(err instanceof Error ? err.message : "تعذّر رفع الصورة", { id: loading });
-            e.target.value = "";
-            return;
-          }
-          e.target.value = "";
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          update(patchCropsHeader(settings, { [key]: result }));
-          toast.success("تم رفع الصورة — احفظ التعديلات");
-        };
-        reader.onerror = () => toast.error("تعذّر قراءة الملف");
-        reader.readAsDataURL(file);
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "تعذّر رفع الصورة");
-        e.target.value = "";
-      }
-    };
-
-  const onUploadPaletteBg = (target: "products" | "crops") => async (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      if (target === "products") patchProductsColors({ bgImage: result });
-      else patchCropsColors({ bgImage: result });
-      toast.success("تم رفع صورة الخلفية — احفظ التعديلات");
-    };
-    reader.onerror = () => toast.error("تعذّر قراءة الملف");
-    reader.readAsDataURL(file);
-    e.target.value = "";
-  };
+  const showSidePreview = section !== "preview";
 
   return (
     <SubscriptionGuard requireEdit>
-    <DashboardLayout
-      title="الثيم"
-      subtitle="إدارة كاملة لأنواع المنيو، القوالب والألوان"
-      action={
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={reset}>
-            إعادة الافتراضي
-          </Button>
-          <Button variant="hero" onClick={() => void onSave()} disabled={!dirty || saving}>
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                جاري الحفظ...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                حفظ التعديلات
-              </>
-            )}
-          </Button>
-        </div>
-      }
-    >
-      {/* نظرة عامة سريعة */}
-      <div className="grid sm:grid-cols-3 gap-4 mb-6">
-        <Stat icon={<UtensilsCrossed className="w-5 h-5" />} label="منيو المنتجات" value={
-          settings.productTemplate === "featured" ? "هيدر مميّز + بطاقات" :
-          "هيدر مميّز + تفاصيل"
-        } swatch={productsColors.accentColor} />
-        <Stat icon={<Coffee className="w-5 h-5" />} label="منيو المحاصيل" value={settings.cropsTemplate === "molo" ? "بطاقات بالعرض" : "مينيمال"} swatch={cropsColors.accentColor} />
-        <Stat icon={<Palette className="w-5 h-5" />} label="ألوان منفصلة" value="منتجات / محاصيل" />
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* === منيو المنتجات === */}
-        <Section
-          title="منيو المنتجات"
-          desc="عرض الأطباق والمشروبات للضيوف"
-          previewHref="/menu?preview=1"
-          previewLabel="معاينة منيو المنتجات"
-        >
-          <div className="grid grid-cols-2 gap-3">
-            <TemplateCard
-              active={settings.productTemplate === "featured"}
-              icon={<Star className="w-7 h-7" />}
-              title="مميّز + بطاقات"
-              desc="هيدر منتج الشهر + شبكة بطاقات بصور كبيرة"
-              onClick={() => update({ ...settings, productTemplate: "featured" })}
-            />
-            <TemplateCard
-              active={settings.productTemplate === "detail"}
-              icon={<ListChecks className="w-7 h-7" />}
-              title="مميّز + تفاصيل"
-              desc="بطاقة منتج كبيرة + قائمة جانبية"
-              onClick={() => update({ ...settings, productTemplate: "detail" })}
-            />
+      <DashboardLayout
+        title="تخصيص المنيو"
+        subtitle="صمّم مظهر منيو المنتجات والمحاصيل"
+        hideSubscriptionBanner={false}
+      >
+        {/* شريط علوي ثابت */}
+        <div className="sticky top-0 z-30 -mx-6 mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-background/90 px-6 py-3 backdrop-blur-md md:-mx-10 md:px-10 md:py-4">
+          <div className="min-w-0">
+            <p className="truncate font-display text-lg font-black text-primary md:text-xl">{sectionMeta.label}</p>
+            <p className="truncate text-xs text-muted-foreground">{sectionMeta.description}</p>
           </div>
-
-          <HeaderCustomizeBlock
-            header={getProductsHeaderCustomization(settings)}
-            textColorFallback={productsColors.textColor}
-            onPatch={(patch) => update(patchProductsHeader(settings, patch))}
-            onLogoUpload={onUploadProductsImage("logoImage")}
-            onHeaderImageUpload={onUploadProductsImage("headerImage")}
-            titlePlaceholder="مثال: مشروب الصيف"
-          />
-
-          <FeaturedBlock
-            label="منتج مميّز في المنيو (اختياري)"
-            options={products.map((p) => ({ value: p.id, label: p.name }))}
-            value={settings.featuredProductId || ""}
-            onChange={(v) => update({ ...settings, featuredProductId: v || undefined })}
-          />
-
-          <Palette3
-            title="ألوان منيو المنتجات"
-            bg={productsColors.bgColor}
-            text={productsColors.textColor}
-            accent={productsColors.accentColor}
-            onChange={(k, v) => patchProductsColors({ [k]: v })}
-          />
-          <CardAndBg
-            palette={productsColors}
-            onPaletteChange={patchProductsColors}
-            onBgUpload={onUploadPaletteBg("products")}
-          />
-        </Section>
-
-        {/* === منيو المحاصيل === */}
-        <Section
-          title="منيو محاصيل البن"
-          desc="شاشة مخصّصة للكاشير لمعرفة المحاصيل"
-          previewHref={`/menu?type=crops&tpl=${settings.cropsTemplate}&preview=1`}
-          previewLabel="معاينة منيو المحاصيل"
-        >
-          <div className="grid grid-cols-2 gap-3">
-            <TemplateCard
-              active={settings.cropsTemplate === "molo"}
-              icon={<GalleryHorizontal className="w-7 h-7" />}
-              title="بطاقات بالعرض"
-              desc="كاروسيل بطاقات أفقية تتحرك للعرض"
-              onClick={() => update({ ...settings, cropsTemplate: "molo" })}
-            />
-            <TemplateCard
-              active={settings.cropsTemplate === "pureshelf"}
-              icon={<Minus className="w-7 h-7" />}
-              title="مينيمال"
-              desc="قائمة جانبية وعرض نصي مينمال نظيف"
-              onClick={() => update({ ...settings, cropsTemplate: "pureshelf" })}
-            />
-          </div>
-
-          {/* محصول الشهر */}
-          <div className="pt-4 border-t border-border space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
-              <Sparkles className="w-3.5 h-3.5 text-accent-foreground" /> محصول الشهر
-            </div>
-            <select
-              value={settings.featuredCropId || ""}
-              onChange={(e) => update({ ...settings, featuredCropId: e.target.value || undefined })}
-              className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm"
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5 touch-manipulation" asChild>
+              <a href={productsPreviewUrl} target="_blank" rel="noreferrer">
+                <ExternalLink className="h-3.5 w-3.5" />
+                معاينة
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5 touch-manipulation" onClick={editor.reset}>
+              <RotateCcw className="h-3.5 w-3.5" />
+              إعادة الافتراضي
+            </Button>
+            <Button
+              variant="hero"
+              size="sm"
+              className="gap-1.5 touch-manipulation"
+              onClick={() => void editor.onSave()}
+              disabled={!editor.dirty || editor.saving}
             >
-              <option value="">— لا يوجد —</option>
-              {crops.map((c) => <option key={c.id} value={c.id}>{c.beanName}</option>)}
-            </select>
+              {editor.saving ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  جاري الحفظ…
+                </>
+              ) : (
+                <>
+                  <Save className="h-3.5 w-3.5" />
+                  حفظ
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {/* تنقّل أفقي — آيباد */}
+        <ThemeEditorNavMobile active={section} onSelect={setSection} className="mb-4 md:hidden" />
+
+        <div className="flex min-h-0 flex-col gap-5 lg:flex-row lg:items-start">
+          {/* شريط جانبي — سطح مكتب / آيباد أفقي */}
+          <ThemeEditorNav active={section} onSelect={setSection} className="hidden md:flex" />
+
+          <div className="min-w-0 flex-1 space-y-5">
+            <ThemeSectionContent
+              section={section}
+              editor={editor}
+              productsHeader={productsHeader}
+              cropsHeader={cropsHeader}
+              productsPreviewUrl={productsPreviewUrl}
+              cropsPreviewUrl={cropsPreviewUrl}
+              previewOrientation={previewOrientation}
+              onPreviewOrientationChange={setPreviewOrientation}
+            />
           </div>
 
-          <HeaderCustomizeBlock
-            header={cropsHeader}
-            textColorFallback={cropsColors.textColor}
-            onPatch={(patch) => update(patchCropsHeader(settings, patch))}
-            onLogoUpload={onUploadCropsImage("logoImage")}
-            onHeaderImageUpload={onUploadCropsImage("headerImage")}
-            titlePlaceholder="مثال: محصول إثيوبيا"
-          />
-
-          <Palette3
-            title="ألوان منيو المحاصيل"
-            bg={cropsColors.bgColor}
-            text={cropsColors.textColor}
-            accent={cropsColors.accentColor}
-            onChange={(k, v) => patchCropsColors({ [k]: v })}
-          />
-          <CardAndBg
-            palette={cropsColors}
-            onPaletteChange={patchCropsColors}
-            onBgUpload={onUploadPaletteBg("crops")}
-          />
-        </Section>
-      </div>
-    </DashboardLayout>
+          {showSidePreview && (
+            <div className="hidden w-full shrink-0 xl:block xl:w-auto">
+              <div className="sticky top-[5.5rem] flex justify-center">
+                <ThemePreviewFrame
+                  activeSection={section}
+                  productsPreviewUrl={productsPreviewUrl}
+                  cropsPreviewUrl={cropsPreviewUrl}
+                  orientation={previewOrientation}
+                  onOrientationChange={setPreviewOrientation}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </DashboardLayout>
     </SubscriptionGuard>
   );
 };
 
-/* ---------- تخصيص الهيدر (مبسّط) ---------- */
-const HeaderCustomizeBlock = ({
+type Editor = ReturnType<typeof useThemeEditor>;
+
+function ThemeSectionContent({
+  section,
+  editor,
+  productsHeader,
+  cropsHeader,
+  productsPreviewUrl,
+  cropsPreviewUrl,
+  previewOrientation,
+  onPreviewOrientationChange,
+}: {
+  section: ThemeSectionId;
+  editor: Editor;
+  productsHeader: ReturnType<typeof getProductsHeaderCustomization>;
+  cropsHeader: ReturnType<typeof getCropsHeaderCustomization>;
+  productsPreviewUrl: string;
+  cropsPreviewUrl: string;
+  previewOrientation: PreviewOrientation;
+  onPreviewOrientationChange: (o: PreviewOrientation) => void;
+}) {
+  const { settings, update, products, crops, productsColors, cropsColors } = editor;
+
+  switch (section) {
+    case "overview":
+      return (
+        <ThemeSectionPanel title="نظرة عامة" description="ملخص سريع لإعدادات المنيو الحالية">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <OverviewStat
+              icon={<UtensilsCrossed className="h-5 w-5" />}
+              label="منيو المنتجات"
+              value={settings.productTemplate === "featured" ? "بطاقات" : "تفاصيل"}
+              swatch={productsColors.accentColor}
+            />
+            <OverviewStat
+              icon={<Coffee className="h-5 w-5" />}
+              label="منيو المحاصيل"
+              value={settings.cropsTemplate === "molo" ? "بطاقات بالعرض" : "قائمة + تفاصيل"}
+              swatch={cropsColors.accentColor}
+            />
+          </div>
+          <ThemeCard>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              اختر قسماً من القائمة الجانبية لتعديل إعداد واحد فقط. التغييرات تظهر في المعاينة مباشرة قبل الحفظ.
+            </p>
+          </ThemeCard>
+        </ThemeSectionPanel>
+      );
+
+    case "products-template":
+      return (
+        <ThemeSectionPanel title="قالب المنتجات" description="اختر طريقة عرض قائمة المنتجات على الشاشة">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TemplateOptionCard
+              active={settings.productTemplate === "featured"}
+              icon={<Star className="h-7 w-7" />}
+              title="مميّز + بطاقات"
+              description="شبكة بطاقات بصور كبيرة"
+              onClick={() => update({ ...settings, productTemplate: "featured" })}
+            />
+            <TemplateOptionCard
+              active={settings.productTemplate === "detail"}
+              icon={<ListChecks className="h-7 w-7" />}
+              title="مميّز + تفاصيل"
+              description="قائمة جانبية وبطاقة تفاصيل"
+              onClick={() => update({ ...settings, productTemplate: "detail" })}
+            />
+          </div>
+        </ThemeSectionPanel>
+      );
+
+    case "products-header":
+      return (
+        <HeaderSection
+          title="هيدر المنتجات"
+          description="البانر، الشعار، والعنوان الظاهر أعلى منيو المنتجات"
+          header={productsHeader}
+          textColorFallback={productsColors.textColor}
+          titlePlaceholder="مثال: مشروب الصيف"
+          onPatch={editor.patchProductsHeader}
+          onLogoUpload={editor.onUploadProductsImage("logoImage")}
+          onHeaderImageUpload={editor.onUploadProductsImage("headerImage")}
+        />
+      );
+
+    case "products-colors":
+      return (
+        <ColorsSection
+          title="ألوان المنتجات"
+          description="الألوان الأساسية لمنيو المنتجات"
+          palette={productsColors}
+          onChange={editor.patchProductsColors}
+        />
+      );
+
+    case "products-cards":
+      return (
+        <CardsSection
+          title="بطاقات وخلفية المنتجات"
+          description="لون بطاقات المنتجات وصورة خلفية الشاشة"
+          palette={productsColors}
+          onPaletteChange={editor.patchProductsColors}
+          onBgUpload={editor.onUploadPaletteBg("products")}
+        />
+      );
+
+    case "products-featured":
+      return (
+        <FeaturedSection
+          title="منتج مميّز"
+          description="اختر منتجاً لإبرازه في المنيو (اختياري)"
+          options={products.map((p) => ({ value: p.id, label: p.name }))}
+          value={settings.featuredProductId || ""}
+          onChange={(v) => update({ ...settings, featuredProductId: v || undefined })}
+        />
+      );
+
+    case "crops-template":
+      return (
+        <ThemeSectionPanel title="قالب المحاصيل" description="شكل عرض كتالوج القهوة">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TemplateOptionCard
+              active={settings.cropsTemplate === "molo"}
+              icon={<GalleryHorizontal className="h-7 w-7" />}
+              title="بطاقات بالعرض"
+              description="كاروسيل أفقي بطاقات محاصيل"
+              onClick={() => update({ ...settings, cropsTemplate: "molo" })}
+            />
+            <TemplateOptionCard
+              active={settings.cropsTemplate === "pureshelf"}
+              icon={<Minus className="h-7 w-7" />}
+              title="قائمة + تفاصيل"
+              description="قائمة جانبية وبطاقة تفاصيل"
+              onClick={() => update({ ...settings, cropsTemplate: "pureshelf" })}
+            />
+          </div>
+        </ThemeSectionPanel>
+      );
+
+    case "crops-header":
+      return (
+        <HeaderSection
+          title="هيدر المحاصيل"
+          description="بانر وشعار منيو محاصيل البن"
+          header={cropsHeader}
+          textColorFallback={cropsColors.textColor}
+          titlePlaceholder="مثال: محصول إثيوبيا"
+          onPatch={editor.patchCropsHeader}
+          onLogoUpload={editor.onUploadCropsImage("logoImage")}
+          onHeaderImageUpload={editor.onUploadCropsImage("headerImage")}
+        />
+      );
+
+    case "crops-colors":
+      return (
+        <ColorsSection
+          title="ألوان المحاصيل"
+          description="الألوان الأساسية لمنيو المحاصيل"
+          palette={cropsColors}
+          onChange={editor.patchCropsColors}
+        />
+      );
+
+    case "crops-cards":
+      return (
+        <CardsSection
+          title="بطاقات المحاصيل"
+          description="لون البطاقات وخلفية شاشة المحاصيل"
+          palette={cropsColors}
+          onPaletteChange={editor.patchCropsColors}
+          onBgUpload={editor.onUploadPaletteBg("crops")}
+        />
+      );
+
+    case "crops-featured":
+      return (
+        <FeaturedSection
+          title="محصول الشهر"
+          description="المحصول المميّز في منيو البن"
+          options={crops.map((c) => ({ value: c.id, label: c.beanName }))}
+          value={settings.featuredCropId || ""}
+          onChange={(v) => update({ ...settings, featuredCropId: v || undefined })}
+        />
+      );
+
+    case "preview":
+      return (
+        <ThemeSectionPanel title="معاينة حية" description="شاهد التغييرات فوراً دون حفظ">
+          <div className="mb-6 flex justify-center">
+            <ThemePreviewOrientationToggle
+              orientation={previewOrientation}
+              onChange={onPreviewOrientationChange}
+            />
+          </div>
+          <div className="grid gap-8 lg:grid-cols-2">
+            <ThemePreviewFrame
+              activeSection="products-template"
+              productsPreviewUrl={productsPreviewUrl}
+              cropsPreviewUrl={cropsPreviewUrl}
+              orientation={previewOrientation}
+              onOrientationChange={onPreviewOrientationChange}
+              showOrientationToggle={false}
+            />
+            <ThemePreviewFrame
+              activeSection="crops-template"
+              productsPreviewUrl={productsPreviewUrl}
+              cropsPreviewUrl={cropsPreviewUrl}
+              orientation={previewOrientation}
+              onOrientationChange={onPreviewOrientationChange}
+              showOrientationToggle={false}
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <a href={productsPreviewUrl} target="_blank" rel="noreferrer">
+                <ExternalLink className="h-4 w-4" />
+                فتح منيو المنتجات
+              </a>
+            </Button>
+            <Button variant="outline" asChild>
+              <a href={cropsPreviewUrl} target="_blank" rel="noreferrer">
+                <ExternalLink className="h-4 w-4" />
+                فتح منيو المحاصيل
+              </a>
+            </Button>
+          </div>
+        </ThemeSectionPanel>
+      );
+
+    default:
+      return null;
+  }
+}
+
+function OverviewStat({
+  icon,
+  label,
+  value,
+  swatch,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  swatch?: string;
+}) {
+  return (
+    <ThemeCard className="flex items-center gap-3">
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/15 text-accent">{icon}</div>
+      <div className="min-w-0 flex-1">
+        <div className="text-xs text-muted-foreground">{label}</div>
+        <div className="font-display font-bold text-primary">{value}</div>
+      </div>
+      {swatch && <span className="h-9 w-9 shrink-0 rounded-lg border border-border" style={{ background: swatch }} />}
+    </ThemeCard>
+  );
+}
+
+function HeaderSection({
+  title,
+  description,
   header,
   textColorFallback,
+  titlePlaceholder,
   onPatch,
   onLogoUpload,
   onHeaderImageUpload,
-  titlePlaceholder,
 }: {
-  header: MenuHeaderCustomization;
+  title: string;
+  description: string;
+  header: ReturnType<typeof getProductsHeaderCustomization>;
   textColorFallback: string;
-  onPatch: (patch: Partial<MenuHeaderCustomization>) => void;
-  onLogoUpload: (e: ChangeEvent<HTMLInputElement>) => void;
-  onHeaderImageUpload: (e: ChangeEvent<HTMLInputElement>) => void;
   titlePlaceholder: string;
-}) => (
-  <div className="pt-4 border-t border-border space-y-3">
-    <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
-      <LayoutTemplate className="w-3.5 h-3.5 text-accent-foreground" /> الهيدر
-    </div>
+  onPatch: (patch: Partial<typeof header>) => void;
+  onLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onHeaderImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  const headerSpecs = useMemo(
+    () => [
+      { label: "المقاس الموصى به", value: formatHeaderImageSpecLabel() },
+      { label: "عرض الآيباد", value: formatHeaderImageDisplayLabel() },
+      { label: "الحد الأدنى", value: `${HEADER_IMAGE_SPEC.minWidth}×${HEADER_IMAGE_SPEC.minHeight}` },
+      { label: "الحد الأقصى", value: `${HEADER_IMAGE_SPEC.maxWidth}×${HEADER_IMAGE_SPEC.maxHeight}` },
+      { label: "نسبة العرض", value: `${HEADER_IMAGE_SPEC.targetAspect}:1` },
+    ],
+    [],
+  );
 
-    <UploadRow
-      label="بانر الهيدر"
-      hint={`JPG أو PNG — يُعاد القياس تلقائياً إلى ${formatHeaderImageSpecLabel()}`}
-      preview={
-        header.headerImage ? (
-          <img src={header.headerImage} alt="" className="w-24 aspect-[3/1] rounded-lg object-cover border bg-muted" />
-        ) : undefined
-      }
-      onUpload={onHeaderImageUpload}
-      onClear={header.headerImage ? () => onPatch({ headerImage: undefined }) : undefined}
-    />
-    <div className="rounded-lg border border-accent/30 bg-accent/5 px-3 py-2.5 space-y-1">
-      <p className="text-[11px] font-bold text-foreground">
-        المقاس الرسمي للآيباد: {formatHeaderImageSpecLabel()}
-      </p>
-      <p className="text-[10px] leading-relaxed text-muted-foreground">
-        يُعرض على الشاشة بحوالي {formatHeaderImageDisplayLabel()}. الحد الأدنى{" "}
-        {HEADER_IMAGE_SPEC.minWidth}×{HEADER_IMAGE_SPEC.minHeight} — الحد الأقصى{" "}
-        {HEADER_IMAGE_SPEC.maxWidth}×{HEADER_IMAGE_SPEC.maxHeight} بكسل. الصور الأصغر أو الأكبر تُرفض أو
-        تُعاد معالجتها تلقائياً مع الحفاظ على نسبة 3:1.
-      </p>
-    </div>
-    <p className="rounded-lg border border-dashed border-border/80 bg-muted/30 px-3 py-2 text-[10px] leading-relaxed text-muted-foreground">
-      <span className="font-bold text-foreground/80">ملاحظة:</span> صمّم البانر بعرض الشاشة (آيباد أفقي). إن كان
-      البانر يحتوي شعاراً أو نصاً جاهزاً، اترك «عنوان الهيدر» فارغاً — وإلا سيظهر العنوان فوق الصورة.
-    </p>
+  return (
+    <ThemeSectionPanel title={title} description={description}>
+      <ThemeCard>
+        <ImageUploadField
+          label="بانر الهيدر"
+          description="يُعاد قياس الصورة تلقائياً للمقاس الرسمي"
+          previewUrl={header.headerImage}
+          specs={headerSpecs}
+          onUpload={onHeaderImageUpload}
+          onClear={header.headerImage ? () => onPatch({ headerImage: undefined }) : undefined}
+        />
+      </ThemeCard>
 
-    <UploadRow
-      label="الشعار"
-      hint="اختياري"
-      preview={
-        header.logoImage ? (
-          <img src={header.logoImage} alt="" className="h-9 w-auto max-w-[72px] object-contain border rounded-lg p-0.5" />
-        ) : undefined
-      }
-      onUpload={onLogoUpload}
-      onClear={header.logoImage ? () => onPatch({ logoImage: undefined }) : undefined}
-    />
+      <ThemeCard>
+        <ImageUploadField
+          label="شعار المنيو"
+          description="اختياري — يظهر بجانب إفصاح السعرات"
+          previewUrl={header.logoImage}
+          aspectClass="aspect-[2/1] max-h-24 object-contain bg-muted/30"
+          onUpload={onLogoUpload}
+          onClear={header.logoImage ? () => onPatch({ logoImage: undefined }) : undefined}
+        />
+      </ThemeCard>
 
-    <div>
-      <Label className="text-xs">عنوان الهيدر (اختياري)</Label>
-      <Input
-        value={header.featuredTitle || ""}
-        onChange={(e) => onPatch({ featuredTitle: e.target.value || undefined })}
-        placeholder={titlePlaceholder}
-        className="mt-1 h-9 text-sm"
-        disabled={Boolean(header.headerImage)}
-      />
-      {header.headerImage && (
-        <p className="text-[10px] text-muted-foreground mt-1">معطّل — البانر يحتوي نصاً جاهزاً</p>
-      )}
-    </div>
-
-    <div className="flex flex-wrap gap-2">
-      <ToggleChip
-        label="إخفاء الهيدر نهائياً"
-        checked={header.hideHeader === true}
-        onChange={(v) => onPatch({ hideHeader: v })}
-      />
-      <ToggleChip
-        label="إخفاء الهيدر عند التمرير"
-        checked={header.autoHideHeaderOnScroll !== false}
-        disabled={header.hideHeader === true}
-        onChange={(v) => onPatch({ autoHideHeaderOnScroll: v })}
-      />
-      <ToggleChip
-        label="زر اللغة"
-        checked={header.showLanguageToggle !== false}
-        onChange={(v) => onPatch({ showLanguageToggle: v })}
-      />
-    </div>
-    <div className="rounded-xl border border-border bg-secondary/20 p-3 space-y-3">
-      <p className="text-xs font-bold text-primary">إفصاح السعرات (إلزامي)</p>
-      <ColorField
-        label="لون النص والأيقونات"
-        value={header.calorieTextColor || textColorFallback}
-        onChange={(v) => onPatch({ calorieTextColor: v })}
-      />
-      {header.calorieTextColor && (
-        <button
-          type="button"
-          onClick={() => onPatch({ calorieTextColor: undefined })}
-          className="text-[10px] font-bold text-muted-foreground hover:text-primary"
+      <ThemeCard>
+        <ThemeFieldGroup
+          label="عنوان الهيدر"
+          hint={header.headerImage ? "معطّل — البانر يحتوي نصاً جاهزاً" : "يظهر عند عدم وجود بانر"}
         >
-          إعادة لون النص الافتراضي
-        </button>
-      )}
-    </div>
-  </div>
-);
+          <Input
+            value={header.featuredTitle || ""}
+            onChange={(e) => onPatch({ featuredTitle: e.target.value || undefined })}
+            placeholder={titlePlaceholder}
+            disabled={Boolean(header.headerImage)}
+            className="h-10"
+          />
+        </ThemeFieldGroup>
+      </ThemeCard>
 
-const UploadRow = ({
-  label,
-  hint,
-  preview,
-  onUpload,
-  onClear,
-}: {
-  label: string;
-  hint?: string;
-  preview?: ReactNode;
-  onUpload: (e: ChangeEvent<HTMLInputElement>) => void;
-  onClear?: () => void;
-}) => (
-  <div className="rounded-xl border border-border bg-secondary/30 p-3 space-y-2">
-    <div className="text-xs font-bold text-primary">{label}</div>
-    {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
-    <div className="flex items-center gap-2">
-      {preview ?? <span className="text-[10px] text-muted-foreground">—</span>}
-      <label className="flex-1 cursor-pointer flex items-center justify-center gap-1.5 text-xs font-bold bg-card hover:bg-card/80 rounded-lg py-2 border border-border">
-        <Upload className="w-3.5 h-3.5" /> رفع
-        <input type="file" accept="image/*" className="hidden" onChange={onUpload} />
-      </label>
-      {onClear && (
-        <button type="button" onClick={onClear} className="p-2 rounded-lg bg-destructive/10 text-destructive" aria-label="حذف">
-          <X className="w-4 h-4" />
-        </button>
-      )}
-    </div>
-  </div>
-);
+      <ThemeCard>
+        <p className="mb-3 text-sm font-bold text-primary">خيارات العرض</p>
+        <div className="flex flex-wrap gap-2">
+          <ToggleChip
+            label="إخفاء الهيدر"
+            checked={header.hideHeader === true}
+            onChange={(v) => onPatch({ hideHeader: v })}
+          />
+          <ToggleChip
+            label="إخفاء عند التمرير"
+            checked={header.autoHideHeaderOnScroll !== false}
+            disabled={header.hideHeader === true}
+            onChange={(v) => onPatch({ autoHideHeaderOnScroll: v })}
+          />
+          <ToggleChip
+            label="زر اللغة"
+            checked={header.showLanguageToggle !== false}
+            onChange={(v) => onPatch({ showLanguageToggle: v })}
+          />
+        </div>
+      </ThemeCard>
 
-const ToggleChip = ({
-  label,
-  checked,
-  disabled,
+      <AdvancedCollapsible title="إعدادات متقدمة — إفصاح السعرات">
+        <ColorPickerField
+          label="لون نص إفصاح السعرات"
+          value={header.calorieTextColor || textColorFallback}
+          onChange={(v) => onPatch({ calorieTextColor: v })}
+        />
+        {header.calorieTextColor && (
+          <Button type="button" variant="ghost" size="sm" onClick={() => onPatch({ calorieTextColor: undefined })}>
+            إعادة اللون الافتراضي
+          </Button>
+        )}
+      </AdvancedCollapsible>
+    </ThemeSectionPanel>
+  );
+}
+
+function ColorsSection({
+  title,
+  description,
+  palette,
   onChange,
 }: {
-  label: string;
-  checked: boolean;
-  disabled?: boolean;
-  onChange: (v: boolean) => void;
-}) => (
-  <button
-    type="button"
-    disabled={disabled}
-    onClick={() => onChange(!checked)}
-    className={`px-3 py-2 rounded-full text-xs font-bold border transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-      checked ? "bg-accent text-accent-foreground border-accent" : "bg-card text-muted-foreground border-border"
-    }`}
-  >
-    {label}
-  </button>
-);
+  title: string;
+  description: string;
+  palette: { bgColor: string; textColor: string; accentColor: string };
+  onChange: (patch: Partial<typeof palette>) => void;
+}) {
+  return (
+    <ThemeSectionPanel title={title} description={description}>
+      <ThemeCard>
+        <div className="mb-4 flex items-center gap-2 text-sm font-bold text-primary">
+          <Palette className="h-4 w-4" />
+          ألوان الثيم
+        </div>
+        <div
+          className="mb-5 h-16 rounded-xl border border-border"
+          style={{
+            background: `linear-gradient(90deg, ${palette.bgColor} 33%, ${palette.accentColor} 33% 66%, ${palette.textColor} 66%)`,
+          }}
+          aria-hidden
+        />
+        <div className="grid gap-4 sm:grid-cols-3">
+          <ColorPickerField label="الخلفية" value={palette.bgColor} onChange={(v) => onChange({ bgColor: v })} />
+          <ColorPickerField label="النص" value={palette.textColor} onChange={(v) => onChange({ textColor: v })} />
+          <ColorPickerField label="مميّز" value={palette.accentColor} onChange={(v) => onChange({ accentColor: v })} />
+        </div>
+      </ThemeCard>
+    </ThemeSectionPanel>
+  );
+}
 
-const FeaturedBlock = ({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: { value: string; label: string }[];
-  value: string;
-  onChange: (v: string) => void;
-}) => (
-  <div className="pt-4 border-t border-border space-y-2">
-    <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
-      <Sparkles className="w-3.5 h-3.5 text-accent-foreground" /> منتج مميّز
-    </div>
-    <div>
-      <Label className="text-xs">{label}</Label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full bg-background border border-border rounded-xl px-3 py-2 text-sm"
-      >
-        <option value="">— لا يوجد —</option>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  </div>
-);
-
-/* ---------- Card color + background image ---------- */
-const CardAndBg = ({
+function CardsSection({
+  title,
+  description,
   palette,
   onPaletteChange,
   onBgUpload,
 }: {
-  palette: MenuPalette;
-  onPaletteChange: (patch: Partial<MenuPalette>) => void;
-  onBgUpload: (e: ChangeEvent<HTMLInputElement>) => void;
-}) => (
-  <div className="pt-4 border-t border-border space-y-3">
-    <div className="text-xs font-bold text-muted-foreground">الخلفية والبطاقات</div>
-    <div className="grid grid-cols-2 gap-3">
-      <ColorField
-        label="لون البطاقات"
-        value={palette.cardColor || "#ededed"}
-        onChange={(v) => onPaletteChange({ cardColor: v })}
-      />
-      <div>
-        <Label className="text-xs">صورة خلفية المنيو</Label>
-        <div className="mt-2 flex items-center gap-2">
-          {palette.bgImage && (
-            <img src={palette.bgImage} alt="" className="w-10 h-10 rounded-lg object-cover border border-border" />
-          )}
-          <label className="flex-1 cursor-pointer flex items-center justify-center gap-2 text-xs font-bold bg-secondary hover:bg-secondary/80 rounded-xl py-2.5 transition-colors">
-            <Upload className="w-4 h-4" /> {palette.bgImage ? "تغيير" : "رفع"}
-            <input type="file" accept="image/*" className="hidden" onChange={onBgUpload} />
-          </label>
-          {palette.bgImage && (
-            <button
-              type="button"
-              onClick={() => onPaletteChange({ bgImage: undefined })}
-              className="p-2 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20"
-              aria-label="حذف"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  </div>
-);
+  title: string;
+  description: string;
+  palette: { cardColor?: string; bgImage?: string };
+  onPaletteChange: (patch: Partial<typeof palette>) => void;
+  onBgUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <ThemeSectionPanel title={title} description={description}>
+      <ThemeCard>
+        <ColorPickerField
+          label="لون البطاقات"
+          value={palette.cardColor || "#ededed"}
+          onChange={(v) => onPaletteChange({ cardColor: v })}
+        />
+      </ThemeCard>
+      <ThemeCard>
+        <ImageUploadField
+          label="صورة خلفية المنيو"
+          description="اختياري — تغطي خلفية الشاشة بالكامل"
+          previewUrl={palette.bgImage}
+          aspectClass="aspect-video"
+          onUpload={onBgUpload}
+          onClear={palette.bgImage ? () => onPaletteChange({ bgImage: undefined }) : undefined}
+        />
+      </ThemeCard>
+    </ThemeSectionPanel>
+  );
+}
 
-const Stat = ({ icon, label, value, swatch }: { icon: React.ReactNode; label: string; value: string; swatch?: string }) => (
-  <div className="bg-card rounded-2xl border border-border p-4 flex items-center gap-3">
-    <div className="w-10 h-10 rounded-xl bg-accent/15 text-accent flex items-center justify-center">{icon}</div>
-    <div className="flex-1">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="font-display font-bold text-primary">{value}</div>
-    </div>
-    {swatch && <span className="w-8 h-8 rounded-lg border border-border" style={{ background: swatch }} />}
-  </div>
-);
-
-const Section = ({ title, desc, previewHref, previewLabel, children }: { title: string; desc: string; previewHref: string; previewLabel: string; children: React.ReactNode }) => (
-  <div className="bg-card rounded-3xl border border-border p-6 space-y-5">
-    <div>
-      <h3 className="font-display font-bold text-xl text-primary">{title}</h3>
-      <p className="text-sm text-muted-foreground">{desc}</p>
-    </div>
-    {children}
-    <a href={previewHref} target="_blank" rel="noreferrer"
-      className="flex items-center justify-center gap-2 text-sm font-bold text-accent-foreground bg-accent/30 hover:bg-accent/50 rounded-xl py-3 transition-colors">
-      <ExternalLink className="w-4 h-4" /> {previewLabel}
-    </a>
-  </div>
-);
-
-const Palette3 = ({
+function FeaturedSection({
   title,
-  bg,
-  text,
-  accent,
+  description,
+  options,
+  value,
   onChange,
 }: {
   title: string;
-  bg: string;
-  text: string;
-  accent: string;
-  onChange: (k: "bgColor" | "textColor" | "accentColor", v: string) => void;
-}) => (
-  <div className="pt-4 border-t border-border space-y-2">
-    <div className="text-xs font-bold text-muted-foreground">{title}</div>
-    <div className="grid grid-cols-3 gap-3">
-      <ColorField label="الخلفية" value={bg} onChange={(v) => onChange("bgColor", v)} />
-      <ColorField label="النص" value={text} onChange={(v) => onChange("textColor", v)} />
-      <ColorField label="مميّز" value={accent} onChange={(v) => onChange("accentColor", v)} />
-    </div>
-  </div>
-);
-
-const TemplateCard = ({ active, icon, title, desc, onClick }: { active: boolean; icon: React.ReactNode; title: string; desc: string; onClick: () => void }) => (
-  <button onClick={onClick}
-    className={`p-5 rounded-2xl border-2 transition-all text-right ${active ? "border-accent bg-accent/10 shadow-gold" : "border-border hover:border-accent/40"}`}>
-    <div className={`mb-3 ${active ? "text-accent-foreground" : "text-muted-foreground"}`}>{icon}</div>
-    <div className="font-display font-bold text-primary">{title}</div>
-    <div className="text-xs text-muted-foreground mt-1">{desc}</div>
-  </button>
-);
-
-const ColorField = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
-  <div>
-    <Label className="text-xs">{label}</Label>
-    <div className="mt-2 flex items-center gap-2 border border-border rounded-xl p-1.5">
-      <input type="color" value={value} onChange={(e) => onChange(e.target.value)}
-        className="w-10 h-10 rounded-lg cursor-pointer border-0 bg-transparent" aria-label={label} />
-      <input type="text" value={value} onChange={(e) => onChange(e.target.value)}
-        className="flex-1 bg-transparent font-mono text-xs text-foreground outline-none uppercase" />
-    </div>
-  </div>
-);
+  description: string;
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <ThemeSectionPanel title={title} description={description}>
+      <ThemeCard>
+        <ThemeFieldGroup label="الاختيار" hint="اتركه فارغاً لعدم إبراز عنصر">
+          <select
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm touch-manipulation"
+          >
+            <option value="">— لا يوجد —</option>
+            {options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </ThemeFieldGroup>
+      </ThemeCard>
+    </ThemeSectionPanel>
+  );
+}
 
 export default Theme;

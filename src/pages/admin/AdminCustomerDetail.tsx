@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,7 @@ const AdminCustomerDetail = () => {
 
   const canMutate = profile ? canAdminMutate(profile.role) : false;
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
@@ -55,11 +55,11 @@ const AdminCustomerDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, navigate]);
 
   useEffect(() => {
     void load();
-  }, [id]);
+  }, [load]);
 
   const runAction = async (action: AdminSubscriptionAction) => {
     if (!id || !canMutate) return;

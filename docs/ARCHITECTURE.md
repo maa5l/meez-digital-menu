@@ -1,49 +1,68 @@
 # Architecture
 
-## نظرة عامة
+## Overview
 
-مشروع **Frontend SPA** (Vite + React) مع **Backend scaffold** (`server/`) جاهز للتوسع.
+Meez is a **Vite + React SPA** backed entirely by **Supabase** (Auth, Postgres, RLS, RPCs, Realtime). There is no separate application API required for production.
 
 ```
-┌─────────────┐     HTTPS      ┌──────────────┐     ┌──────────┐
-│   Browser   │ ◄────────────► │  Nginx/CDN   │     │ Postgres │
-│  React SPA  │                │  API (Node)  │ ◄──►│  (مستقبل)│
-└─────────────┘                └──────────────┘     └──────────┘
+┌──────────────┐     HTTPS      ┌──────────────┐     ┌─────────────────────┐
+│ Browser/iPad │ ◄────────────► │ Nginx / CDN  │     │ Supabase            │
+│  React SPA   │                │  (static)    │     │ Auth + Postgres RPC │
+└──────────────┘                └──────────────┘     └─────────────────────┘
 ```
 
-## هيكلة Frontend
+Optional: `server/` Express health check on port 3001 (not required for the dashboard or kiosk).
+
+## Frontend structure
 
 ```
 src/
-├── app/           # Routes, providers
-├── components/    # UI + landing + menu + dashboard
-├── config/        # env, constants
-├── constants/     # storage keys
+├── app/           # Routes, providers, auth bootstrap
+├── components/    # UI, menu, dashboard, admin
+├── config/        # env, subscription, support
 ├── hooks/
-├── lib/           # logger, errors, utils
-├── middleware/    # ProtectedRoute
-├── pages/
-├── payment/       # PCI-aware scaffolding
-├── security/      # sanitize, session, storage
-├── services/      # api client, device activation
+├── lib/           # logger, errors, image processing
+├── middleware/    # Auth, subscription, admin guards
+├── pages/         # Landing, dashboard, admin, menu display
+├── security/      # session mirror, sanitize, storage
+├── services/      # Supabase RPC wrappers
 ├── types/
 └── validations/   # Zod schemas
 ```
 
-## فصل الطبقات
+## Layer responsibilities
 
-| الطبقة | المسؤولية |
-|--------|-----------|
-| Pages | عرض UI |
-| Hooks | حالة مشتركة |
-| Services | منطق أعمال + API |
-| Validations | تحقق المدخلات |
-| Security | جلسة، تخزين، تنظيف |
+| Layer | Responsibility |
+|-------|----------------|
+| Pages | UI composition |
+| Hooks | Shared state |
+| Services | Business calls via Supabase RPC |
+| Validations | Client-side input checks (server enforces via RPC/RLS) |
+| Security | Session mirror, sanitization, local storage helpers |
 
-## Backend (قيد الإنشاء)
+## Backend (Supabase)
 
-`server/` — Express + Helmet + CORS + Rate limit + `/api/v1/health`.
+All authoritative logic lives in Postgres:
 
-## الدفع
+- **RLS** on `profiles`, `subscriptions`, `audit_logs`, pairing sessions
+- **RPC-only** access for `venues`, `device_activations`, admin tables
+- **SECURITY DEFINER** functions validate `auth.uid()`, subscription state, and admin roles
+- **Kiosk** endpoints use rate limiting and device-code gates
 
-`src/payment/` — مزودون (Stripe, Moyasar) كـ stubs؛ التنفيذ الحقيقي على الخادم.
+See `docs/CORE_PLATFORM_SECURITY.md` and `docs/MANUAL_SUBSCRIPTION.md`.
+
+## Admin panel
+
+Routes under `/admin/*` are gated by `AdminProtectedRoute` (UI) and `admin_require_role()` (database).
+
+Roles: `super_admin` > `admin` > `support` (read-only for mutations).
+
+## Subscription model
+
+- 7-day trial created on signup (server-enforced)
+- Manual activation by platform admin
+- No online billing in the frontend or database RPC surface
+
+## Deployment
+
+See `docs/DEPLOYMENT.md`. Vercel/nginx serves the SPA; configure `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.

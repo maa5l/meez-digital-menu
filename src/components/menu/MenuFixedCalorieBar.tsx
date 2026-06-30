@@ -13,6 +13,8 @@ type Props = {
   customization: MenuHeaderCustomization;
   showLang?: boolean;
   onLangToggle?: () => void;
+  /** داخل تدفّق flex — بدون position:fixed */
+  embedded?: boolean;
 };
 
 /** شريط علوي مدمج — إفصاح السعرات + الشعار في صف واحد */
@@ -23,13 +25,16 @@ const MenuFixedCalorieBar = ({
   customization,
   showLang = false,
   onLangToggle,
+  embedded = false,
 }: Props) => {
   const layout = useMenuLayoutMetrics();
 
   return (
   <div
     className={cn(
-      "fixed inset-x-0 top-0 z-40 border-b border-black/10 bg-black/[0.04]",
+      "w-full border-b border-black/10 bg-black/[0.04]",
+      !embedded && "fixed inset-x-0 top-0 z-40",
+      embedded && "relative shrink-0",
       menuChromeMotion,
     )}
     style={{ minHeight: layout.compactTopHeight }}
@@ -41,15 +46,18 @@ const MenuFixedCalorieBar = ({
         headerFg={headerFg}
         customization={customization}
         logoSizePx={layout.logoSizePx}
+        trailing={
+          showLang && onLangToggle ? (
+            <MenuLangToggle
+              lang={lang}
+              onToggle={onLangToggle}
+              textColor={textColor}
+              variant="tab"
+              className="px-2.5 py-1 text-[11px] md:px-3 md:py-1.5 md:text-xs"
+            />
+          ) : undefined
+        }
       />
-      {showLang && onLangToggle && (
-        <MenuLangToggle
-          lang={lang}
-          onToggle={onLangToggle}
-          textColor={textColor}
-          className="absolute end-2 top-2 md:end-4"
-        />
-      )}
     </div>
   </div>
   );
