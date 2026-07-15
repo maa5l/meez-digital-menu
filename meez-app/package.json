@@ -13,6 +13,7 @@
     "cap:run:ios": "npm run cap:sync && npx cap run ios"
   },
   "dependencies": {
+    "@capacitor/android": "^7.6.8",
     "@capacitor/app": "^7.0.1",
     "@capacitor/core": "^7.2.0",
     "@capacitor/preferences": "^7.0.1",
@@ -37,7 +38,8 @@
   },
   "capacitor": {
     "platforms": [
-      "ios"
+      "ios",
+      "android"
     ]
   }
 }
