@@ -31,7 +31,6 @@
       },
       "package": "com.meez.kiosk",
       "versionCode": 1,
-      "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "pan",
       "backgroundColor": "#1a1510"
     },
