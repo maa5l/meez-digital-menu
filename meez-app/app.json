@@ -8,7 +8,7 @@
     "icon": "./assets/icon.png",
     "scheme": "meez",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -28,7 +28,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "backgroundColor": "#1a1a1a"
       },
-      "package": "com.meez.kiosk"
+      "package": "com.meez.kiosk",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png",

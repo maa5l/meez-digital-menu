@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">=16.0.0",
-    "appVersionSource": "local"
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -20,8 +20,16 @@
     },
     "production": {
       "autoIncrement": true,
+      "node": "22.14.0",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://feorprugthydhyytvebe.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlb3JwcnVndGh5ZGh5eXR2ZWJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMDQ5NjQsImV4cCI6MjA5NDU4MDk2NH0.WCO8laounfYSrr0qiGMXBX6R0hzH9klcdlpgt7LcU2w",
+        "EXPO_PUBLIC_MENU_WEB_URL": "https://app.meez.com",
+        "EXPO_PUBLIC_PUBLIC_SITE_HOST": "app.meez.com"
+      },
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "image": "latest"
       },
       "ios": {
         "resourceClass": "m-medium"
