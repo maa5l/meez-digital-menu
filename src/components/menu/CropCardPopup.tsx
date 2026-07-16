@@ -46,7 +46,7 @@ const CropCardPopup = ({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm overscroll-none touch-none md:p-6"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm overscroll-none md:p-6"
       onClick={onClose}
       dir={lang === "ar" ? "rtl" : "ltr"}
       role="dialog"
@@ -62,7 +62,7 @@ const CropCardPopup = ({
           type="button"
           onClick={onClose}
           className={cn(
-            "absolute -top-2 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#1a1a1a] shadow-md ring-1 ring-black/10 touch-manipulation",
+            "absolute -top-2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#1a1a1a] shadow-md ring-1 ring-black/10 touch-manipulation",
             lang === "ar" ? "-left-2" : "-right-2",
           )}
           aria-label={L.close}

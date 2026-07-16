@@ -28,7 +28,7 @@ const CloseButton = ({
     onClick={onClose}
     aria-label={isAr ? "إغلاق" : "Close"}
     className={cn(
-      "z-40 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/95 shadow-sm ring-1 ring-black/10",
+      "z-40 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/95 shadow-sm ring-1 ring-black/10 touch-manipulation",
       className,
     )}
   >
@@ -51,7 +51,7 @@ const ProductDetailModal = ({ product, lang, onClose }: Props) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/60 p-4 backdrop-blur-sm overscroll-none touch-none md:p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/60 p-4 backdrop-blur-sm overscroll-none md:p-6"
       onClick={onClose}
       dir={isAr ? "rtl" : "ltr"}
     >

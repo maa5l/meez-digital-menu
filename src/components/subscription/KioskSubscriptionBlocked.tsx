@@ -7,6 +7,7 @@ type Props = {
   code: string;
   check: KioskAccessCheck;
   registrationStatus?: "checking" | "not_registered" | "registered";
+  kioskMode?: boolean;
 };
 
 function titleFor(check: KioskAccessCheck, checking: boolean): string {
@@ -34,9 +35,14 @@ function bodyFor(check: KioskAccessCheck): string {
   return "انتهت فترة التجربة أو الاشتراك. تواصل مع فريق ميز لتفعيل الحساب.";
 }
 
-export function KioskSubscriptionBlocked({ code, check, registrationStatus }: Props) {
+export function KioskSubscriptionBlocked({
+  code,
+  check,
+  registrationStatus,
+  kioskMode = false,
+}: Props) {
   const checking = registrationStatus === "checking";
-  const showContact = check.registered && !check.allowed;
+  const showContact = check.registered && !check.allowed && !kioskMode;
 
   return (
     <div

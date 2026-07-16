@@ -46,7 +46,7 @@ export function getPublicSiteHref(): string {
 export function getMenuUrlForCode(code: string): string {
   const normalized = code.trim().toUpperCase();
   const base = getMenuWebBaseUrl().replace(/\/$/, "");
-  return `${base}/menu?code=${encodeURIComponent(normalized)}`;
+  return `${base}/menu?code=${encodeURIComponent(normalized)}&kiosk=1`;
 }
 
 export function isLocalhostMenuUrl(): boolean {

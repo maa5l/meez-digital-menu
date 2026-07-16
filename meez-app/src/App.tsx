@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { WebView } from "react-native-webview";
+import { MenuWebView } from "@/components/MenuWebView";
 import { AppShell, APP_BACKGROUND } from "@/components/AppShell";
 import { PairScreen } from "@/components/PairScreen";
 import { getMenuUrlForCode, isSupabaseConfigured } from "@/config/env";
@@ -87,17 +87,7 @@ const App = () => {
   let content: ReactNode;
 
   if (menuUrl) {
-    content = (
-      <WebView
-        source={{ uri: menuUrl }}
-        style={styles.fill}
-        allowsInlineMediaPlayback
-        mediaPlaybackRequiresUserAction={false}
-        setSupportMultipleWindows={false}
-        overScrollMode="never"
-        androidLayerType="hardware"
-      />
-    );
+    content = <MenuWebView menuUrl={menuUrl} />;
   } else if (bootError) {
     content = (
       <View style={styles.centered}>

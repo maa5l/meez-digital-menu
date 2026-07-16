@@ -23,7 +23,7 @@ import { ROUTES } from "@/config/app";
 import { useMenuLang, MenuLangProvider } from "@/context/MenuLangContext";
 import { getMenuUi } from "@/lib/menu-i18n";
 import { getCropsPalette, getProductsPalette } from "@/lib/menu-palette";
-import { throttle } from "@/lib/throttle";
+import { isKioskMode } from "@/lib/kiosk-mode";
 
 /**
  * شاشة عرض المنيو — التفعيل + الاشتراك يُفرضان من الخادم (check_kiosk_access).
@@ -34,6 +34,7 @@ const MenuDisplay = () => {
   const tplOverride = params.get("tpl");
   const wantsPreview = params.get("preview") === "1" || !!tplOverride;
   const codeFromParam = normalizeDeviceCodeParam(params.get("code"));
+  const kioskMode = isKioskMode(params);
 
   const [code] = useState(() => {
     if (codeFromParam) {
@@ -109,6 +110,16 @@ const MenuDisplay = () => {
   );
 
   if (!isPreview && !code) {
+    if (kioskMode) {
+      return (
+        <KioskSubscriptionBlocked
+          code=""
+          check={{ allowed: false, registered: false, reason: "device_not_registered" }}
+          registrationStatus="not_registered"
+          kioskMode
+        />
+      );
+    }
     return <Navigate to={ROUTES.pair} replace />;
   }
 
@@ -118,16 +129,27 @@ const MenuDisplay = () => {
         code={code}
         check={gate}
         registrationStatus="checking"
+        kioskMode={kioskMode}
       />
     );
   }
 
   if (!isPreview && (!gate.registered || gate.reason === "device_inactive")) {
+    if (kioskMode) {
+      return (
+        <KioskSubscriptionBlocked
+          code={code}
+          check={gate}
+          registrationStatus="not_registered"
+          kioskMode
+        />
+      );
+    }
     return <Navigate to={ROUTES.pair} replace />;
   }
 
   if (!isPreview && gate.registered && !gate.allowed) {
-    return <KioskSubscriptionBlocked code={code} check={gate} />;
+    return <KioskSubscriptionBlocked code={code} check={gate} kioskMode={kioskMode} />;
   }
   const settings = venue.menuSettings;
   const cropsTpl =
