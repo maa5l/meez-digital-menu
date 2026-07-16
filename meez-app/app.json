@@ -28,8 +28,7 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "backgroundColor": "#1a1a1a"
       },
-      "package": "com.meez.kiosk",
-      "edgeToEdgeEnabled": true
+      "package": "com.meez.kiosk"
     },
     "web": {
       "favicon": "./assets/favicon.png",

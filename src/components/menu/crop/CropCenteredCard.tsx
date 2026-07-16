@@ -15,8 +15,8 @@ type Props = {
   featured?: boolean;
   className?: string;
   scrollable?: boolean;
-  /** carousel = بطاقة عرض أفقي بملء الارتفاع */
-  variant?: "default" | "carousel" | "feature";
+  /** carousel = بطاقة عرض أفقي | popup = نافذة منبثقة */
+  variant?: "default" | "carousel" | "feature" | "popup";
   onClick?: () => void;
   style?: CSSProperties;
 };
@@ -71,7 +71,9 @@ const CropCenteredCard = ({
   style,
 }: Props) => {
   const isCarousel = variant === "carousel";
+  const isPopup = variant === "popup";
   const isFeature = variant === "feature" || scrollable;
+  const isCompact = isCarousel || isPopup;
   const L = cropFieldLabels[lang];
   const profile = buildCropProfile(crop, lang);
   const surface = resolveCropSurface(crop, {
@@ -91,63 +93,72 @@ const CropCenteredCard = ({
   const content = (
     <div
       className={cn(
-        "relative z-10 flex w-full flex-col items-center justify-center text-center",
-        isCarousel
-          ? "h-full min-h-0 gap-2.5 overflow-hidden px-4 py-5 md:gap-3 md:px-5 md:py-6"
+        "relative z-10 flex h-full w-full min-h-0 flex-col items-center justify-center text-center",
+        isCompact
+          ? "gap-2 overflow-hidden px-4 py-4 md:gap-2.5 md:px-5 md:py-5"
           : "gap-5 px-6 py-8 md:gap-6 md:px-8 md:py-10",
-        isFeature && !isCarousel && "min-h-0 flex-1 overflow-y-auto overscroll-y-contain",
+        isFeature && !isCompact && "min-h-0 flex-1 overflow-y-auto overscroll-y-contain",
       )}
     >
-      {featured && (
-        <span
-          className={cn(
-            "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-white shadow-sm",
-            isCarousel && "px-2.5 py-0.5 text-[10px]",
-          )}
-          style={{ background: accentColor }}
-        >
-          <Sparkles className={cn("h-3.5 w-3.5", isCarousel && "h-3 w-3")} />
-          {L.featured}
-        </span>
-      )}
-
-      <h2
-        dir={lang === "ar" ? "rtl" : "ltr"}
-        className={cn(
-          "shrink-0 font-display font-black leading-tight",
-          isCarousel ? "text-xl md:text-2xl ipad-lg:text-[1.65rem]" : "text-2xl md:text-3xl lg:text-4xl",
-        )}
-        style={{ color: fg }}
-      >
-        {profile.localized.beanName}
-      </h2>
-
       <div
         className={cn(
-          "flex w-full min-h-0 flex-col items-center",
-          isCarousel ? "max-w-[92%] flex-1 gap-2.5 md:gap-3" : "max-w-xs gap-4 sm:max-w-sm sm:gap-5",
+          "flex w-full min-h-0 flex-col items-center justify-center",
+          isCompact ? "max-w-[94%] gap-2 md:gap-2.5" : "max-w-xs gap-4 sm:max-w-sm sm:gap-5",
         )}
       >
-        <CenteredField label={L.country} value={profile.localized.country} lang={lang} fg={fg} compact={isCarousel} />
-        <CenteredField label={L.process} value={profile.localized.process} lang={lang} fg={fg} compact={isCarousel} />
-        <CenteredField label={L.variety} value={profile.localized.variety} lang={lang} fg={fg} compact={isCarousel} />
-        <CenteredField label={L.altitude} value={profile.localized.altitude} lang={lang} fg={fg} compact={isCarousel} />
-      </div>
+        {featured && (
+          <span
+            className={cn(
+              "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-white shadow-sm",
+              isCompact && "px-2.5 py-0.5 text-[10px]",
+            )}
+            style={{ background: accentColor }}
+          >
+            <Sparkles className={cn("h-3.5 w-3.5", isCompact && "h-3 w-3")} />
+            {L.featured}
+          </span>
+        )}
 
-      {profile.localized.notes && (
-        <p
+        <h2
           dir={lang === "ar" ? "rtl" : "ltr"}
           className={cn(
-            "shrink-0 font-bold leading-relaxed opacity-90",
-            isCarousel
-              ? "line-clamp-2 max-w-[92%] text-sm md:text-base"
-              : "max-w-sm text-base md:text-lg lg:text-xl",
+            "shrink-0 font-display font-black leading-tight",
+            isCompact
+              ? "text-lg md:text-xl ipad-lg:text-2xl"
+              : "text-2xl md:text-3xl lg:text-4xl",
           )}
           style={{ color: fg }}
         >
-          {profile.localized.notes}
-        </p>
-      )}
+          {profile.localized.beanName}
+        </h2>
+
+        <div
+          className={cn(
+            "flex w-full min-h-0 flex-col items-center justify-center",
+            isCompact ? "gap-1.5 md:gap-2" : "gap-4 sm:gap-5",
+          )}
+        >
+          <CenteredField label={L.country} value={profile.localized.country} lang={lang} fg={fg} compact={isCompact} />
+          <CenteredField label={L.process} value={profile.localized.process} lang={lang} fg={fg} compact={isCompact} />
+          <CenteredField label={L.variety} value={profile.localized.variety} lang={lang} fg={fg} compact={isCompact} />
+          <CenteredField label={L.altitude} value={profile.localized.altitude} lang={lang} fg={fg} compact={isCompact} />
+        </div>
+
+        {profile.localized.notes && (
+          <p
+            dir={lang === "ar" ? "rtl" : "ltr"}
+            className={cn(
+              "shrink-0 font-bold leading-relaxed opacity-90",
+              isCompact
+                ? "line-clamp-2 max-w-full text-xs md:text-sm"
+                : "max-w-sm text-base md:text-lg lg:text-xl",
+            )}
+            style={{ color: fg }}
+          >
+            {profile.localized.notes}
+          </p>
+        )}
+      </div>
     </div>
   );
 
@@ -168,18 +179,17 @@ const CropCenteredCard = ({
       }
       className={cn(
         "relative flex flex-col overflow-hidden rounded-[1.75rem]",
-        isCarousel && "h-full min-h-0",
+        isCarousel && "h-full min-h-0 max-h-full",
         onClick && "cursor-pointer touch-manipulation transition-transform active:scale-[0.99]",
-        featured && "ring-2 ring-offset-2",
         className,
       )}
       style={{
         background: showImage ? undefined : surface.background,
         color: fg,
         ...style,
-        ...(featured
-          ? { boxShadow: `0 0 0 2px ${accentColor}`, borderColor: accentColor }
-          : {}),
+        boxShadow: featured
+          ? `inset 0 0 0 2px ${accentColor}, 0 8px 28px rgba(0,0,0,0.14)`
+          : "0 8px 28px rgba(0,0,0,0.12)",
       }}
       aria-label={profile.localized.beanName}
     >
@@ -196,7 +206,7 @@ const CropCenteredCard = ({
         </>
       )}
 
-      {isFeature && !isCarousel ? (
+      {isFeature && !isCompact ? (
         <div className="relative flex min-h-0 flex-1 flex-col">{content}</div>
       ) : (
         content

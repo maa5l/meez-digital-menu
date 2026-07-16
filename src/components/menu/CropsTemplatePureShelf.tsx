@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Crop, MenuSettings } from "@/types/domain";
-import CropDetailModal from "@/components/menu/CropDetailModal";
+import CropCardPopup from "@/components/menu/CropCardPopup";
 import CropFeatureCard from "@/components/menu/CropFeatureCard";
 import { CropListItemLabel } from "@/components/menu/CropDisplay";
 import { MenuCropsTopChrome } from "@/components/menu/MenuCropsTopChrome";
@@ -95,10 +95,11 @@ const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; c
       </MenuCropsTopChrome>
 
       {modal && (
-        <CropDetailModal
+        <CropCardPopup
           crop={modal}
           lang={lang}
-          accent={palette.accentColor}
+          accentColor={palette.accentColor}
+          fallbackTextColor={palette.textColor}
           featured={modal.id === settings.featuredCropId}
           onClose={() => setModal(null)}
         />

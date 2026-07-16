@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Crop, MenuSettings } from "@/types/domain";
 import CropCarouselCard from "@/components/menu/crop/CropCarouselCard";
-import CropDetailModal from "@/components/menu/CropDetailModal";
+import CropCardPopup from "@/components/menu/CropCardPopup";
 import { MenuCropsTopChrome } from "@/components/menu/MenuCropsTopChrome";
 import { useMenuLang } from "@/context/MenuLangContext";
 import { getCropsHeaderCustomization, isCropsLangToggleEnabled } from "@/lib/menu-header-settings";
@@ -10,6 +10,8 @@ import { menuContentEnter } from "@/lib/menu-header";
 import { cn } from "@/lib/utils";
 
 const CROP_CARD_ASPECT = 3 / 4;
+/** هامش عمودي حتى لا يخرج الكرت عن الإطار تحت الهيدر */
+const CROP_TRACK_VERTICAL_PAD = 12;
 
 /**
  * Crops Template — عرض أفقي بطاقات كتالوج قهوة متخصصة (تمرير يمين/يسار فقط).
@@ -30,7 +32,11 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
 
     const measure = () => {
       const h = el.clientHeight;
-      if (h > 0) setCardHeight(h);
+      if (h <= 0) return;
+      const style = getComputedStyle(el);
+      const pad =
+        parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+      setCardHeight(Math.floor(h - pad));
     };
 
     measure();
@@ -77,11 +83,12 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 md:px-5 md:pt-2 ipad-lg:px-6">
           <div
             ref={trackRef}
-            className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex min-h-0 flex-1 items-center overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            style={{ paddingBlock: CROP_TRACK_VERTICAL_PAD }}
           >
             <div
               className={cn(
-                "flex h-full min-h-0 items-center gap-3 py-0.5 md:gap-4",
+                "flex h-full min-h-0 items-center gap-3 md:gap-4",
                 lang === "ar" ? "flex-row-reverse" : "flex-row",
               )}
             >
@@ -104,10 +111,11 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
       </MenuCropsTopChrome>
 
       {modal && (
-        <CropDetailModal
+        <CropCardPopup
           crop={modal}
           lang={lang}
-          accent={palette.accentColor}
+          accentColor={palette.accentColor}
+          fallbackTextColor={palette.textColor}
           featured={modal.id === settings.featuredCropId}
           onClose={() => setModal(null)}
         />

@@ -32,7 +32,7 @@ const CropCarouselCard = ({
     featured={featured}
     variant="carousel"
     onClick={onClick}
-    className="max-h-full shrink-0 snap-center shadow-lg"
+    className="h-full max-h-full shrink-0 snap-center overflow-hidden shadow-lg"
     style={
       cardHeight && cardWidth
         ? { height: cardHeight, width: cardWidth, maxHeight: cardHeight, maxWidth: cardWidth }

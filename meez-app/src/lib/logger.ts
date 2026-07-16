@@ -1,5 +1,5 @@
 function emit(level: string, event: string, meta?: Record<string, unknown>): void {
-  if (import.meta.env.PROD && level === "debug") return;
+  if (!__DEV__ && level === "debug") return;
   console[level === "error" ? "error" : "log"](JSON.stringify({ level, event, ...meta }));
 }
 
