@@ -8,11 +8,12 @@
     "icon": "./assets/icon.png",
     "scheme": "meez",
     "userInterfaceStyle": "dark",
+    "backgroundColor": "#1a1510",
     "newArchEnabled": false,
     "splash": {
       "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#1a1a1a"
+      "resizeMode": "cover",
+      "backgroundColor": "#1a1510"
     },
     "ios": {
       "supportsTablet": true,
@@ -26,19 +27,48 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
-        "backgroundColor": "#1a1a1a"
+        "backgroundColor": "#1a1510"
       },
       "package": "com.meez.kiosk",
-      "versionCode": 1
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true,
+      "softwareKeyboardLayoutMode": "pan",
+      "backgroundColor": "#1a1510"
+    },
+    "androidNavigationBar": {
+      "visible": "sticky-immersive",
+      "barStyle": "light-content",
+      "backgroundColor": "#1a1510"
+    },
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#1a1510",
+      "translucent": true
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
     "plugins": [
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1a1510",
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "cover"
+        }
+      ],
       "expo-asset",
-      "expo-font"
+      "expo-font",
+      [
+        "react-native-edge-to-edge",
+        {
+          "android": {
+            "parentTheme": "Default",
+            "enforceNavigationBarContrast": false
+          }
+        }
+      ]
     ],
     "experiments": {
       "tsconfigPaths": true

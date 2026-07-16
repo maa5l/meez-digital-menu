@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { StatusBar } from "expo-status-bar";
 import { WebView } from "react-native-webview";
+import { AppShell, APP_BACKGROUND } from "@/components/AppShell";
 import { PairScreen } from "@/components/PairScreen";
 import { getMenuUrlForCode, isSupabaseConfigured } from "@/config/env";
 import { resolveDeviceCodeFromUrl } from "@/services/device-code";
@@ -11,6 +11,7 @@ import {
   verifyKioskAccessBeforeMenu,
 } from "@/services/kiosk-check";
 import { useDeviceRegistrationWatch } from "@/hooks/useDeviceRegistrationWatch";
+import { announceKioskPairingCode } from "@/services/kiosk-pairing";
 import { logger } from "@/lib/logger";
 
 const App = () => {
@@ -63,49 +64,55 @@ const App = () => {
     }
   }, [openingMenu]);
 
+  useEffect(() => {
+    if (!code || !isSupabaseConfigured()) return;
+
+    void announceKioskPairingCode(code);
+
+    const refreshId = setInterval(() => {
+      void announceKioskPairingCode(code);
+    }, 10 * 60 * 1000);
+
+    return () => clearInterval(refreshId);
+  }, [code]);
+
   useDeviceRegistrationWatch(code, {
     enabled: isSupabaseConfigured() && !openingMenu && !menuUrl,
     onStatus: setPeek,
     onRegistered: (deviceCode) => void openMenu(deviceCode),
   });
 
-  if (menuUrl) {
-    return (
-      <View style={styles.root}>
-        <StatusBar style="light" hidden />
-        <WebView
-          source={{ uri: menuUrl }}
-          style={styles.webview}
-          allowsInlineMediaPlayback
-          mediaPlaybackRequiresUserAction={false}
-          setSupportMultipleWindows={false}
-        />
-      </View>
-    );
-  }
+  const immersive = Boolean(menuUrl);
 
-  if (bootError) {
-    return (
-      <View style={styles.root}>
-        <StatusBar style="light" />
+  let content: ReactNode;
+
+  if (menuUrl) {
+    content = (
+      <WebView
+        source={{ uri: menuUrl }}
+        style={styles.fill}
+        allowsInlineMediaPlayback
+        mediaPlaybackRequiresUserAction={false}
+        setSupportMultipleWindows={false}
+        overScrollMode="never"
+        androidLayerType="hardware"
+      />
+    );
+  } else if (bootError) {
+    content = (
+      <View style={styles.centered}>
         <Text style={styles.centerText}>{bootError}</Text>
       </View>
     );
-  }
-
-  if (!code) {
-    return (
-      <View style={styles.root}>
-        <StatusBar style="light" />
+  } else if (!code) {
+    content = (
+      <View style={styles.centered}>
         <ActivityIndicator size="large" color="#c4a35a" />
       </View>
     );
-  }
-
-  if (!isSupabaseConfigured()) {
-    return (
-      <View style={styles.root}>
-        <StatusBar style="light" />
+  } else if (!isSupabaseConfigured()) {
+    content = (
+      <View style={styles.centered}>
         <View style={styles.box}>
           <Text style={styles.title}>Supabase غير مضبوط</Text>
           <Text style={styles.centerText}>
@@ -114,28 +121,30 @@ const App = () => {
         </View>
       </View>
     );
+  } else {
+    content = <PairScreen code={code} peek={peek} openingMenu={openingMenu} />;
   }
 
   return (
-    <>
-      <StatusBar style="light" />
-      <PairScreen code={code} peek={peek} openingMenu={openingMenu} />
-    </>
+    <AppShell immersive={immersive}>
+      {content}
+    </AppShell>
   );
 };
 
 const styles = StyleSheet.create({
-  root: {
+  fill: {
     flex: 1,
-    backgroundColor: "#1a1510",
+    width: "100%",
+    height: "100%",
+    backgroundColor: APP_BACKGROUND,
+  },
+  centered: {
+    flex: 1,
+    width: "100%",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
-  },
-  webview: {
-    flex: 1,
-    width: "100%",
-    backgroundColor: "#1a1510",
   },
   box: {
     maxWidth: 420,

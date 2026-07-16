@@ -20,6 +20,12 @@ function statusLabel(peek: RegistrationPeek | null | undefined, openingMenu: boo
   if (!peek || peek.status === "checking") return "جاري التحقق من التفعيل…";
   if (peek.status === "registered") return "تم التفعيل — جاري التحويل…";
   if (peek.status === "error") {
+    if (peek.reason === "rate_limited") {
+      const sec = peek.retry_after_seconds;
+      return sec
+        ? `محاولات كثيرة — انتظر ${sec} ثانية`
+        : "محاولات كثيرة — انتظر قليلاً";
+    }
     return peek.message ? `خطأ الاتصال: ${peek.message}` : "تعذّر الاتصال بـ Supabase";
   }
   if (peek.reason === "device_not_registered") {
@@ -61,7 +67,9 @@ export function PairScreen({ code, peek = null, openingMenu = false }: Props) {
           {code}
         </Text>
         <Text style={[styles.status, isError && styles.statusError]}>{label}</Text>
-        <Text style={styles.hint}>انسخ هذا الرمز إلى لوحة التحكم → الأجهزة → تفعيل جهاز</Text>
+        <Text style={styles.hint}>
+          انسخ الرمز أعلاه إلى لوحة التحكم → الأجهزة → تفعيل جهاز
+        </Text>
         <Pressable onPress={() => void Linking.openURL(siteHref)}>
           <Text style={styles.link}>{siteLabel}</Text>
         </Pressable>
@@ -83,6 +91,8 @@ export function PairScreen({ code, peek = null, openingMenu = false }: Props) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    width: "100%",
+    height: "100%",
     backgroundColor: "#1a1510",
     alignItems: "center",
     justifyContent: "center",
@@ -90,7 +100,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "100%",
-    maxWidth: 520,
+    flexGrow: 0,
     alignItems: "center",
   },
   eyebrow: {

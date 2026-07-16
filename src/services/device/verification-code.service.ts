@@ -162,6 +162,7 @@ export async function verifyLoginVerificationCode(
 
 export type VerificationEnsureReason =
   | "invalid_format"
+  | "device_not_announced"
   | "already_valid"
   | "registered_new_session"
   | "create_failed"
@@ -212,6 +213,19 @@ function toDiagnosticSessions(rows: PairingSessionRow[]) {
   }));
 }
 
+async function isKioskPairingAnnounced(code: string): Promise<boolean> {
+  const { data, error } = await getSupabase().rpc("is_kiosk_pairing_announced", {
+    p_code: code,
+  });
+
+  if (error) {
+    logger.warn("verification.announce_check_failed", { message: error.message, code });
+    return false;
+  }
+
+  return Boolean(data);
+}
+
 /**
  * يضمن وجود جلسة تحقق صالحة للمالك قبل التفعيل.
  * رمز الآيباد يُولَّد محلياً ولا يُكتب في Supabase — نسجّله هنا عند التفعيل من لوحة التحكم.
@@ -237,6 +251,12 @@ export async function ensureOwnerVerificationSession(
     const valid = await validateVerificationCode(normalized);
     logger.info("verification.ensure_local", { normalizedCode: normalized, valid });
     return { ok: valid, normalizedCode: normalized, reason: "local_mock" };
+  }
+
+  const announced = await isKioskPairingAnnounced(normalized);
+  if (!announced) {
+    logger.warn("verification.ensure_not_announced", { normalizedCode: normalized });
+    return { ok: false, normalizedCode: normalized, reason: "device_not_announced" };
   }
 
   const supabase = getSupabase();

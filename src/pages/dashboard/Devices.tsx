@@ -163,9 +163,11 @@ const Devices = () => {
         toast.error(
           ensure.reason === "invalid_format"
             ? "صيغة الرمز غير صحيحة — استخدم QM-XXXX"
-            : hadExpired
-              ? "انتهت صلاحية الرمز السابق — أعد إدخال الرمز من الآيباد أو ولّد رمزاً جديداً"
-              : "تعذّر تجهيز كود التحقق — تأكد من الرمز الظاهر على الآيباد وحاول مرة أخرى",
+            : ensure.reason === "device_not_announced"
+              ? "افتح تطبيق الكشك على الجهاز أولاً — الرمز يجب أن يظهر على الشاشة قبل التفعيل"
+              : hadExpired
+                ? "انتهت صلاحية الرمز السابق — أعد إدخال الرمز من الجهاز"
+                : "تعذّر تجهيز كود التحقق — تأكد من الرمز الظاهر على الجهاز وحاول مرة أخرى",
         );
         return;
       }
@@ -182,8 +184,10 @@ const Devices = () => {
             : result.error === "code_already_claimed"
               ? "هذا الرمز مربوط بحساب آخر ولا يمكن إعادة استخدامه"
               : result.error === "verification_code_invalid"
-                ? "كود التحقق غير صالح — ولّد كوداً من «كود التحقق» أولاً"
-                : result.error === "subscription_inactive"
+                ? "كود التحقق غير صالح — أعد المحاولة بعد فتح التطبيق على الجهاز"
+                : result.error === "device_not_announced"
+                  ? "افتح تطبيق الكشك على الجهاز أولاً — الرمز يجب أن يظهر على الشاشة"
+                  : result.error === "subscription_inactive"
                   ? "الاشتراك غير نشط"
                   : result.error === "not_authenticated"
                     ? "سجّل الدخول أولاً"
@@ -336,7 +340,7 @@ const Devices = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>{isIpadTrialMode ? "رمز الآيباد" : "كود التحقق"}</Label>
+                <Label>{isIpadTrialMode ? "رمز الآيباد" : "رمز الجهاز"}</Label>
                 <Input
                   value={activationCode}
                   onChange={(e) => setActivationCode(e.target.value)}
@@ -345,9 +349,9 @@ const Devices = () => {
                   dir="ltr"
                 />
                 <p className="text-xs text-muted-foreground">
-                  الرمز من{" "}
+                  انسخ الرمز الظاهر على شاشة تطبيق الكشك —{" "}
                   <Link to={ROUTES.dashboardLinkDevice} className="text-accent underline">
-                    {isIpadTrialMode ? "تطبيق الآيباد" : "كود التحقق"}
+                    تعليمات الربط
                   </Link>
                 </p>
               </div>
@@ -389,8 +393,8 @@ const Devices = () => {
               <h2 className="font-display font-bold text-lg">ربط شاشة جديدة</h2>
               <p className="text-sm opacity-80">
                 {isIpadTrialMode
-                  ? "الرمز يظهر على شاشة الآيباد — فعّله هنا بنفس الرمز"
-                  : "ولّد كود تحقق — أدخله على الجهاز ثم فعّله هنا"}
+                  ? "افتح التطبيق على الجهاز — انسخ الرمز من الشاشة ثم فعّله هنا"
+                  : "افتح تطبيق الكشك على الجهاز — انسخ الرمز من الشاشة ثم فعّله هنا"}
               </p>
             </div>
           </div>

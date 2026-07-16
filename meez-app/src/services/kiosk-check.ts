@@ -9,9 +9,10 @@ export type RegistrationPeek = {
   status: RegistrationStatus;
   reason?: string | null;
   message?: string;
+  retry_after_seconds?: number;
 };
 
-const RPC_TTL_MS = 5_000;
+const RPC_TTL_MS = 12_000;
 
 /** فحص خفيف — cache قصير حتى يظهر التفعيل بسرعة بعد لوحة التحكم */
 export async function peekDeviceRegistration(
@@ -49,6 +50,10 @@ export async function peekDeviceRegistration(
             status: "error" as RegistrationStatus,
             reason: "rate_limited",
             message: "محاولات كثيرة — انتظر قليلاً ثم أعد المحاولة",
+            retry_after_seconds:
+              typeof row.retry_after_seconds === "number"
+                ? row.retry_after_seconds
+                : 60,
           };
         }
         const registered = Boolean(row.registered);
