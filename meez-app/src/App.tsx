@@ -65,6 +65,7 @@ const App = () => {
       const url = getMenuUrlForCode(deviceCode);
       logger.audit("app.open_menu", { url, code: deviceCode });
       setMenuUrl(url);
+      setOpeningMenu(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       logger.error("app.open_menu_failed", { code: deviceCode, message });

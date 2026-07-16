@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import {
   WebView,
   type WebViewNavigation,
@@ -10,7 +10,16 @@ import { logger } from "@/lib/logger";
 import { isBlockedMenuUrl } from "@/lib/blocked-menu-hosts";
 import { getTrustedMenuOrigins, isAllowedMenuNavigation } from "@/lib/trusted-menu-origin";
 
-const KIOSK_INJECTED_JS = `
+const KIOSK_BG_INJECTED_JS = `
+(function () {
+  var bg = "#F6F2EA";
+  document.documentElement.style.backgroundColor = bg;
+  document.body.style.backgroundColor = bg;
+})();
+true;
+`;
+
+const KIOSK_GUARD_INJECTED_JS = `
 (function () {
   if (window.__MEEZ_KIOSK_GUARD__) return;
   window.__MEEZ_KIOSK_GUARD__ = true;
@@ -27,18 +36,6 @@ const KIOSK_INJECTED_JS = `
       return true;
     }
   }
-
-  var locationProto = window.Location.prototype;
-  var origReplace = locationProto.replace;
-  var origAssign = locationProto.assign;
-  locationProto.replace = function (url) {
-    if (isExternal(url)) return;
-    return origReplace.call(this, url);
-  };
-  locationProto.assign = function (url) {
-    if (isExternal(url)) return;
-    return origAssign.call(this, url);
-  };
 
   document.addEventListener(
     "click",
@@ -95,12 +92,26 @@ function describeLoadError(statusCode: number | undefined, url: string): LoadErr
 export function MenuWebView({ menuUrl, onRetry }: Props) {
   const trustedOrigins = useMemo(() => getTrustedMenuOrigins(), []);
   const webViewRef = useRef<WebView>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<LoadError | null>(() => {
     if (isBlockedMenuUrl(menuUrl)) {
       return describeLoadError(undefined, menuUrl);
     }
     return null;
   });
+
+  useEffect(() => {
+    if (!isLoading || loadError) return;
+    const timeoutId = setTimeout(() => {
+      logger.error("webview.load_timeout", { url: menuUrl });
+      setLoadError({
+        title: "بطء في تحميل المنيو",
+        detail: "استغرق التحميل وقتاً طويلاً. تحقق من الإنترنت ثم أعد المحاولة.",
+      });
+      setIsLoading(false);
+    }, 45_000);
+    return () => clearTimeout(timeoutId);
+  }, [isLoading, loadError, menuUrl]);
 
   const shouldStartLoad = useCallback<NonNullable<WebViewProps["onShouldStartLoadWithRequest"]>>(
     (request) => {
@@ -141,6 +152,7 @@ export function MenuWebView({ menuUrl, onRetry }: Props) {
 
   const handleRetry = useCallback(() => {
     setLoadError(null);
+    setIsLoading(true);
     webViewRef.current?.reload();
     onRetry?.();
   }, [onRetry]);
@@ -161,10 +173,11 @@ export function MenuWebView({ menuUrl, onRetry }: Props) {
   }
 
   return (
-    <WebView
+    <View style={styles.container}>
+      <WebView
       ref={webViewRef}
       source={{ uri: menuUrl }}
-      style={styles.fill}
+      style={[styles.fill, isLoading && styles.webViewHidden]}
       originWhitelist={trustedOrigins.map((origin) => `${origin}*`)}
       allowsInlineMediaPlayback
       mediaPlaybackRequiresUserAction={false}
@@ -173,8 +186,10 @@ export function MenuWebView({ menuUrl, onRetry }: Props) {
       thirdPartyCookiesEnabled={false}
       sharedCookiesEnabled={false}
       overScrollMode="never"
-      androidLayerType="hardware"
-      injectedJavaScriptBeforeContentLoaded={KIOSK_INJECTED_JS}
+      injectedJavaScriptBeforeContentLoaded={KIOSK_BG_INJECTED_JS}
+      injectedJavaScript={KIOSK_GUARD_INJECTED_JS}
+      onLoadStart={() => setIsLoading(true)}
+      onLoadEnd={() => setIsLoading(false)}
       onShouldStartLoadWithRequest={shouldStartLoad}
       onNavigationStateChange={onNavigationStateChange}
       onOpenWindow={(event) => {
@@ -188,6 +203,7 @@ export function MenuWebView({ menuUrl, onRetry }: Props) {
       domStorageEnabled
       javaScriptEnabled
       onError={(e) => {
+        setIsLoading(false);
         logger.error("webview.load_error", {
           code: e.nativeEvent.code,
           description: e.nativeEvent.description,
@@ -196,6 +212,7 @@ export function MenuWebView({ menuUrl, onRetry }: Props) {
         setLoadError(describeLoadError(undefined, e.nativeEvent.url ?? menuUrl));
       }}
       onHttpError={(e) => {
+        setIsLoading(false);
         const { statusCode, url } = e.nativeEvent;
         logger.error("webview.http_error", { statusCode, url });
         if (statusCode >= 400) {
@@ -213,18 +230,46 @@ export function MenuWebView({ menuUrl, onRetry }: Props) {
       {...(Platform.OS === "android"
         ? {
             mixedContentMode: "never" as const,
+            backgroundColor: APP_BACKGROUND,
           }
         : {})}
     />
+      {isLoading && !loadError && (
+        <View style={styles.loadingOverlay} pointerEvents="none">
+          <ActivityIndicator size="large" color="#c4a35a" />
+          <Text style={styles.loadingText}>جاري تحميل المنيو…</Text>
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+    backgroundColor: APP_BACKGROUND,
+  },
   fill: {
     flex: 1,
     width: "100%",
     height: "100%",
     backgroundColor: APP_BACKGROUND,
+  },
+  webViewHidden: {
+    opacity: 0,
+  },
+  loadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: APP_BACKGROUND,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 16,
+  },
+  loadingText: {
+    color: "rgba(248,241,228,0.85)",
+    fontSize: 15,
   },
   errorRoot: {
     flex: 1,

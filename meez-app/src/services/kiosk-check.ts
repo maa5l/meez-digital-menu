@@ -84,8 +84,8 @@ export async function checkDeviceRegisteredOnServer(
   return peek.status === "registered" ? "registered" : "not_registered";
 }
 
-/** فحص كامل قبل فتح المنيو */
+/** فحص كامل قبل فتح المنيو — يجب أن يكون مسجّلاً ومسموحاً */
 export async function verifyKioskAccessBeforeMenu(code: string): Promise<boolean> {
-  const status = await checkDeviceRegisteredOnServer(code);
-  return status === "registered";
+  const peek = await peekDeviceRegistration(code, true);
+  return peek.status === "registered";
 }

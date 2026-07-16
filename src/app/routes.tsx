@@ -25,9 +25,20 @@ const AdminCustomers = lazy(() => import("@/pages/admin/AdminCustomers"));
 const AdminCustomerDetail = lazy(() => import("@/pages/admin/AdminCustomerDetail"));
 
 function PageLoader() {
+  const kiosk =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("kiosk") === "1";
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background" aria-busy="true">
-      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" role="status" />
+    <div
+      className={`min-h-screen flex items-center justify-center ${kiosk ? "" : "bg-background"}`}
+      style={kiosk ? { backgroundColor: "#1a1510" } : undefined}
+      aria-busy="true"
+    >
+      <div
+        className={`w-8 h-8 border-2 border-t-transparent rounded-full animate-spin ${kiosk ? "border-[#c4a35a]" : "border-primary"}`}
+        role="status"
+      />
     </div>
   );
 }
