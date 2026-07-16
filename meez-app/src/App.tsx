@@ -1,31 +1,30 @@
 import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { WebView } from "react-native-webview";
 import { PairScreen } from "@/components/PairScreen";
 import { getMenuUrlForCode, isSupabaseConfigured } from "@/config/env";
 import { resolveDeviceCodeFromUrl } from "@/services/device-code";
-import { checkDeviceRegisteredOnServer, verifyKioskAccessBeforeMenu } from "@/services/kiosk-check";
+import {
+  peekDeviceRegistration,
+  type RegistrationPeek,
+  verifyKioskAccessBeforeMenu,
+} from "@/services/kiosk-check";
 import { useDeviceRegistrationWatch } from "@/hooks/useDeviceRegistrationWatch";
 import { logger } from "@/lib/logger";
-
-function getCodeFromLaunchUrl(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const url = new URL(window.location.href);
-    return url.searchParams.get("code");
-  } catch {
-    return null;
-  }
-}
 
 const App = () => {
   const [code, setCode] = useState<string | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
   const [openingMenu, setOpeningMenu] = useState(false);
+  const [menuUrl, setMenuUrl] = useState<string | null>(null);
+  const [peek, setPeek] = useState<RegistrationPeek | null>({ status: "checking" });
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const resolved = await resolveDeviceCodeFromUrl(getCodeFromLaunchUrl());
+        const resolved = await resolveDeviceCodeFromUrl(null);
         if (!cancelled) setCode(resolved);
       } catch (err) {
         if (!cancelled) {
@@ -43,9 +42,10 @@ const App = () => {
     setOpeningMenu(true);
 
     try {
-      const peek = await checkDeviceRegisteredOnServer(deviceCode);
-      if (peek !== "registered") {
-        logger.warn("app.open_menu_not_ready", { code: deviceCode });
+      const status = await peekDeviceRegistration(deviceCode, true);
+      setPeek(status);
+      if (status.status !== "registered") {
+        logger.warn("app.open_menu_not_ready", { code: deviceCode, status });
         setOpeningMenu(false);
         return;
       }
@@ -54,51 +54,104 @@ const App = () => {
 
       const url = getMenuUrlForCode(deviceCode);
       logger.audit("app.open_menu", { url, code: deviceCode });
-      window.location.replace(url);
+      setMenuUrl(url);
     } catch (err) {
-      logger.error("app.open_menu_failed", {
-        code: deviceCode,
-        message: err instanceof Error ? err.message : String(err),
-      });
+      const message = err instanceof Error ? err.message : String(err);
+      logger.error("app.open_menu_failed", { code: deviceCode, message });
+      setPeek({ status: "error", message });
       setOpeningMenu(false);
     }
   }, [openingMenu]);
 
   useDeviceRegistrationWatch(code, {
-    enabled: isSupabaseConfigured() && !openingMenu,
+    enabled: isSupabaseConfigured() && !openingMenu && !menuUrl,
+    onStatus: setPeek,
     onRegistered: (deviceCode) => void openMenu(deviceCode),
   });
 
+  if (menuUrl) {
+    return (
+      <View style={styles.root}>
+        <StatusBar style="light" hidden />
+        <WebView
+          source={{ uri: menuUrl }}
+          style={styles.webview}
+          allowsInlineMediaPlayback
+          mediaPlaybackRequiresUserAction={false}
+          setSupportMultipleWindows={false}
+        />
+      </View>
+    );
+  }
+
   if (bootError) {
     return (
-      <div className="min-h-[100dvh] bg-gradient-hero flex items-center justify-center p-6 text-primary-foreground" dir="rtl">
-        <p className="text-center text-sm opacity-80">{bootError}</p>
-      </div>
+      <View style={styles.root}>
+        <StatusBar style="light" />
+        <Text style={styles.centerText}>{bootError}</Text>
+      </View>
     );
   }
 
   if (!code) {
     return (
-      <div className="min-h-[100dvh] bg-gradient-hero flex items-center justify-center text-primary-foreground" dir="rtl">
-        <div className="w-10 h-10 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-      </div>
+      <View style={styles.root}>
+        <StatusBar style="light" />
+        <ActivityIndicator size="large" color="#c4a35a" />
+      </View>
     );
   }
 
   if (!isSupabaseConfigured()) {
     return (
-      <div className="min-h-[100dvh] bg-gradient-hero flex items-center justify-center p-6 text-primary-foreground" dir="rtl">
-        <div className="max-w-md text-center space-y-3">
-          <p className="font-bold text-lg">Supabase غير مضبوط</p>
-          <p className="text-sm opacity-80">
-            أنشئ ملف <span dir="ltr">meez-app/.env.local</span> وانسخ مفاتيح Supabase من لوحة التحكم.
-          </p>
-        </div>
-      </div>
+      <View style={styles.root}>
+        <StatusBar style="light" />
+        <View style={styles.box}>
+          <Text style={styles.title}>Supabase غير مضبوط</Text>
+          <Text style={styles.centerText}>
+            عيّن EXPO_PUBLIC_SUPABASE_URL و EXPO_PUBLIC_SUPABASE_ANON_KEY في ملف .env
+          </Text>
+        </View>
+      </View>
     );
   }
 
-  return <PairScreen code={code} />;
+  return (
+    <>
+      <StatusBar style="light" />
+      <PairScreen code={code} peek={peek} openingMenu={openingMenu} />
+    </>
+  );
 };
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#1a1510",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  webview: {
+    flex: 1,
+    width: "100%",
+    backgroundColor: "#1a1510",
+  },
+  box: {
+    maxWidth: 420,
+    gap: 12,
+  },
+  title: {
+    color: "#f8f1e4",
+    fontSize: 20,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  centerText: {
+    color: "rgba(248,241,228,0.8)",
+    fontSize: 14,
+    textAlign: "center",
+  },
+});
 
 export default App;

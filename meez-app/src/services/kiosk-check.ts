@@ -3,17 +3,23 @@ import { getSupabase } from "@/services/supabase";
 import { cachedFetch } from "@/lib/request-cache";
 import { logger } from "@/lib/logger";
 
-export type RegistrationStatus = "checking" | "not_registered" | "registered";
+export type RegistrationStatus = "checking" | "not_registered" | "registered" | "error";
 
-const RPC_TTL_MS = 30_000;
+export type RegistrationPeek = {
+  status: RegistrationStatus;
+  reason?: string | null;
+  message?: string;
+};
 
-/** فحص خفيف — مع cache 30s */
-export async function checkDeviceRegisteredOnServer(
+const RPC_TTL_MS = 5_000;
+
+/** فحص خفيف — cache قصير حتى يظهر التفعيل بسرعة بعد لوحة التحكم */
+export async function peekDeviceRegistration(
   code: string,
   force = false,
-): Promise<RegistrationStatus> {
+): Promise<RegistrationPeek> {
   if (!isSupabaseConfigured()) {
-    return "not_registered";
+    return { status: "error", message: "Supabase غير مضبوط" };
   }
 
   const normalized = code.trim().toUpperCase();
@@ -28,26 +34,49 @@ export async function checkDeviceRegisteredOnServer(
 
         if (error) {
           logger.error("kiosk.peek_failed", { message: error.message, code: normalized });
-          return "not_registered" as RegistrationStatus;
+          return {
+            status: "error" as RegistrationStatus,
+            message: error.message,
+          };
         }
 
-        if (!data || typeof data !== "object") return "not_registered" as RegistrationStatus;
+        if (!data || typeof data !== "object") {
+          return { status: "not_registered" as RegistrationStatus };
+        }
         const row = data as Record<string, unknown>;
-        if (row.reason === "rate_limited") return "not_registered" as RegistrationStatus;
+        if (row.reason === "rate_limited") {
+          return {
+            status: "error" as RegistrationStatus,
+            reason: "rate_limited",
+            message: "محاولات كثيرة — انتظر قليلاً ثم أعد المحاولة",
+          };
+        }
         const registered = Boolean(row.registered);
         const allowed = Boolean(row.allowed);
-        return registered && allowed ? "registered" : "not_registered";
+        if (registered && allowed) {
+          return { status: "registered" as RegistrationStatus };
+        }
+        return {
+          status: "not_registered" as RegistrationStatus,
+          reason: typeof row.reason === "string" ? row.reason : null,
+        };
       } catch (err) {
-        logger.error("kiosk.peek_exception", {
-          message: err instanceof Error ? err.message : String(err),
-          code: normalized,
-        });
-        return "not_registered" as RegistrationStatus;
+        const message = err instanceof Error ? err.message : String(err);
+        logger.error("kiosk.peek_exception", { message, code: normalized });
+        return { status: "error" as RegistrationStatus, message };
       }
     },
     RPC_TTL_MS,
     force,
   );
+}
+
+export async function checkDeviceRegisteredOnServer(
+  code: string,
+  force = false,
+): Promise<RegistrationStatus> {
+  const peek = await peekDeviceRegistration(code, force);
+  return peek.status === "registered" ? "registered" : "not_registered";
 }
 
 /** فحص كامل قبل فتح المنيو */

@@ -1,15 +1,37 @@
 import { useEffect, useState } from "react";
+import { Linking, StyleSheet, Text, View, Pressable } from "react-native";
 import { Logo } from "@/components/Brand";
-import { getMenuWebBaseUrl, getPublicSiteHref, getPublicSiteLabel, isLocalhostMenuUrl } from "@/config/env";
+import {
+  getMenuWebBaseUrl,
+  getPublicSiteHref,
+  getPublicSiteLabel,
+  isLocalhostMenuUrl,
+} from "@/config/env";
+import type { RegistrationPeek } from "@/services/kiosk-check";
 
 type Props = {
   code: string;
+  peek?: RegistrationPeek | null;
+  openingMenu?: boolean;
 };
 
-/**
- * شاشة تطبيق ميز: انترو → رمز التفعيل فقط (التحديث صامت في الخلفية).
- */
-export function PairScreen({ code }: Props) {
+function statusLabel(peek: RegistrationPeek | null | undefined, openingMenu: boolean): string {
+  if (openingMenu) return "جاري فتح المنيو…";
+  if (!peek || peek.status === "checking") return "جاري التحقق من التفعيل…";
+  if (peek.status === "registered") return "تم التفعيل — جاري التحويل…";
+  if (peek.status === "error") {
+    return peek.message ? `خطأ الاتصال: ${peek.message}` : "تعذّر الاتصال بـ Supabase";
+  }
+  if (peek.reason === "device_not_registered") {
+    return "بانتظار التفعيل من لوحة التحكم → الأجهزة";
+  }
+  if (peek.reason) {
+    return `الجهاز غير مسموح حالياً (${peek.reason})`;
+  }
+  return "بانتظار التفعيل من لوحة التحكم → الأجهزة";
+}
+
+export function PairScreen({ code, peek = null, openingMenu = false }: Props) {
   const [showCode, setShowCode] = useState(false);
   const siteLabel = getPublicSiteLabel();
   const siteHref = getPublicSiteHref();
@@ -21,55 +43,113 @@ export function PairScreen({ code }: Props) {
 
   if (!showCode) {
     return (
-      <div
-        className="min-h-[100dvh] bg-gradient-hero flex flex-col items-center justify-center p-8 text-primary-foreground safe-top safe-bottom"
-        dir="rtl"
-      >
-        <Logo className="h-24 md:h-32 w-auto aspect-[1031/736] animate-pulse" />
-      </div>
+      <View style={styles.root}>
+        <Logo size={96} />
+      </View>
     );
   }
 
+  const label = statusLabel(peek, openingMenu);
+  const isError = peek?.status === "error";
+
   return (
-    <div
-      className="min-h-[100dvh] bg-gradient-hero flex flex-col items-center justify-center p-6 md:p-10 text-primary-foreground safe-top safe-bottom"
-      dir="rtl"
-    >
-      <div className="w-full max-w-lg text-center">
-        <Logo className="h-14 md:h-16 w-auto aspect-[1031/736] mx-auto mb-8" />
-
-        <p className="text-xs uppercase tracking-[0.3em] text-accent font-bold mb-3">رمز التفعيل</p>
-        <div className="font-mono font-black text-5xl md:text-7xl tracking-[0.25em] mb-8" dir="ltr">
+    <View style={styles.root}>
+      <View style={styles.card}>
+        <Logo size={56} />
+        <Text style={styles.eyebrow}>رمز التفعيل</Text>
+        <Text style={styles.code} accessibilityLabel={`رمز التفعيل ${code}`}>
           {code}
-        </div>
-
-        <p className="text-sm opacity-70 max-w-sm mx-auto mb-8">
-          فعّل هذا الرمز من لوحة التحكم → تطبيق الآيباد
-        </p>
-
-        <a
-          href={siteHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block text-lg md:text-xl font-semibold text-accent hover:underline underline-offset-4"
-          dir="ltr"
-        >
-          {siteLabel}
-        </a>
-
-        {import.meta.env.DEV && (
-          <div className="mt-10 rounded-xl border border-white/20 bg-black/20 p-3 text-xs text-left space-y-2" dir="ltr">
-            <p className="opacity-60">dev · menu after activation:</p>
-            <p className="font-mono break-all">{getMenuWebBaseUrl()}/menu?code={code}</p>
+        </Text>
+        <Text style={[styles.status, isError && styles.statusError]}>{label}</Text>
+        <Text style={styles.hint}>انسخ هذا الرمز إلى لوحة التحكم → الأجهزة → تفعيل جهاز</Text>
+        <Pressable onPress={() => void Linking.openURL(siteHref)}>
+          <Text style={styles.link}>{siteLabel}</Text>
+        </Pressable>
+        {__DEV__ && (
+          <View style={styles.devBox}>
+            <Text style={styles.devText}>menu: {getMenuWebBaseUrl()}/menu?code={code}</Text>
             {isLocalhostMenuUrl() && (
-              <p className="text-amber-300">
-                localhost only works on the same machine. On Mac + PC use the PC LAN IP, e.g.{" "}
-                <span className="font-mono">http://192.168.1.x:8080</span> in meez-app/.env.local
-              </p>
+              <Text style={styles.devWarn}>
+                localhost لا يعمل بين جهازين — استخدم IP الشبكة في EXPO_PUBLIC_MENU_WEB_URL
+              </Text>
             )}
-          </div>
+          </View>
         )}
-      </div>
-    </div>
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#1a1510",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  card: {
+    width: "100%",
+    maxWidth: 520,
+    alignItems: "center",
+  },
+  eyebrow: {
+    marginTop: 28,
+    marginBottom: 12,
+    fontSize: 12,
+    letterSpacing: 4,
+    fontWeight: "700",
+    color: "#c4a35a",
+    textTransform: "uppercase",
+  },
+  code: {
+    fontFamily: "monospace",
+    fontWeight: "900",
+    fontSize: 48,
+    letterSpacing: 10,
+    color: "#f8f1e4",
+    marginBottom: 20,
+  },
+  status: {
+    fontSize: 15,
+    color: "rgba(248,241,228,0.85)",
+    textAlign: "center",
+    marginBottom: 16,
+    maxWidth: 420,
+  },
+  statusError: {
+    color: "#f6d58a",
+  },
+  hint: {
+    fontSize: 14,
+    color: "rgba(248,241,228,0.65)",
+    textAlign: "center",
+    marginBottom: 24,
+    maxWidth: 360,
+  },
+  link: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#c4a35a",
+    textDecorationLine: "underline",
+  },
+  devBox: {
+    marginTop: 32,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(0,0,0,0.25)",
+    alignSelf: "stretch",
+  },
+  devText: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.7)",
+    fontFamily: "monospace",
+  },
+  devWarn: {
+    marginTop: 8,
+    fontSize: 11,
+    color: "#f6d58a",
+  },
+});

@@ -1,13 +1,21 @@
-const maskStyle = (src: string): React.CSSProperties => ({
-  WebkitMask: `url(${src}) center/contain no-repeat`,
-  mask: `url(${src}) center/contain no-repeat`,
-});
+import { Text, View, StyleSheet } from "react-native";
 
-export const Logo = ({ className = "h-8 w-auto aspect-[1031/736]" }: { className?: string }) => (
-  <span
-    role="img"
-    aria-label="ميز"
-    className={`inline-block bg-current ${className}`}
-    style={maskStyle("/logo.svg")}
-  />
-);
+export function Logo({ size = 56 }: { size?: number }) {
+  return (
+    <View style={[styles.wrap, { height: size }]}>
+      <Text style={[styles.text, { fontSize: size * 0.55 }]}>ميز</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  text: {
+    fontWeight: "800",
+    color: "#f5e6c8",
+    letterSpacing: 2,
+  },
+});

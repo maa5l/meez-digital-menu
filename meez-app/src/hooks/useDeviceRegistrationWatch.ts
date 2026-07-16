@@ -1,35 +1,43 @@
 import { useEffect, useRef } from "react";
-import { Capacitor } from "@capacitor/core";
-import { App as CapApp } from "@capacitor/app";
+import { AppState, type AppStateStatus } from "react-native";
 import { isSupabaseConfigured } from "@/config/env";
-import { checkDeviceRegisteredOnServer } from "@/services/kiosk-check";
+import {
+  peekDeviceRegistration,
+  type RegistrationPeek,
+} from "@/services/kiosk-check";
 
-const REGISTRATION_POLL_MS = 30_000;
+const REGISTRATION_POLL_MS = 5_000;
 
 type Options = {
   enabled?: boolean;
+  onStatus?: (peek: RegistrationPeek) => void;
   onRegistered?: (code: string) => void;
 };
 
-/** polling + فحص عند الفتح/العودة (RPC-only) */
+/** polling + فحص عند العودة للمقدمة */
 export function useDeviceRegistrationWatch(code: string | null, options?: Options) {
   const enabled = options?.enabled !== false;
   const onRegisteredRef = useRef(options?.onRegistered);
   onRegisteredRef.current = options?.onRegistered;
+  const onStatusRef = useRef(options?.onStatus);
+  onStatusRef.current = options?.onStatus;
   const registeredRef = useRef(false);
 
   useEffect(() => {
     if (!code || !enabled) return;
 
     let cancelled = false;
+    registeredRef.current = false;
 
     const check = async () => {
       if (cancelled || registeredRef.current) return;
 
-      const next = await checkDeviceRegisteredOnServer(code);
+      const next = await peekDeviceRegistration(code, true);
       if (cancelled || registeredRef.current) return;
 
-      if (next === "registered") {
+      onStatusRef.current?.(next);
+
+      if (next.status === "registered") {
         registeredRef.current = true;
         onRegisteredRef.current?.(code);
       }
@@ -38,30 +46,21 @@ export function useDeviceRegistrationWatch(code: string | null, options?: Option
     void check();
 
     const pollId = isSupabaseConfigured()
-      ? window.setInterval(() => void check(), REGISTRATION_POLL_MS)
+      ? setInterval(() => void check(), REGISTRATION_POLL_MS)
       : undefined;
 
-    const onVisible = () => {
-      if (document.hidden || cancelled || registeredRef.current) return;
-      void check();
+    const onAppState = (state: AppStateStatus) => {
+      if (state === "active" && !cancelled && !registeredRef.current) {
+        void check();
+      }
     };
 
-    document.addEventListener("visibilitychange", onVisible);
-
-    let removeCapListener: (() => void) | undefined;
-    if (Capacitor.isNativePlatform()) {
-      void CapApp.addListener("appStateChange", ({ isActive }) => {
-        if (isActive && !cancelled) onVisible();
-      }).then((h) => {
-        removeCapListener = () => void h.remove();
-      });
-    }
+    const sub = AppState.addEventListener("change", onAppState);
 
     return () => {
       cancelled = true;
-      if (pollId != null) window.clearInterval(pollId);
-      document.removeEventListener("visibilitychange", onVisible);
-      removeCapListener?.();
+      if (pollId != null) clearInterval(pollId);
+      sub.remove();
     };
   }, [code, enabled]);
 }
