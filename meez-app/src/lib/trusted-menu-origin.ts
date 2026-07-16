@@ -1,4 +1,5 @@
 import { getMenuWebBaseUrl } from "@/config/env";
+import { isBlockedMenuHost } from "@/lib/blocked-menu-hosts";
 
 function parseOrigin(value: string): string | null {
   try {
@@ -52,6 +53,7 @@ export function isAllowedMenuNavigation(url: string, trustedOrigins: string[]): 
   }
 
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+  if (isBlockedMenuHost(parsed.hostname)) return false;
   if (!trustedOrigins.includes(parsed.origin)) return false;
 
   const path = parsed.pathname.replace(/\/+$/, "") || "/";

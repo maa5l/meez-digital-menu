@@ -3,7 +3,11 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { MenuWebView } from "@/components/MenuWebView";
 import { AppShell, APP_BACKGROUND } from "@/components/AppShell";
 import { PairScreen } from "@/components/PairScreen";
-import { getMenuUrlForCode, isSupabaseConfigured } from "@/config/env";
+import {
+  getMenuUrlForCode,
+  getMenuWebUrlValidationError,
+  isSupabaseConfigured,
+} from "@/config/env";
 import { resolveDeviceCodeFromUrl } from "@/services/device-code";
 import {
   peekDeviceRegistration,
@@ -52,6 +56,11 @@ const App = () => {
       }
 
       await verifyKioskAccessBeforeMenu(deviceCode);
+
+      const menuUrlError = getMenuWebUrlValidationError();
+      if (menuUrlError) {
+        throw new Error(menuUrlError);
+      }
 
       const url = getMenuUrlForCode(deviceCode);
       logger.audit("app.open_menu", { url, code: deviceCode });

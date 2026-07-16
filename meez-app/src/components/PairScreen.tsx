@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
-import { Linking, StyleSheet, Text, View, Pressable } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { Logo } from "@/components/Brand";
 import {
   getMenuWebBaseUrl,
-  getPublicSiteHref,
-  getPublicSiteLabel,
   isLocalhostMenuUrl,
 } from "@/config/env";
 import type { RegistrationPeek } from "@/services/kiosk-check";
@@ -39,9 +37,6 @@ function statusLabel(peek: RegistrationPeek | null | undefined, openingMenu: boo
 
 export function PairScreen({ code, peek = null, openingMenu = false }: Props) {
   const [showCode, setShowCode] = useState(false);
-  const siteLabel = getPublicSiteLabel();
-  const siteHref = getPublicSiteHref();
-
   useEffect(() => {
     const t = setTimeout(() => setShowCode(true), 900);
     return () => clearTimeout(t);
@@ -70,9 +65,6 @@ export function PairScreen({ code, peek = null, openingMenu = false }: Props) {
         <Text style={styles.hint}>
           انسخ الرمز أعلاه إلى لوحة التحكم → الأجهزة → تفعيل جهاز
         </Text>
-        <Pressable onPress={() => void Linking.openURL(siteHref)}>
-          <Text style={styles.link}>{siteLabel}</Text>
-        </Pressable>
         {__DEV__ && (
           <View style={styles.devBox}>
             <Text style={styles.devText}>menu: {getMenuWebBaseUrl()}/menu?code={code}</Text>
@@ -136,12 +128,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 24,
     maxWidth: 360,
-  },
-  link: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#c4a35a",
-    textDecorationLine: "underline",
   },
   devBox: {
     marginTop: 32,

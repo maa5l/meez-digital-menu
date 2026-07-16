@@ -1,3 +1,5 @@
+import { validateMenuWebBaseUrl } from "@/lib/blocked-menu-hosts";
+
 const env = {
   EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
   EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
@@ -51,4 +53,8 @@ export function getMenuUrlForCode(code: string): string {
 
 export function isLocalhostMenuUrl(): boolean {
   return /localhost|127\.0\.0\.1/i.test(getMenuWebBaseUrl());
+}
+
+export function getMenuWebUrlValidationError(): string | null {
+  return validateMenuWebBaseUrl(getMenuWebBaseUrl());
 }
