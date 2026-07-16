@@ -4,43 +4,43 @@
     "appVersionSource": "remote"
   },
   "build": {
+    "base": {
+      "node": "22.14.0",
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://feorprugthydhyytvebe.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlb3JwcnVndGh5ZGh5eXR2ZWJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMDQ5NjQsImV4cCI6MjA5NDU4MDk2NH0.WCO8laounfYSrr0qiGMXBX6R0hzH9klcdlpgt7LcU2w",
+        "EXPO_PUBLIC_MENU_WEB_URL": "https://app.meez.com",
+        "EXPO_PUBLIC_PUBLIC_SITE_HOST": "app.meez.com"
+      },
+      "android": {
+        "image": "latest"
+      },
+      "ios": {
+        "image": "latest",
+        "resourceClass": "m-medium"
+      }
+    },
     "development": {
+      "extends": "base",
       "developmentClient": true,
       "distribution": "internal"
     },
     "preview": {
+      "extends": "base",
       "distribution": "internal",
-      "node": "22.14.0",
-      "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://feorprugthydhyytvebe.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlb3JwcnVndGh5ZGh5eXR2ZWJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMDQ5NjQsImV4cCI6MjA5NDU4MDk2NH0.WCO8laounfYSrr0qiGMXBX6R0hzH9klcdlpgt7LcU2w",
-        "EXPO_PUBLIC_MENU_WEB_URL": "https://app.meez.com",
-        "EXPO_PUBLIC_PUBLIC_SITE_HOST": "app.meez.com"
+      "android": {
+        "buildType": "apk"
       },
       "ios": {
-        "resourceClass": "m-medium",
         "simulator": false
-      },
-      "android": {
-        "buildType": "apk",
-        "image": "latest"
       }
     },
     "production": {
+      "extends": "base",
+      "distribution": "store",
       "autoIncrement": true,
-      "node": "22.14.0",
-      "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "https://feorprugthydhyytvebe.supabase.co",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlb3JwcnVndGh5ZGh5eXR2ZWJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMDQ5NjQsImV4cCI6MjA5NDU4MDk2NH0.WCO8laounfYSrr0qiGMXBX6R0hzH9klcdlpgt7LcU2w",
-        "EXPO_PUBLIC_MENU_WEB_URL": "https://app.meez.com",
-        "EXPO_PUBLIC_PUBLIC_SITE_HOST": "app.meez.com"
-      },
       "android": {
-        "buildType": "app-bundle",
-        "image": "latest"
-      },
-      "ios": {
-        "resourceClass": "m-medium"
+        "buildType": "app-bundle"
       }
     }
   },
