@@ -68,6 +68,8 @@ type LoadError = {
 type Props = {
   menuUrl: string;
   onRetry?: () => void;
+  /** عند فشل تحميل متكرر — يسمح للتطبيق الأصلي بالخروج من WebView */
+  onFatalLoadError?: () => void;
 };
 
 function describeLoadError(statusCode: number | undefined, url: string): LoadError {
@@ -89,9 +91,10 @@ function describeLoadError(statusCode: number | undefined, url: string): LoadErr
   };
 }
 
-export function MenuWebView({ menuUrl, onRetry }: Props) {
+export function MenuWebView({ menuUrl, onRetry, onFatalLoadError }: Props) {
   const trustedOrigins = useMemo(() => getTrustedMenuOrigins(), []);
   const webViewRef = useRef<WebView>(null);
+  const failCountRef = useRef(0);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<LoadError | null>(() => {
     if (isBlockedMenuUrl(menuUrl)) {
@@ -101,17 +104,26 @@ export function MenuWebView({ menuUrl, onRetry }: Props) {
   });
 
   useEffect(() => {
+    failCountRef.current = 0;
+    setLoadError(isBlockedMenuUrl(menuUrl) ? describeLoadError(undefined, menuUrl) : null);
+    setIsLoading(true);
+  }, [menuUrl]);
+
+  useEffect(() => {
     if (!isLoading || loadError) return;
     const timeoutId = setTimeout(() => {
       logger.error("webview.load_timeout", { url: menuUrl });
+      failCountRef.current += 1;
       setLoadError({
         title: "بطء في تحميل المنيو",
-        detail: "استغرق التحميل وقتاً طويلاً. تحقق من الإنترنت ثم أعد المحاولة.",
+        detail:
+          "استغرق التحميل وقتاً طويلاً. غالباً EXPO_PUBLIC_MENU_WEB_URL غير قابل للوصول من الجهاز (استخدم HTTPS عام وليس IP محلي).",
       });
       setIsLoading(false);
-    }, 45_000);
+      if (failCountRef.current >= 2) onFatalLoadError?.();
+    }, 25_000);
     return () => clearTimeout(timeoutId);
-  }, [isLoading, loadError, menuUrl]);
+  }, [isLoading, loadError, menuUrl, onFatalLoadError]);
 
   const shouldStartLoad = useCallback<NonNullable<WebViewProps["onShouldStartLoadWithRequest"]>>(
     (request) => {
@@ -177,8 +189,8 @@ export function MenuWebView({ menuUrl, onRetry }: Props) {
       <WebView
       ref={webViewRef}
       source={{ uri: menuUrl }}
-      style={[styles.fill, isLoading && styles.webViewHidden]}
-      originWhitelist={trustedOrigins.map((origin) => `${origin}*`)}
+      style={styles.fill}
+      originWhitelist={["http://*", "https://*"]}
       allowsInlineMediaPlayback
       mediaPlaybackRequiresUserAction={false}
       setSupportMultipleWindows={false}
@@ -188,7 +200,9 @@ export function MenuWebView({ menuUrl, onRetry }: Props) {
       overScrollMode="never"
       injectedJavaScriptBeforeContentLoaded={KIOSK_BG_INJECTED_JS}
       injectedJavaScript={KIOSK_GUARD_INJECTED_JS}
-      onLoadStart={() => setIsLoading(true)}
+      onLoadStart={() => {
+        setIsLoading(true);
+      }}
       onLoadEnd={() => setIsLoading(false)}
       onShouldStartLoadWithRequest={shouldStartLoad}
       onNavigationStateChange={onNavigationStateChange}
@@ -199,37 +213,43 @@ export function MenuWebView({ menuUrl, onRetry }: Props) {
       setDisplayZoomControls={false}
       allowsBackForwardNavigationGestures={false}
       pullToRefreshEnabled={false}
-      cacheEnabled
+      cacheEnabled={false}
       domStorageEnabled
       javaScriptEnabled
       onError={(e) => {
         setIsLoading(false);
+        failCountRef.current += 1;
         logger.error("webview.load_error", {
           code: e.nativeEvent.code,
           description: e.nativeEvent.description,
           url: e.nativeEvent.url ?? menuUrl,
         });
         setLoadError(describeLoadError(undefined, e.nativeEvent.url ?? menuUrl));
+        if (failCountRef.current >= 2) onFatalLoadError?.();
       }}
       onHttpError={(e) => {
         setIsLoading(false);
         const { statusCode, url } = e.nativeEvent;
         logger.error("webview.http_error", { statusCode, url });
         if (statusCode >= 400) {
+          failCountRef.current += 1;
           setLoadError(describeLoadError(statusCode, url));
+          if (failCountRef.current >= 2) onFatalLoadError?.();
         }
       }}
       onRenderProcessGone={() => {
         logger.error("webview.process_gone", { url: menuUrl });
+        failCountRef.current += 1;
         setLoadError({
           title: "توقف عرض المنيو",
           detail: "أعاد النظام تحميل الصفحة. اضغط إعادة المحاولة.",
         });
+        if (failCountRef.current >= 2) onFatalLoadError?.();
         return true;
       }}
       {...(Platform.OS === "android"
         ? {
-            mixedContentMode: "never" as const,
+            mixedContentMode: "compatibility" as const,
             backgroundColor: APP_BACKGROUND,
           }
         : {})}
@@ -238,6 +258,9 @@ export function MenuWebView({ menuUrl, onRetry }: Props) {
         <View style={styles.loadingOverlay} pointerEvents="none">
           <ActivityIndicator size="large" color="#c4a35a" />
           <Text style={styles.loadingText}>جاري تحميل المنيو…</Text>
+          <Text style={styles.loadingUrl} numberOfLines={2}>
+            {menuUrl}
+          </Text>
         </View>
       )}
     </View>
@@ -257,19 +280,23 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: APP_BACKGROUND,
   },
-  webViewHidden: {
-    opacity: 0,
-  },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: APP_BACKGROUND,
     alignItems: "center",
     justifyContent: "center",
     gap: 16,
+    paddingHorizontal: 24,
   },
   loadingText: {
     color: "rgba(248,241,228,0.85)",
     fontSize: 15,
+  },
+  loadingUrl: {
+    color: "rgba(196,163,90,0.85)",
+    fontSize: 11,
+    fontFamily: "monospace",
+    textAlign: "center",
   },
   errorRoot: {
     flex: 1,

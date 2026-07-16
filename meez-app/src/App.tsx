@@ -42,6 +42,13 @@ const App = () => {
     };
   }, []);
 
+  const returnToPairScreen = useCallback((deviceCode: string) => {
+    logger.audit("app.return_to_pair", { code: deviceCode });
+    setMenuUrl(null);
+    setOpeningMenu(false);
+    setPeek({ status: "not_registered", reason: "device_inactive" });
+  }, []);
+
   const openMenu = useCallback(async (deviceCode: string) => {
     if (openingMenu) return;
     setOpeningMenu(true);
@@ -86,10 +93,19 @@ const App = () => {
     return () => clearInterval(refreshId);
   }, [code]);
 
+  // قبل التفعيل: انتظر التسجيل
   useDeviceRegistrationWatch(code, {
     enabled: isSupabaseConfigured() && !openingMenu && !menuUrl,
+    mode: "await_activation",
     onStatus: setPeek,
     onRegistered: (deviceCode) => void openMenu(deviceCode),
+  });
+
+  // أثناء عرض المنيو: ارجع لشاشة الرمز عند إلغاء التفعيل
+  useDeviceRegistrationWatch(code, {
+    enabled: isSupabaseConfigured() && Boolean(menuUrl),
+    mode: "monitor_active",
+    onUnregistered: returnToPairScreen,
   });
 
   const immersive = Boolean(menuUrl);
@@ -97,7 +113,19 @@ const App = () => {
   let content: ReactNode;
 
   if (menuUrl) {
-    content = <MenuWebView menuUrl={menuUrl} />;
+    content = (
+      <MenuWebView
+        menuUrl={menuUrl}
+        onFatalLoadError={() => {
+          // لا تُبقِ المستخدم على WebView ميت — أظهر PairScreen مع رسالة
+          setMenuUrl(null);
+          setPeek({
+            status: "error",
+            message: "تعذّر تحميل المنيو. تحقق من EXPO_PUBLIC_MENU_WEB_URL ثم أعد التفعيل.",
+          });
+        }}
+      />
+    );
   } else if (bootError) {
     content = (
       <View style={styles.centered}>
@@ -133,12 +161,6 @@ const App = () => {
 };
 
 const styles = StyleSheet.create({
-  fill: {
-    flex: 1,
-    width: "100%",
-    height: "100%",
-    backgroundColor: APP_BACKGROUND,
-  },
   centered: {
     flex: 1,
     width: "100%",
