@@ -5,6 +5,7 @@ import {
   getMenuWebBaseUrl,
   isLocalhostMenuUrl,
 } from "@/config/env";
+import { describeRegistrationStatus } from "@/lib/status-messages";
 import type { RegistrationPeek } from "@/services/kiosk-check";
 
 type Props = {
@@ -13,30 +14,11 @@ type Props = {
   openingMenu?: boolean;
 };
 
-function statusLabel(peek: RegistrationPeek | null | undefined, openingMenu: boolean): string {
-  if (openingMenu) return "جاري فتح المنيو…";
-  if (!peek || peek.status === "checking") return "جاري التحقق من التفعيل…";
-  if (peek.status === "registered") return "تم التفعيل — جاري التحويل…";
-  if (peek.status === "error") {
-    if (peek.reason === "rate_limited") {
-      const sec = peek.retry_after_seconds;
-      return sec
-        ? `محاولات كثيرة — انتظر ${sec} ثانية`
-        : "محاولات كثيرة — انتظر قليلاً";
-    }
-    return peek.message ? `خطأ الاتصال: ${peek.message}` : "تعذّر الاتصال بـ Supabase";
-  }
-  if (peek.reason === "device_not_registered") {
-    return "بانتظار التفعيل من لوحة التحكم → الأجهزة";
-  }
-  if (peek.reason) {
-    return `الجهاز غير مسموح حالياً (${peek.reason})`;
-  }
-  return "بانتظار التفعيل من لوحة التحكم → الأجهزة";
-}
-
 export function PairScreen({ code, peek = null, openingMenu = false }: Props) {
   const [showCode, setShowCode] = useState(false);
+  const status = describeRegistrationStatus(peek, openingMenu);
+  const isError = peek?.status === "error";
+
   useEffect(() => {
     const t = setTimeout(() => setShowCode(true), 900);
     return () => clearTimeout(t);
@@ -50,9 +32,6 @@ export function PairScreen({ code, peek = null, openingMenu = false }: Props) {
     );
   }
 
-  const label = statusLabel(peek, openingMenu);
-  const isError = peek?.status === "error";
-
   return (
     <View style={styles.root}>
       <View style={styles.card}>
@@ -61,10 +40,15 @@ export function PairScreen({ code, peek = null, openingMenu = false }: Props) {
         <Text style={styles.code} accessibilityLabel={`رمز التفعيل ${code}`}>
           {code}
         </Text>
-        <Text style={[styles.status, isError && styles.statusError]}>{label}</Text>
-        <Text style={styles.hint}>
-          انسخ الرمز أعلاه إلى لوحة التحكم → الأجهزة → تفعيل جهاز
-        </Text>
+
+        <View style={[styles.statusBox, isError && styles.statusBoxError]}>
+          <Text style={[styles.statusTitle, isError && styles.statusError]}>
+            {status.title}
+          </Text>
+          <Text style={styles.statusMessage}>{status.message}</Text>
+          {status.hint ? <Text style={styles.statusHint}>{status.hint}</Text> : null}
+        </View>
+
         {__DEV__ && (
           <View style={styles.devBox}>
             <Text style={styles.devText}>menu: {getMenuWebBaseUrl()}/menu?code={code}</Text>
@@ -112,22 +96,41 @@ const styles = StyleSheet.create({
     color: "#f8f1e4",
     marginBottom: 20,
   },
-  status: {
-    fontSize: 15,
+  statusBox: {
+    width: "100%",
+    maxWidth: 420,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(0,0,0,0.22)",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 8,
+  },
+  statusBoxError: {
+    borderColor: "rgba(246,213,138,0.35)",
+    backgroundColor: "rgba(246,213,138,0.08)",
+  },
+  statusTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#f8f1e4",
+    textAlign: "center",
+  },
+  statusMessage: {
+    fontSize: 14,
     color: "rgba(248,241,228,0.85)",
     textAlign: "center",
-    marginBottom: 16,
-    maxWidth: 420,
+    lineHeight: 22,
+  },
+  statusHint: {
+    fontSize: 12,
+    color: "rgba(196,163,90,0.95)",
+    textAlign: "center",
+    lineHeight: 18,
   },
   statusError: {
     color: "#f6d58a",
-  },
-  hint: {
-    fontSize: 14,
-    color: "rgba(248,241,228,0.65)",
-    textAlign: "center",
-    marginBottom: 24,
-    maxWidth: 360,
   },
   devBox: {
     marginTop: 32,

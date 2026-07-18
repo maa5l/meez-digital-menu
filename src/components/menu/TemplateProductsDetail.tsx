@@ -107,13 +107,13 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
       >
         <div
           dir="ltr"
-          key={`${lang}-${activeCat}-${selected?.id ?? "none"}`}
+          key={`${lang}-${activeCat}`}
           className={cn(
-            "grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-hidden px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 md:grid-cols-[minmax(220px,30%)_1fr] md:items-stretch md:gap-3 md:px-5 md:pt-3 ipad-lg:grid-cols-[minmax(240px,28%)_1fr] ipad-lg:px-6",
+            "grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-hidden px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 md:grid-cols-[minmax(280px,46%)_minmax(0,54%)] md:items-stretch md:gap-3 md:px-5 md:pt-3 ipad-lg:grid-cols-[minmax(300px,48%)_minmax(0,52%)] ipad-lg:px-6",
             menuContentEnter,
           )}
         >
-          <aside className="order-2 flex min-h-0 flex-col gap-2 overflow-y-auto overscroll-y-contain md:order-1 md:py-1">
+          <aside className="order-2 flex min-h-0 flex-col gap-2.5 overflow-y-auto overscroll-y-contain md:order-1 md:py-1">
             {visibleProducts.map((p) => (
               <ProductListCard
                 key={p.id}

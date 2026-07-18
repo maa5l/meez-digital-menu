@@ -18,25 +18,25 @@ const HEADER_DISPLAY_RATIO =
 
 const METRICS_BY_TIER: Record<MenuViewportTier, Omit<MenuLayoutMetrics, "tier">> = {
   compact: {
-    headerHeight: 200,
-    subheaderHeight: 44,
-    logoSizePx: 64,
-    calorieRowHeight: 46,
-    compactTopHeight: 84,
+    headerHeight: 156,
+    subheaderHeight: 40,
+    logoSizePx: 52,
+    calorieRowHeight: 40,
+    compactTopHeight: 72,
   },
   "ipad-portrait": {
-    headerHeight: 220,
-    subheaderHeight: 48,
-    logoSizePx: 72,
-    calorieRowHeight: 48,
-    compactTopHeight: 92,
+    headerHeight: 172,
+    subheaderHeight: 44,
+    logoSizePx: 56,
+    calorieRowHeight: 44,
+    compactTopHeight: 80,
   },
   "ipad-landscape": {
-    headerHeight: 240,
-    subheaderHeight: 52,
-    logoSizePx: 72,
-    calorieRowHeight: 48,
-    compactTopHeight: 92,
+    headerHeight: 188,
+    subheaderHeight: 46,
+    logoSizePx: 56,
+    calorieRowHeight: 44,
+    compactTopHeight: 80,
   },
 };
 
@@ -60,7 +60,7 @@ function resolveHeaderHeight(viewportWidth: number, tier: MenuViewportTier): num
   const proportional = getBannerHeaderHeight(viewportWidth);
   const floor = METRICS_BY_TIER[tier].headerHeight;
   if (tier === "compact") {
-    return Math.max(floor, Math.min(proportional, 220));
+    return Math.max(floor, Math.min(proportional, 180));
   }
   return Math.max(floor, proportional);
 }

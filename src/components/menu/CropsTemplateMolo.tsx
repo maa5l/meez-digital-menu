@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Crop, MenuSettings } from "@/types/domain";
 import CropCarouselCard from "@/components/menu/crop/CropCarouselCard";
-import CropCardPopup from "@/components/menu/CropCardPopup";
+import CropDetailModal from "@/components/menu/CropDetailModal";
 import { MenuCropsTopChrome } from "@/components/menu/MenuCropsTopChrome";
 import { useMenuLang } from "@/context/MenuLangContext";
 import { getCropsHeaderCustomization, isCropsLangToggleEnabled } from "@/lib/menu-header-settings";
@@ -111,11 +111,10 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
       </MenuCropsTopChrome>
 
       {modal && (
-        <CropCardPopup
+        <CropDetailModal
           crop={modal}
           lang={lang}
-          accentColor={palette.accentColor}
-          fallbackTextColor={palette.textColor}
+          accent={palette.accentColor}
           featured={modal.id === settings.featuredCropId}
           onClose={() => setModal(null)}
         />

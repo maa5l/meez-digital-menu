@@ -5,6 +5,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FaultScreen } from "@/components/FaultScreen";
 import { PairScreen } from "@/components/PairScreen";
 import { isSupabaseConfigured } from "@/config/env";
+import { describeConfigError } from "@/lib/status-messages";
 import { KioskProvider, useKiosk } from "@/kiosk/KioskContext";
 import { kioskSupervisor } from "@/kiosk/KioskSupervisor";
 import { faultFromCode } from "@/kiosk/fault-copy";
@@ -43,13 +44,13 @@ function KioskRoot() {
       </View>
     );
   } else if (!isSupabaseConfigured()) {
+    const detail = describeConfigError();
     content = (
       <View style={styles.centered}>
         <View style={styles.box}>
-          <Text style={styles.title}>Supabase غير مضبوط</Text>
-          <Text style={styles.centerText}>
-            عيّن EXPO_PUBLIC_SUPABASE_URL و EXPO_PUBLIC_SUPABASE_ANON_KEY في ملف .env
-          </Text>
+          <Text style={styles.title}>{detail.title}</Text>
+          <Text style={styles.centerText}>{detail.message}</Text>
+          {detail.hint ? <Text style={styles.hintText}>{detail.hint}</Text> : null}
         </View>
       </View>
     );
@@ -105,6 +106,12 @@ const styles = StyleSheet.create({
     color: "rgba(248,241,228,0.8)",
     fontSize: 14,
     textAlign: "center",
+  },
+  hintText: {
+    color: "rgba(196,163,90,0.95)",
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 18,
   },
 });
 

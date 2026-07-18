@@ -74,16 +74,18 @@ const MenuDisplay = () => {
 
     let cancelled = false;
 
-    const verify = async () => {
-      setGate((g) => ({ ...g, registrationStatus: "checking" }));
+    const verify = async (silent = false) => {
+      if (!(silent && kioskMode)) {
+        setGate((g) => ({ ...g, registrationStatus: "checking" }));
+      }
       const result = await evaluateKioskGate(code);
       if (cancelled) return;
       setGate(result);
     };
 
-    void verify();
+    void verify(false);
 
-    const verifyThrottled = throttle(() => void verify(), 30_000);
+    const verifyThrottled = throttle(() => void verify(true), kioskMode ? 8_000 : 30_000);
 
     const pollMs = shouldUseVenueDatabase() ? KIOSK_SUBSCRIPTION_POLL_MS : 0;
     const pollId =
@@ -103,7 +105,7 @@ const MenuDisplay = () => {
       if (pollId != null) window.clearInterval(pollId);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [code, isPreview]);
+  }, [code, isPreview, kioskMode]);
 
   const venueReady = isPreview || gate.allowed;
   const venue = useMenuVenue(

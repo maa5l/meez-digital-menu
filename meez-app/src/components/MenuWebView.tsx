@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, AppState, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import {
   WebView,
   type WebViewMessageEvent,
@@ -20,6 +20,13 @@ const KIOSK_BG_INJECTED_JS = `
   var bg = "#F6F2EA";
   document.documentElement.style.backgroundColor = bg;
   document.body.style.backgroundColor = bg;
+})();
+true;
+`;
+
+const KIOSK_SOFT_REFRESH_JS = `
+(function () {
+  window.dispatchEvent(new Event("meez:venue-updated"));
 })();
 true;
 `;
@@ -174,6 +181,14 @@ export function MenuWebView({
     }, HARD_TIMEOUT_MS);
     return () => clearTimeout(timeoutId);
   }, [isLoading, loadError, awaitingReady, menuUrl, onFatalLoadError]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state !== "active" || isLoading || loadError) return;
+      webViewRef.current?.injectJavaScript(KIOSK_SOFT_REFRESH_JS);
+    });
+    return () => sub.remove();
+  }, [isLoading, loadError]);
 
   const shouldStartLoad = useCallback<NonNullable<WebViewProps["onShouldStartLoadWithRequest"]>>(
     (request) => {

@@ -126,8 +126,8 @@ const InfoRow = ({
               : "text-sm font-semibold"
             : size === "modal"
               ? bold
-                ? "text-lg font-black md:text-xl"
-                : "text-base font-semibold"
+                ? "text-xl font-black md:text-2xl"
+                : "text-lg font-semibold md:text-xl"
               : bold
                 ? "text-xs font-black md:text-sm"
                 : "text-[10px] font-semibold md:text-xs",
@@ -390,15 +390,15 @@ export const ProductModalDetails = ({
   const isEn = lang === "en";
 
   const labelCls =
-    "text-[11px] font-bold leading-normal text-[#1a1a1a]/55 md:text-xs";
+    "text-xs font-bold leading-normal text-[#1a1a1a]/55 md:text-sm";
   const nameCls =
-    "font-display text-lg font-black leading-tight text-[#1a1a1a] md:text-xl";
+    "font-display text-base font-black leading-tight text-[#1a1a1a] md:text-lg";
   const valueCls =
-    "text-base font-black leading-tight text-[#1a1a1a] md:text-lg";
+    "text-lg font-black leading-tight text-[#1a1a1a] md:text-xl";
   const secondaryCls =
-    "text-sm font-bold leading-normal text-[#1a1a1a] md:text-base";
+    "text-base font-bold leading-normal text-[#1a1a1a] md:text-lg";
   const bodyCls =
-    "text-sm leading-relaxed text-[#1a1a1a]/85 md:text-[15px] md:leading-relaxed";
+    "text-base leading-relaxed text-[#1a1a1a]/85 md:text-[16px] md:leading-relaxed";
   const sectionMt = dense
     ? "mt-3.5 border-t border-black/10 pt-3.5 md:mt-4 md:pt-4"
     : "mt-4 border-t border-black/10 pt-4 md:mt-5 md:pt-5";
@@ -676,7 +676,7 @@ export const ProductImagePanel = ({
       type="button"
       onClick={onOpen}
       className={cn(
-        "relative h-full min-h-0 w-full overflow-hidden rounded-2xl touch-manipulation transition-transform active:scale-[0.995]",
+        "relative mx-auto h-full min-h-0 w-full max-h-[min(52vh,420px)] overflow-hidden rounded-2xl touch-manipulation transition-transform active:scale-[0.995] md:max-h-full",
         className,
       )}
       style={{ background: cardBg }}

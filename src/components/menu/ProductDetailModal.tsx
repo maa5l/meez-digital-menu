@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { X } from "lucide-react";
 import ProductCornerBadge from "@/components/menu/ProductCornerBadge";
 import { ProductModalDetails } from "@/components/menu/ProductCardParts";
 import { hasProductBadge, productBadgeColor, productBadgeLabel } from "@/lib/product-badge";
@@ -14,29 +13,7 @@ type Props = {
   onClose: () => void;
 };
 
-const CloseButton = ({
-  onClose,
-  isAr,
-  className,
-}: {
-  onClose: () => void;
-  isAr: boolean;
-  className?: string;
-}) => (
-  <button
-    type="button"
-    onClick={onClose}
-    aria-label={isAr ? "إغلاق" : "Close"}
-    className={cn(
-      "z-40 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/95 shadow-sm ring-1 ring-black/10 touch-manipulation",
-      className,
-    )}
-  >
-    <X className="h-4 w-4" />
-  </button>
-);
-
-/** نافذة تفاصيل المنتج — مُحسَّنة للآيباد (أفقي: صورة + تفاصيل جنباً إلى جنب) */
+/** نافذة تفاصيل المنتج — إغلاق بالضغط خارج النافذة فقط */
 const ProductDetailModal = ({ product, lang, onClose }: Props) => {
   const localized = localizeProduct(product, lang);
   const isAr = lang === "ar";
@@ -58,8 +35,8 @@ const ProductDetailModal = ({ product, lang, onClose }: Props) => {
       <div
         className={cn(
           "flex w-full max-w-[min(94vw,520px)] flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-2xl",
-          "md:max-h-[min(88dvh,640px)] md:max-w-[min(92vw,760px)] md:flex-row",
-          "lg:max-w-[min(90vw,840px)]",
+          "md:max-h-[min(88dvh,640px)] md:max-w-[min(92vw,720px)] md:flex-row",
+          "lg:max-w-[min(90vw,780px)]",
         )}
         onClick={(e) => e.stopPropagation()}
         onTouchMove={(e) => e.stopPropagation()}
@@ -68,11 +45,11 @@ const ProductDetailModal = ({ product, lang, onClose }: Props) => {
           <div
             className={cn(
               "relative flex shrink-0 flex-col",
-              "p-4 pb-0 md:w-[40%] md:min-h-0 md:justify-center md:p-5 md:pe-3",
+              "p-4 pb-0 md:w-[34%] md:min-h-0 md:justify-center md:p-4 md:pe-3",
             )}
           >
             <div
-              className="relative mx-auto w-full max-w-[320px] overflow-hidden rounded-[1.35rem] border-2 border-black/[0.06] bg-neutral-50 md:max-w-none"
+              className="relative mx-auto w-full max-w-[220px] overflow-hidden rounded-[1.25rem] border-2 border-black/[0.06] bg-neutral-50 md:max-w-none"
               style={{ aspectRatio: PRODUCT_IMAGE_ASPECT }}
             >
               {hasProductBadge(product, lang) && (
@@ -89,23 +66,9 @@ const ProductDetailModal = ({ product, lang, onClose }: Props) => {
                 alt={localized.name}
                 className="absolute inset-0 h-full w-full object-contain p-3"
               />
-              <CloseButton
-                onClose={onClose}
-                isAr={isAr}
-                className={cn("absolute top-2.5", isAr ? "left-2.5" : "right-2.5")}
-              />
             </div>
           </div>
-        ) : (
-          <div
-            className={cn(
-              "flex shrink-0 px-4 pt-4 md:w-[40%] md:items-start md:justify-end md:p-5",
-              isAr ? "justify-start" : "justify-end",
-            )}
-          >
-            <CloseButton onClose={onClose} isAr={isAr} />
-          </div>
-        )}
+        ) : null}
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 md:px-5 md:py-5 lg:px-6">

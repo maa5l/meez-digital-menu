@@ -12,6 +12,7 @@ import { shouldUseVenueDatabase, invalidateDeviceVenueCache } from "@/services/v
 import { usesSupabaseAuth } from "@/config/env";
 import { debounce, throttle } from "@/lib/throttle";
 import { MENU_KIOSK_RESET_EVENT } from "@/lib/menu-kiosk";
+import { isKioskMode } from "@/lib/kiosk-mode";
 
 const VENUE_UPDATED = "meez:venue-updated";
 
@@ -19,6 +20,11 @@ export type MenuVenueResult = VenueData & {
   /** True after the first catalog fetch attempt finishes (success or empty). */
   isCatalogResolved: boolean;
 };
+
+function isMenuKioskContext(): boolean {
+  if (typeof window === "undefined") return false;
+  return isKioskMode(new URLSearchParams(window.location.search));
+}
 
 /** بيانات المنيو للعرض — polling + cache (RPC-only؛ لا Realtime على الجداول) */
 export function useMenuVenue(
@@ -82,12 +88,16 @@ export function useMenuVenue(
   );
 
   const reloadDebounced = useMemo(
-    () => debounce((force?: boolean) => void reloadFull(Boolean(force)), 500),
+    () =>
+      debounce(
+        (force?: boolean) => void reloadFull(Boolean(force)),
+        isMenuKioskContext() ? 150 : 500,
+      ),
     [reloadFull],
   );
 
   const reloadThrottled = useMemo(
-    () => throttle(() => void reloadFull(false), 30_000),
+    () => throttle(() => void reloadFull(false), isMenuKioskContext() ? 8_000 : 30_000),
     [reloadFull],
   );
 
