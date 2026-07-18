@@ -2,7 +2,6 @@
   "expo": {
     "name": "ميز",
     "slug": "meez",
-    "owner": "ma5lggg",
     "version": "1.0.0",
     "orientation": "landscape",
     "icon": "./assets/icon.png",
@@ -75,7 +74,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "7da5d5a0-c390-452c-8a47-eaf56aaf9669"
+        "projectId": "4b0482f5-75de-4e4b-b2d1-ba6b4e5976a0"
       }
     }
   }
