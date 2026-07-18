@@ -23,13 +23,28 @@ function isCloudVerificationEnabled(): boolean {
   return isSupabaseConfigured() && !appEnv.useLocalMockAuth;
 }
 
-function verificationErrorMessage(error: { message?: string; code?: string }): string {
+function isRpcMissingError(error: {
+  message?: string;
+  code?: string;
+  status?: number;
+}): boolean {
   const msg = error.message ?? "";
-  if (
+  return (
     error.code === "PGRST202" ||
+    error.status === 404 ||
     msg.includes("create_device_verification_code") ||
-    msg.includes("Could not find the function")
-  ) {
+    msg.includes("Could not find the function") ||
+    /404|not find the function|schema cache/i.test(msg)
+  );
+}
+
+function verificationErrorMessage(error: {
+  message?: string;
+  code?: string;
+  status?: number;
+}): string {
+  const msg = error.message ?? "";
+  if (isRpcMissingError(error)) {
     return "دوال كود التحقق غير موجودة. طبّق migrations في supabase/migrations/.";
   }
   if (msg.includes("profiles") && msg.includes("does not exist")) {
@@ -78,14 +93,12 @@ export async function createVerificationCode(ownerId: string): Promise<{
       return { sessionId: String(data), code };
     }
 
-    const rpcMissing =
-      error &&
-      (error.code === "PGRST202" ||
-        error.message?.includes("create_device_verification_code") ||
-        error.message?.includes("Could not find the function"));
-
-    if (rpcMissing) {
-      logger.warn("verification.rpc_missing_using_insert", { message: error.message });
+    if (error && isRpcMissingError(error)) {
+      logger.warn("verification.rpc_missing_using_insert", {
+        message: error.message,
+        code: error.code,
+        status: (error as { status?: number }).status,
+      });
       try {
         const sessionId = await createVerificationCodeInTable(ownerId, code);
         savePendingVerification(code, "products");
