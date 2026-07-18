@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { Loader2, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { KioskAccessCheck } from "@/types/subscription";
 import { SUPPORT } from "@/config/support";
+import { postKioskReady } from "@/lib/kiosk-bridge";
 
 type Props = {
   code: string;
@@ -43,6 +45,13 @@ export function KioskSubscriptionBlocked({
 }: Props) {
   const checking = registrationStatus === "checking";
   const showContact = check.registered && !check.allowed && !kioskMode;
+
+  // Prove SPA painted so the Expo shell does not treat gate/blocked UI as LOAD_BLANK
+  useEffect(() => {
+    if (!kioskMode) return;
+    const id = requestAnimationFrame(() => postKioskReady({ empty: false }));
+    return () => cancelAnimationFrame(id);
+  }, [kioskMode, checking, check.registered, check.allowed]);
 
   return (
     <div

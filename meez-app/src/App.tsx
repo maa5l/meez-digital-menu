@@ -1,138 +1,42 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { MenuWebView } from "@/components/MenuWebView";
-import { AppShell, APP_BACKGROUND } from "@/components/AppShell";
+import { AppShell } from "@/components/AppShell";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { FaultScreen } from "@/components/FaultScreen";
 import { PairScreen } from "@/components/PairScreen";
-import {
-  getMenuUrlForCode,
-  getMenuWebUrlValidationError,
-  isSupabaseConfigured,
-} from "@/config/env";
-import { resolveDeviceCodeFromUrl } from "@/services/device-code";
-import {
-  peekDeviceRegistration,
-  type RegistrationPeek,
-  verifyKioskAccessBeforeMenu,
-} from "@/services/kiosk-check";
-import { useDeviceRegistrationWatch } from "@/hooks/useDeviceRegistrationWatch";
-import { announceKioskPairingCode } from "@/services/kiosk-pairing";
-import { logger } from "@/lib/logger";
+import { isSupabaseConfigured } from "@/config/env";
+import { KioskProvider, useKiosk } from "@/kiosk/KioskContext";
+import { kioskSupervisor } from "@/kiosk/KioskSupervisor";
+import { faultFromCode } from "@/kiosk/fault-copy";
 
-const App = () => {
-  const [code, setCode] = useState<string | null>(null);
-  const [bootError, setBootError] = useState<string | null>(null);
-  const [openingMenu, setOpeningMenu] = useState(false);
-  const [menuUrl, setMenuUrl] = useState<string | null>(null);
-  const [peek, setPeek] = useState<RegistrationPeek | null>({ status: "checking" });
+function KioskRoot() {
+  const { snapshot, supervisor } = useKiosk();
+  const { phase, code, menuUrl, fault, peek, remountKey, bootError } = snapshot;
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const resolved = await resolveDeviceCodeFromUrl(null);
-        if (!cancelled) setCode(resolved);
-      } catch (err) {
-        if (!cancelled) {
-          setBootError(err instanceof Error ? err.message : "تعذّر تحميل رمز الجهاز");
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const immersive = phase === "menu";
 
-  const returnToPairScreen = useCallback((deviceCode: string) => {
-    logger.audit("app.return_to_pair", { code: deviceCode });
-    setMenuUrl(null);
-    setOpeningMenu(false);
-    setPeek({ status: "not_registered", reason: "device_inactive" });
-  }, []);
+  let content = null;
 
-  const openMenu = useCallback(async (deviceCode: string) => {
-    if (openingMenu) return;
-    setOpeningMenu(true);
-
-    try {
-      const status = await peekDeviceRegistration(deviceCode, true);
-      setPeek(status);
-      if (status.status !== "registered") {
-        logger.warn("app.open_menu_not_ready", { code: deviceCode, status });
-        setOpeningMenu(false);
-        return;
-      }
-
-      await verifyKioskAccessBeforeMenu(deviceCode);
-
-      const menuUrlError = getMenuWebUrlValidationError();
-      if (menuUrlError) {
-        throw new Error(menuUrlError);
-      }
-
-      const url = getMenuUrlForCode(deviceCode);
-      logger.audit("app.open_menu", { url, code: deviceCode });
-      setMenuUrl(url);
-      setOpeningMenu(false);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      logger.error("app.open_menu_failed", { code: deviceCode, message });
-      setPeek({ status: "error", message });
-      setOpeningMenu(false);
-    }
-  }, [openingMenu]);
-
-  useEffect(() => {
-    if (!code || !isSupabaseConfigured()) return;
-
-    void announceKioskPairingCode(code);
-
-    const refreshId = setInterval(() => {
-      void announceKioskPairingCode(code);
-    }, 10 * 60 * 1000);
-
-    return () => clearInterval(refreshId);
-  }, [code]);
-
-  // قبل التفعيل: انتظر التسجيل
-  useDeviceRegistrationWatch(code, {
-    enabled: isSupabaseConfigured() && !openingMenu && !menuUrl,
-    mode: "await_activation",
-    onStatus: setPeek,
-    onRegistered: (deviceCode) => void openMenu(deviceCode),
-  });
-
-  // أثناء عرض المنيو: ارجع لشاشة الرمز عند إلغاء التفعيل
-  useDeviceRegistrationWatch(code, {
-    enabled: isSupabaseConfigured() && Boolean(menuUrl),
-    mode: "monitor_active",
-    onUnregistered: returnToPairScreen,
-  });
-
-  const immersive = Boolean(menuUrl);
-
-  let content: ReactNode;
-
-  if (menuUrl) {
+  if (phase === "fault" && fault) {
     content = (
-      <MenuWebView
-        menuUrl={menuUrl}
-        onFatalLoadError={() => {
-          // لا تُبقِ المستخدم على WebView ميت — أظهر PairScreen مع رسالة
-          setMenuUrl(null);
-          setPeek({
-            status: "error",
-            message: "تعذّر تحميل المنيو. تحقق من EXPO_PUBLIC_MENU_WEB_URL ثم أعد التفعيل.",
-          });
+      <FaultScreen
+        fault={fault}
+        onRetry={() => {
+          if (fault.code === "STORAGE") void supervisor.restart();
+          else supervisor.retry();
         }}
+        onUnlink={() => supervisor.unlinkLocal()}
       />
     );
   } else if (bootError) {
     content = (
-      <View style={styles.centered}>
-        <Text style={styles.centerText}>{bootError}</Text>
-      </View>
+      <FaultScreen
+        fault={faultFromCode("STORAGE", bootError)}
+        onRetry={() => void supervisor.restart()}
+        onUnlink={() => supervisor.unlinkLocal()}
+      />
     );
-  } else if (!code) {
+  } else if (phase === "boot" || !code) {
     content = (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#c4a35a" />
@@ -149,14 +53,33 @@ const App = () => {
         </View>
       </View>
     );
+  } else if (phase === "menu" && menuUrl) {
+    content = (
+      <MenuWebView
+        key={remountKey}
+        menuUrl={menuUrl}
+        onRetry={() => supervisor.retry()}
+        onLoadBlank={() => supervisor.onLoadBlank()}
+        onFatalLoadError={() => supervisor.reportFault("NETWORK")}
+        onWebMessage={(raw) => supervisor.onWebMessage(raw)}
+      />
+    );
   } else {
-    content = <PairScreen code={code} peek={peek} openingMenu={openingMenu} />;
+    content = (
+      <PairScreen code={code} peek={peek} openingMenu={phase === "opening"} />
+    );
   }
 
+  return <AppShell immersive={immersive}>{content}</AppShell>;
+}
+
+const App = () => {
   return (
-    <AppShell immersive={immersive}>
-      {content}
-    </AppShell>
+    <ErrorBoundary onReset={() => kioskSupervisor.unlinkLocal()}>
+      <KioskProvider>
+        <KioskRoot />
+      </KioskProvider>
+    </ErrorBoundary>
   );
 };
 

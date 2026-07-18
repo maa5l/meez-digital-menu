@@ -1,7 +1,6 @@
 import type { VenueData, SubscriptionInfo } from "@/types/venue";
 import type { Device } from "@/types/domain";
 import { defaultMenuSettings } from "@/lib/mockData";
-import { migrateMenuSettings } from "@/lib/menu-palette";
 import { getLocalJson, setLocalJson } from "@/security/storage";
 import { getSession } from "@/security/session";
 import { STORAGE_KEYS } from "@/constants/storage";
@@ -16,6 +15,7 @@ import {
   saveVenueToDatabase,
   shouldUseVenueDatabase,
 } from "@/services/venue/venue-supabase.service";
+import { parseVenueDataSafe } from "@/lib/venue-schema";
 
 const VENUE_PREFIX = "meez:venue:";
 const DEVICE_OWNER_PREFIX = STORAGE_KEYS.DEVICE_OWNER_PREFIX;
@@ -77,16 +77,7 @@ function venueKey(userId: string): string {
 }
 
 function normalizeVenue(stored: VenueData): VenueData {
-  return {
-    ...createEmptyVenueData(),
-    ...stored,
-    categories: stored.categories ?? [],
-    products: stored.products ?? [],
-    crops: stored.crops ?? [],
-    devices: stored.devices ?? [],
-    menuSettings: migrateMenuSettings({ ...defaultMenuSettings, ...stored.menuSettings }),
-    subscription: { ...TRIAL_SUBSCRIPTION, ...stored.subscription },
-  };
+  return parseVenueDataSafe(stored);
 }
 
 export function rememberOwnerUserId(userId: string): void {

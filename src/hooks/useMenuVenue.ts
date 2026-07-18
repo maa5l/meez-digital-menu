@@ -15,12 +15,17 @@ import { MENU_KIOSK_RESET_EVENT } from "@/lib/menu-kiosk";
 
 const VENUE_UPDATED = "meez:venue-updated";
 
+export type MenuVenueResult = VenueData & {
+  /** True after the first catalog fetch attempt finishes (success or empty). */
+  isCatalogResolved: boolean;
+};
+
 /** بيانات المنيو للعرض — polling + cache (RPC-only؛ لا Realtime على الجداول) */
 export function useMenuVenue(
   deviceCode: string | null,
   isPreview: boolean,
   ready: boolean,
-): VenueData {
+): MenuVenueResult {
   const load = useCallback(() => {
     if (!ready) return createEmptyVenueData();
     if (isPreview) return loadCurrentVenueData();
@@ -29,6 +34,7 @@ export function useMenuVenue(
   }, [deviceCode, isPreview, ready]);
 
   const [venue, setVenue] = useState<VenueData>(load);
+  const [isCatalogResolved, setIsCatalogResolved] = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -41,29 +47,36 @@ export function useMenuVenue(
   const reloadFull = useCallback(
     async (force = false) => {
       if (!ready) {
-        if (mountedRef.current) setVenue(createEmptyVenueData());
-        return;
-      }
-      if (isPreview) {
-        let next = loadCurrentVenueData();
-        if (shouldUseVenueDatabase() && usesSupabaseAuth()) {
-          const fromRpc = await fetchDashboardPreviewVenue(force);
-          if (fromRpc?.version === 1) {
-            const rpcItems = fromRpc.products.length + fromRpc.crops.length;
-            const localItems = next.products.length + next.crops.length;
-            if (rpcItems >= localItems) next = fromRpc;
-          }
+        if (mountedRef.current) {
+          setVenue(createEmptyVenueData());
+          setIsCatalogResolved(false);
         }
-        if (mountedRef.current) setVenue(mergeVenueWithPreviewDraft(next));
         return;
       }
-      if (deviceCode && shouldUseVenueDatabase()) {
-        if (force) invalidateDeviceVenueCache(deviceCode);
-        const fromCloud = await syncVenueForDeviceIfStale(deviceCode, force);
-        if (mountedRef.current) setVenue(fromCloud);
-        return;
+      try {
+        if (isPreview) {
+          let next = loadCurrentVenueData();
+          if (shouldUseVenueDatabase() && usesSupabaseAuth()) {
+            const fromRpc = await fetchDashboardPreviewVenue(force);
+            if (fromRpc?.version === 1) {
+              const rpcItems = fromRpc.products.length + fromRpc.crops.length;
+              const localItems = next.products.length + next.crops.length;
+              if (rpcItems >= localItems) next = fromRpc;
+            }
+          }
+          if (mountedRef.current) setVenue(mergeVenueWithPreviewDraft(next));
+          return;
+        }
+        if (deviceCode && shouldUseVenueDatabase()) {
+          if (force) invalidateDeviceVenueCache(deviceCode);
+          const fromCloud = await syncVenueForDeviceIfStale(deviceCode, force);
+          if (mountedRef.current) setVenue(fromCloud);
+          return;
+        }
+        if (mountedRef.current) setVenue(load());
+      } finally {
+        if (mountedRef.current && ready) setIsCatalogResolved(true);
       }
-      if (mountedRef.current) setVenue(load());
     },
     [deviceCode, isPreview, ready, load],
   );
@@ -79,6 +92,7 @@ export function useMenuVenue(
   );
 
   useEffect(() => {
+    setIsCatalogResolved(false);
     void reloadFull(false);
   }, [reloadFull]);
 
@@ -123,5 +137,5 @@ export function useMenuVenue(
     };
   }, [ready, reloadDebounced, reloadThrottled, reloadFull, isPreview]);
 
-  return venue;
+  return { ...venue, isCatalogResolved };
 }

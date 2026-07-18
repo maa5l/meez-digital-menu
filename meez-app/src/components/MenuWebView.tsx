@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import {
   WebView,
+  type WebViewMessageEvent,
   type WebViewNavigation,
   type WebViewProps,
 } from "react-native-webview";
@@ -9,6 +10,10 @@ import { APP_BACKGROUND } from "@/components/AppShell";
 import { logger } from "@/lib/logger";
 import { isBlockedMenuUrl } from "@/lib/blocked-menu-hosts";
 import { getTrustedMenuOrigins, isAllowedMenuNavigation } from "@/lib/trusted-menu-origin";
+
+/** Spec baseline 5s; allow headroom for gate RPC + catalog fetch after HTML onLoadEnd */
+const READY_ACK_MS = 12_000;
+const HARD_TIMEOUT_MS = 25_000;
 
 const KIOSK_BG_INJECTED_JS = `
 (function () {
@@ -68,8 +73,12 @@ type LoadError = {
 type Props = {
   menuUrl: string;
   onRetry?: () => void;
-  /** عند فشل تحميل متكرر — يسمح للتطبيق الأصلي بالخروج من WebView */
+  /** Handshake missing after onLoadEnd */
+  onLoadBlank?: () => void;
+  /** Native/network load failures after retries */
   onFatalLoadError?: () => void;
+  /** Forward raw postMessage payloads to supervisor */
+  onWebMessage?: (raw: string) => void;
 };
 
 function describeLoadError(statusCode: number | undefined, url: string): LoadError {
@@ -91,11 +100,20 @@ function describeLoadError(statusCode: number | undefined, url: string): LoadErr
   };
 }
 
-export function MenuWebView({ menuUrl, onRetry, onFatalLoadError }: Props) {
+export function MenuWebView({
+  menuUrl,
+  onRetry,
+  onLoadBlank,
+  onFatalLoadError,
+  onWebMessage,
+}: Props) {
   const trustedOrigins = useMemo(() => getTrustedMenuOrigins(), []);
   const webViewRef = useRef<WebView>(null);
   const failCountRef = useRef(0);
+  const readyReceivedRef = useRef(false);
+  const ackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [awaitingReady, setAwaitingReady] = useState(false);
   const [loadError, setLoadError] = useState<LoadError | null>(() => {
     if (isBlockedMenuUrl(menuUrl)) {
       return describeLoadError(undefined, menuUrl);
@@ -103,14 +121,46 @@ export function MenuWebView({ menuUrl, onRetry, onFatalLoadError }: Props) {
     return null;
   });
 
-  useEffect(() => {
-    failCountRef.current = 0;
-    setLoadError(isBlockedMenuUrl(menuUrl) ? describeLoadError(undefined, menuUrl) : null);
+  const clearAckTimer = useCallback(() => {
+    if (ackTimerRef.current != null) {
+      clearTimeout(ackTimerRef.current);
+      ackTimerRef.current = null;
+    }
+  }, []);
+
+  const markReady = useCallback(() => {
+    readyReceivedRef.current = true;
+    clearAckTimer();
+    setAwaitingReady(false);
+    setIsLoading(false);
+  }, [clearAckTimer]);
+
+  const startReadyGate = useCallback(() => {
+    if (readyReceivedRef.current || loadError) return;
+    setAwaitingReady(true);
     setIsLoading(true);
-  }, [menuUrl]);
+    clearAckTimer();
+    ackTimerRef.current = setTimeout(() => {
+      if (readyReceivedRef.current) return;
+      logger.error("webview.ready_ack_timeout", { url: menuUrl });
+      setAwaitingReady(false);
+      setIsLoading(false);
+      onLoadBlank?.();
+    }, READY_ACK_MS);
+  }, [clearAckTimer, loadError, menuUrl, onLoadBlank]);
 
   useEffect(() => {
-    if (!isLoading || loadError) return;
+    failCountRef.current = 0;
+    readyReceivedRef.current = false;
+    clearAckTimer();
+    setAwaitingReady(false);
+    setLoadError(isBlockedMenuUrl(menuUrl) ? describeLoadError(undefined, menuUrl) : null);
+    setIsLoading(true);
+    return () => clearAckTimer();
+  }, [menuUrl, clearAckTimer]);
+
+  useEffect(() => {
+    if (!isLoading || loadError || awaitingReady) return;
     const timeoutId = setTimeout(() => {
       logger.error("webview.load_timeout", { url: menuUrl });
       failCountRef.current += 1;
@@ -121,9 +171,9 @@ export function MenuWebView({ menuUrl, onRetry, onFatalLoadError }: Props) {
       });
       setIsLoading(false);
       if (failCountRef.current >= 2) onFatalLoadError?.();
-    }, 25_000);
+    }, HARD_TIMEOUT_MS);
     return () => clearTimeout(timeoutId);
-  }, [isLoading, loadError, menuUrl, onFatalLoadError]);
+  }, [isLoading, loadError, awaitingReady, menuUrl, onFatalLoadError]);
 
   const shouldStartLoad = useCallback<NonNullable<WebViewProps["onShouldStartLoadWithRequest"]>>(
     (request) => {
@@ -162,12 +212,33 @@ export function MenuWebView({ menuUrl, onRetry, onFatalLoadError }: Props) {
     [trustedOrigins],
   );
 
+  const handleMessage = useCallback(
+    (event: WebViewMessageEvent) => {
+      const raw = event.nativeEvent.data;
+      onWebMessage?.(raw);
+
+      try {
+        const payload = JSON.parse(raw) as { type?: string };
+        if (payload.type === "meez:kiosk-ready") {
+          logger.audit("webview.kiosk_ready", { url: menuUrl });
+          markReady();
+        }
+      } catch {
+        // ignore non-JSON
+      }
+    },
+    [markReady, menuUrl, onWebMessage],
+  );
+
   const handleRetry = useCallback(() => {
+    readyReceivedRef.current = false;
+    clearAckTimer();
     setLoadError(null);
+    setAwaitingReady(false);
     setIsLoading(true);
     webViewRef.current?.reload();
     onRetry?.();
-  }, [onRetry]);
+  }, [clearAckTimer, onRetry]);
 
   if (loadError) {
     return (
@@ -187,77 +258,91 @@ export function MenuWebView({ menuUrl, onRetry, onFatalLoadError }: Props) {
   return (
     <View style={styles.container}>
       <WebView
-      ref={webViewRef}
-      source={{ uri: menuUrl }}
-      style={styles.fill}
-      originWhitelist={["http://*", "https://*"]}
-      allowsInlineMediaPlayback
-      mediaPlaybackRequiresUserAction={false}
-      setSupportMultipleWindows={false}
-      javaScriptCanOpenWindowsAutomatically={false}
-      thirdPartyCookiesEnabled={false}
-      sharedCookiesEnabled={false}
-      overScrollMode="never"
-      injectedJavaScriptBeforeContentLoaded={KIOSK_BG_INJECTED_JS}
-      injectedJavaScript={KIOSK_GUARD_INJECTED_JS}
-      onLoadStart={() => {
-        setIsLoading(true);
-      }}
-      onLoadEnd={() => setIsLoading(false)}
-      onShouldStartLoadWithRequest={shouldStartLoad}
-      onNavigationStateChange={onNavigationStateChange}
-      onOpenWindow={(event) => {
-        logger.warn("webview.open_window_blocked", { url: event.nativeEvent.targetUrl });
-      }}
-      setBuiltInZoomControls={false}
-      setDisplayZoomControls={false}
-      allowsBackForwardNavigationGestures={false}
-      pullToRefreshEnabled={false}
-      cacheEnabled={false}
-      domStorageEnabled
-      javaScriptEnabled
-      onError={(e) => {
-        setIsLoading(false);
-        failCountRef.current += 1;
-        logger.error("webview.load_error", {
-          code: e.nativeEvent.code,
-          description: e.nativeEvent.description,
-          url: e.nativeEvent.url ?? menuUrl,
-        });
-        setLoadError(describeLoadError(undefined, e.nativeEvent.url ?? menuUrl));
-        if (failCountRef.current >= 2) onFatalLoadError?.();
-      }}
-      onHttpError={(e) => {
-        setIsLoading(false);
-        const { statusCode, url } = e.nativeEvent;
-        logger.error("webview.http_error", { statusCode, url });
-        if (statusCode >= 400) {
+        ref={webViewRef}
+        source={{ uri: menuUrl }}
+        style={styles.fill}
+        originWhitelist={["http://*", "https://*"]}
+        allowsInlineMediaPlayback
+        mediaPlaybackRequiresUserAction={false}
+        setSupportMultipleWindows={false}
+        javaScriptCanOpenWindowsAutomatically={false}
+        thirdPartyCookiesEnabled={false}
+        sharedCookiesEnabled={false}
+        overScrollMode="never"
+        injectedJavaScriptBeforeContentLoaded={KIOSK_BG_INJECTED_JS}
+        injectedJavaScript={KIOSK_GUARD_INJECTED_JS}
+        onLoadStart={() => {
+          readyReceivedRef.current = false;
+          clearAckTimer();
+          setAwaitingReady(false);
+          setIsLoading(true);
+        }}
+        onLoadEnd={() => {
+          // Do NOT hide loader — wait for SPA handshake
+          startReadyGate();
+        }}
+        onMessage={handleMessage}
+        onShouldStartLoadWithRequest={shouldStartLoad}
+        onNavigationStateChange={onNavigationStateChange}
+        onOpenWindow={(event) => {
+          logger.warn("webview.open_window_blocked", { url: event.nativeEvent.targetUrl });
+        }}
+        setBuiltInZoomControls={false}
+        setDisplayZoomControls={false}
+        allowsBackForwardNavigationGestures={false}
+        pullToRefreshEnabled={false}
+        cacheEnabled={false}
+        domStorageEnabled
+        javaScriptEnabled
+        onError={(e) => {
+          clearAckTimer();
+          setAwaitingReady(false);
+          setIsLoading(false);
           failCountRef.current += 1;
-          setLoadError(describeLoadError(statusCode, url));
+          logger.error("webview.load_error", {
+            code: e.nativeEvent.code,
+            description: e.nativeEvent.description,
+            url: e.nativeEvent.url ?? menuUrl,
+          });
+          setLoadError(describeLoadError(undefined, e.nativeEvent.url ?? menuUrl));
           if (failCountRef.current >= 2) onFatalLoadError?.();
-        }
-      }}
-      onRenderProcessGone={() => {
-        logger.error("webview.process_gone", { url: menuUrl });
-        failCountRef.current += 1;
-        setLoadError({
-          title: "توقف عرض المنيو",
-          detail: "أعاد النظام تحميل الصفحة. اضغط إعادة المحاولة.",
-        });
-        if (failCountRef.current >= 2) onFatalLoadError?.();
-        return true;
-      }}
-      {...(Platform.OS === "android"
-        ? {
-            mixedContentMode: "compatibility" as const,
-            backgroundColor: APP_BACKGROUND,
+        }}
+        onHttpError={(e) => {
+          const { statusCode, url } = e.nativeEvent;
+          logger.error("webview.http_error", { statusCode, url });
+          if (statusCode >= 400) {
+            clearAckTimer();
+            setAwaitingReady(false);
+            setIsLoading(false);
+            failCountRef.current += 1;
+            setLoadError(describeLoadError(statusCode, url));
+            if (failCountRef.current >= 2) onFatalLoadError?.();
           }
-        : {})}
-    />
+        }}
+        onRenderProcessGone={() => {
+          logger.error("webview.process_gone", { url: menuUrl });
+          clearAckTimer();
+          failCountRef.current += 1;
+          setLoadError({
+            title: "توقف عرض المنيو",
+            detail: "أعاد النظام تحميل الصفحة. اضغط إعادة المحاولة.",
+          });
+          if (failCountRef.current >= 2) onFatalLoadError?.();
+          return true;
+        }}
+        {...(Platform.OS === "android"
+          ? {
+              mixedContentMode: "compatibility" as const,
+              backgroundColor: APP_BACKGROUND,
+            }
+          : {})}
+      />
       {isLoading && !loadError && (
         <View style={styles.loadingOverlay} pointerEvents="none">
           <ActivityIndicator size="large" color="#c4a35a" />
-          <Text style={styles.loadingText}>جاري تحميل المنيو…</Text>
+          <Text style={styles.loadingText}>
+            {awaitingReady ? "جاري تجهيز المنيو…" : "جاري تحميل المنيو…"}
+          </Text>
           <Text style={styles.loadingUrl} numberOfLines={2}>
             {menuUrl}
           </Text>

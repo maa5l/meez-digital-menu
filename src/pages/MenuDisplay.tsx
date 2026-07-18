@@ -5,8 +5,9 @@ import TemplateProductsDetail from "@/components/menu/TemplateProductsDetail";
 import CropsTemplateMolo from "@/components/menu/CropsTemplateMolo";
 import CropsTemplatePureShelf from "@/components/menu/CropsTemplatePureShelf";
 import MenuEmptyState from "@/components/menu/MenuEmptyState";
+import { MenuErrorBoundary } from "@/components/menu/MenuErrorBoundary";
 import { KioskSubscriptionBlocked } from "@/components/subscription/KioskSubscriptionBlocked";
-import { useMenuVenue } from "@/hooks/useMenuVenue";
+import { useMenuVenue, type MenuVenueResult } from "@/hooks/useMenuVenue";
 import { getDeviceMenuType, getDeviceMenuTypeAsync } from "@/lib/venue-store";
 import {
   getPendingDeviceCode,
@@ -24,6 +25,8 @@ import { useMenuLang, MenuLangProvider } from "@/context/MenuLangContext";
 import { getMenuUi } from "@/lib/menu-i18n";
 import { getCropsPalette, getProductsPalette } from "@/lib/menu-palette";
 import { isKioskMode } from "@/lib/kiosk-mode";
+import { postKioskReady } from "@/lib/kiosk-bridge";
+import { throttle } from "@/lib/throttle";
 
 /**
  * شاشة عرض المنيو — التفعيل + الاشتراك يُفرضان من الخادم (check_kiosk_access).
@@ -167,30 +170,34 @@ const MenuDisplay = () => {
       gate.subscription_status === "grace_period");
 
   return (
-    <MenuLangProvider>
-      <MenuDisplayShell
-        type={type}
-        settings={settings}
-        cropsTpl={cropsTpl}
-        productsEmpty={productsEmpty}
-        cropsEmpty={cropsEmpty}
-        pagePalette={pagePalette}
-        showGraceBanner={showGraceBanner}
-        venue={venue}
-      />
-    </MenuLangProvider>
+    <MenuErrorBoundary>
+      <MenuLangProvider>
+        <MenuDisplayShell
+          type={type}
+          settings={settings}
+          cropsTpl={cropsTpl}
+          productsEmpty={productsEmpty}
+          cropsEmpty={cropsEmpty}
+          pagePalette={pagePalette}
+          showGraceBanner={showGraceBanner}
+          venue={venue}
+          kioskMode={kioskMode}
+        />
+      </MenuLangProvider>
+    </MenuErrorBoundary>
   );
 };
 
 type MenuDisplayShellProps = {
   type: "products" | "crops";
-  settings: ReturnType<typeof useMenuVenue>["menuSettings"];
+  settings: MenuVenueResult["menuSettings"];
   cropsTpl: string | undefined;
   productsEmpty: boolean;
   cropsEmpty: boolean;
   pagePalette: ReturnType<typeof getProductsPalette>;
   showGraceBanner: boolean;
-  venue: ReturnType<typeof useMenuVenue>;
+  venue: MenuVenueResult;
+  kioskMode: boolean;
 };
 
 const MenuDisplayShell = ({
@@ -202,9 +209,30 @@ const MenuDisplayShell = ({
   pagePalette,
   showGraceBanner,
   venue,
+  kioskMode,
 }: MenuDisplayShellProps) => {
   const { lang } = useMenuLang();
   const ui = getMenuUi(lang);
+
+  const catalogEmpty = type === "crops" ? cropsEmpty : productsEmpty;
+
+  // Shell handshake: only after catalog resolved + first paint
+  useEffect(() => {
+    if (!kioskMode || !venue.isCatalogResolved) return;
+
+    let cancelled = false;
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (cancelled) return;
+        postKioskReady({ empty: catalogEmpty });
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(id);
+    };
+  }, [kioskMode, venue.isCatalogResolved, catalogEmpty, type]);
 
   return (
     <div
