@@ -1,7 +1,7 @@
 /** نسخة تجريبية لتطبيق الآيباد — عطّلها بـ VITE_IPAD_TRIAL_MODE=false بعد اعتماد التطبيق */
 export const isIpadTrialMode = import.meta.env.VITE_IPAD_TRIAL_MODE !== "false";
 
-const DEFAULT_SITE_LABEL = "meez.com";
+const DEFAULT_SITE_LABEL = "meez-digital-menu.vercel.app";
 
 /** نص رابط الموقع أسفل شاشة الآيباد — لا يستخدم نطاق التطبيق لتجنب فتح المنيو بالخطأ */
 export function getPublicSiteLabel(): string {

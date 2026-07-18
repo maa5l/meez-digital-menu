@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev:kiosk": "npm run dev --prefix meez-app",
+    "eas:android:preview": "npm exec --prefix meez-app -- eas-cli@latest build --platform android --profile preview",
+    "eas:ios:preview": "npm exec --prefix meez-app -- eas-cli@latest build --platform ios --profile preview",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",

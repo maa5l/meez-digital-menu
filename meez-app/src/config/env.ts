@@ -36,7 +36,7 @@ export function getMenuWebBaseUrl(): string {
 export function getPublicSiteLabel(): string {
   const fromEnv = appEnv.publicSiteHost;
   if (fromEnv) return fromEnv.replace(/^https?:\/\//i, "").replace(/\/$/, "");
-  return "meez.com";
+  return "meez-digital-menu.vercel.app";
 }
 
 export function getPublicSiteHref(): string {
