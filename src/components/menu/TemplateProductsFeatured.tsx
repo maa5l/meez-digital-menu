@@ -11,6 +11,7 @@ import { getProductsPalette, palettePageStyle } from "@/lib/menu-palette";
 import { menuContentEnter } from "@/lib/menu-header";
 import { emptyCategoryNotice } from "@/lib/user-facing-errors";
 import { UserErrorPanel } from "@/components/UserErrorPanel";
+import { cn } from "@/lib/utils";
 
 type Props = {
   settings: MenuSettings;
