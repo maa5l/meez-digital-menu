@@ -11,7 +11,6 @@ export const loginSchema = loginEmailSchema.extend({
     .max(128, "كلمة المرور طويلة جداً"),
 });
 
-/** OTP disabled temporarily for debugging */
 export const loginOtpSchema = loginEmailSchema.extend({
   otp: z
     .string()
@@ -19,7 +18,6 @@ export const loginOtpSchema = loginEmailSchema.extend({
     .regex(/^\d{6}$/, "أدخل رمز التحقق المكوّن من 6 أرقام"),
 });
 
-/** OTP disabled temporarily for debugging */
 export const resetPasswordSchema = loginOtpSchema.extend({
   password: z
     .string()

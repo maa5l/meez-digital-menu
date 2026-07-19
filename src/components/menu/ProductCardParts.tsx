@@ -278,12 +278,15 @@ export const ProductCardFooter = ({
   cardBg,
   compact,
   showDescription = false,
+  layout = "default",
 }: {
   product: Product;
   lang: Lang;
   cardBg: string;
   compact?: boolean;
   showDescription?: boolean;
+  /** panel = بطاقة تفاصيل القائمة الجانبية */
+  layout?: "default" | "panel";
 }) => {
   if (compact) {
     return <ProductCardFooterCompact product={product} lang={lang} cardBg={cardBg} />;
@@ -293,6 +296,94 @@ export const ProductCardFooter = ({
   const cropLine = cropSummary(product);
   const localized = localizeProduct(product, lang);
   const isEn = lang === "en";
+
+  if (layout === "panel") {
+    const labelCls = "text-[9px] font-bold leading-none opacity-55 md:text-[10px]";
+    const valueCls = "mt-0.5 text-xs font-black leading-snug text-[#1a1a1a] md:text-sm";
+    const secondaryCls = "mt-0.5 text-[10px] font-semibold leading-snug text-[#1a1a1a] md:text-xs";
+
+    const panelField = (
+      label: string,
+      value: React.ReactNode,
+      align: "left" | "right",
+      bold = false,
+    ) => (
+      <div className={cn("min-w-0 w-full", align === "left" ? "text-left" : "text-right")}>
+        <div className={labelCls}>{label}</div>
+        <div className={cn(bold ? valueCls : secondaryCls)} dir={isEn ? "ltr" : "rtl"}>
+          {value}
+        </div>
+      </div>
+    );
+
+    return (
+      <div className="px-3 pb-3 pt-2 md:px-4 md:pb-4" style={{ background: cardBg, color: "#1a1a1a" }}>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 md:gap-x-4" dir="ltr">
+          {isEn ? (
+            <>
+              {panelField(t.name, localized.name, "left", true)}
+              {panelField(
+                t.price,
+                <PriceWithRiyal price={product.price} riyalClassName="w-2.5 h-2.5 md:w-3 md:h-3" />,
+                "right",
+                true,
+              )}
+              {panelField(t.calories, String(product.calories), "left")}
+              {panelField(
+                t.allergens,
+                <AllergenIcons
+                  allergens={product.allergens}
+                  allergensEn={product.allergensEn}
+                  lang={lang}
+                  className="justify-end"
+                />,
+                "right",
+              )}
+            </>
+          ) : (
+            <>
+              {panelField(
+                t.price,
+                <PriceWithRiyal price={product.price} riyalClassName="w-2.5 h-2.5 md:w-3 md:h-3" />,
+                "left",
+                true,
+              )}
+              {panelField(t.name, localized.name, "right", true)}
+              {panelField(
+                t.allergens,
+                <AllergenIcons
+                  allergens={product.allergens}
+                  allergensEn={product.allergensEn}
+                  lang={lang}
+                  className="justify-start"
+                />,
+                "left",
+              )}
+              {panelField(t.calories, String(product.calories), "right")}
+            </>
+          )}
+        </div>
+        {showDescription && localized.description?.trim() && (
+          <div className="mt-2.5 border-t border-black/10 pt-2.5">
+            {panelField(t.description, localized.description, isEn ? "left" : "right")}
+          </div>
+        )}
+        {cropLine && (
+          <p
+            className={cn(
+              "mt-2 border-t border-black/10 pt-2 text-[10px] font-semibold opacity-75 md:text-xs",
+              isEn ? "text-left" : "text-right",
+            )}
+            dir={isEn ? "ltr" : "rtl"}
+          >
+            <span className="font-bold opacity-60">{t.crop}: </span>
+            {cropLine}
+          </p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="px-3 md:px-4 pb-3 md:pb-4 pt-1.5" style={{ background: cardBg, color: "#1a1a1a" }}>
       <div className="grid grid-cols-2 gap-x-3 gap-y-2.5" dir="ltr">
@@ -593,34 +684,43 @@ export const ProductListCard = ({
 }) => {
   const localized = localizeProduct(product, lang);
   const isEn = lang === "en";
+  const badgeLabel = productBadgeLabel(product, lang);
+  const badgeColor = productBadgeColor(product);
 
-  const textBlock = (
-    <div className="flex min-h-[72px] min-w-0 flex-1 flex-col justify-between py-0.5">
-      <h3 className="line-clamp-2 font-black text-sm leading-tight text-[#1a1a1a]">{localized.name}</h3>
-      <div className="mt-2 flex w-full items-end gap-2" dir="ltr">
-        <AllergenIcons
-          allergens={product.allergens}
-          allergensEn={product.allergensEn}
-          lang={lang}
-          className="flex-1 min-w-0"
-          emptyPlaceholder={null}
-        />
-        <span className="inline-flex shrink-0 items-center gap-1.5 font-bold text-sm text-[#1a1a1a]/85">
-          <Flame className="h-3.5 w-3.5 shrink-0 text-orange-500" />
-          {product.calories}
-        </span>
-        <PriceWithRiyal
-          price={product.price}
-          className="shrink-0 font-black text-sm text-[#1a1a1a]"
-          riyalClassName="h-3.5 w-3.5"
-        />
+  const infoBlock = (
+    <div className="flex min-h-[80px] min-w-0 flex-1 flex-col justify-center py-0.5">
+      <div className="grid w-full grid-cols-2 grid-rows-2 gap-x-2 gap-y-2" dir="ltr">
+        <h3 className="col-start-1 row-start-1 line-clamp-2 self-start text-left font-black text-sm leading-tight text-[#1a1a1a]">
+          {localized.name}
+        </h3>
+        <div className="col-start-2 row-start-1 flex justify-end self-start">
+          <PriceWithRiyal
+            price={product.price}
+            className="font-black text-sm text-[#1a1a1a]"
+            riyalClassName="h-3.5 w-3.5"
+          />
+        </div>
+        <div className="col-start-1 row-start-2 flex items-end justify-start self-end">
+          <span className="inline-flex items-center gap-1 font-bold text-sm text-[#1a1a1a]/85">
+            <Flame className="h-3.5 w-3.5 shrink-0 text-orange-500" />
+            {product.calories}
+          </span>
+        </div>
+        <div className="col-start-2 row-start-2 flex items-end justify-end self-end">
+          <AllergenIcons
+            allergens={product.allergens}
+            allergensEn={product.allergensEn}
+            lang={lang}
+            className="justify-end"
+            emptyPlaceholder={<span className="text-xs font-bold text-[#1a1a1a]/35">—</span>}
+          />
+        </div>
       </div>
     </div>
   );
 
   const imageBlock = (
-    <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl bg-white">
-      <ProductImageBadge product={product} lang={lang} size="sm" placement="inset" />
+    <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl">
       {product.image ? (
         <MenuProductImage
           src={product.image}
@@ -637,28 +737,37 @@ export const ProductListCard = ({
   );
 
   return (
-  <button
-    type="button"
-    onClick={onClick}
-    dir={isEn ? "ltr" : "rtl"}
-    className="relative flex w-full gap-3 overflow-visible rounded-2xl p-3 text-start transition-all"
-    style={{
-      background: cardBg,
-      boxShadow: active ? `inset 0 0 0 2px ${accentColor}` : undefined,
-    }}
-  >
-    {isEn ? (
-      <>
-        {textBlock}
-        {imageBlock}
-      </>
-    ) : (
-      <>
-        {imageBlock}
-        {textBlock}
-      </>
-    )}
-  </button>
+    <button
+      type="button"
+      onClick={onClick}
+      dir={isEn ? "ltr" : "rtl"}
+      className="relative flex w-full gap-3 overflow-visible rounded-2xl p-3 pt-4 text-start transition-all touch-manipulation"
+      style={{
+        background: cardBg,
+        boxShadow: active ? `inset 0 0 0 2px ${accentColor}` : undefined,
+      }}
+    >
+      {badgeLabel && badgeColor && (
+        <ProductCornerBadge
+          text={badgeLabel}
+          color={badgeColor}
+          size="sm"
+          placement="corner"
+          className="!start-2 !top-1 z-30 md:!start-2.5"
+        />
+      )}
+      {isEn ? (
+        <>
+          {infoBlock}
+          {imageBlock}
+        </>
+      ) : (
+        <>
+          {imageBlock}
+          {infoBlock}
+        </>
+      )}
+    </button>
   );
 };
 
@@ -747,32 +856,27 @@ export const ProductDetailCard = ({
         )}
         style={{ background: cardBg }}
       >
-        <div
-          className="flex min-h-0 flex-1 flex-col"
-          style={{ paddingInline: PRODUCT_CARD_PAD_X, paddingTop: PRODUCT_CARD_PAD_TOP }}
-        >
-          <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-white">
-            <ProductImageBadge product={product} lang={lang} size="md" placement="inset" />
-            {product.image ? (
-              <MenuProductImage
-                src={product.image}
-                alt={localized.name}
-                className="absolute inset-0 h-full w-full object-contain object-center"
-                placeholder={
-                  <span className="flex h-full items-center justify-center text-sm font-bold text-muted-foreground/50">
-                    {labels[lang].noImage}
-                  </span>
-                }
-              />
-            ) : (
-              <span className="flex h-full items-center justify-center text-sm font-bold text-muted-foreground/50">
-                {labels[lang].noImage}
-              </span>
-            )}
-          </div>
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          <ProductImageBadge product={product} lang={lang} size="md" placement="inset" />
+          {product.image ? (
+            <MenuProductImage
+              src={product.image}
+              alt={localized.name}
+              className="absolute inset-0 h-full w-full object-cover object-center"
+              placeholder={
+                <span className="flex h-full min-h-[180px] items-center justify-center text-sm font-bold text-muted-foreground/50">
+                  {labels[lang].noImage}
+                </span>
+              }
+            />
+          ) : (
+            <span className="flex h-full min-h-[180px] items-center justify-center text-sm font-bold text-muted-foreground/50">
+              {labels[lang].noImage}
+            </span>
+          )}
         </div>
-        <div className="min-h-0 max-h-[42%] shrink-0 overflow-y-auto overscroll-y-contain">
-          <ProductCardFooter product={product} lang={lang} cardBg={cardBg} showDescription />
+        <div className="max-h-[min(42%,220px)] shrink-0 overflow-y-auto overscroll-y-contain border-t border-black/[0.06]">
+          <ProductCardFooter product={product} lang={lang} cardBg={cardBg} showDescription layout="panel" />
         </div>
       </div>
     );

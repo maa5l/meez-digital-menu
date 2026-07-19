@@ -2,8 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Category, Product, MenuSettings } from "@/types/domain";
 import CategoryTabs from "@/components/menu/CategoryTabs";
 import { MenuProductSubheaderBar, MenuProductTopChrome } from "@/components/menu/MenuProductTopChrome";
-import { ProductImagePanel, ProductListCard } from "@/components/menu/ProductCardParts";
-import ProductDetailModal from "@/components/menu/ProductDetailModal";
+import { ProductDetailCard, ProductListCard } from "@/components/menu/ProductCardParts";
 import { useMenuLang } from "@/context/MenuLangContext";
 import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
 import { getMenuUi } from "@/lib/menu-i18n";
@@ -23,7 +22,6 @@ type Props = {
 const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
   const { lang, toggleLang } = useMenuLang();
   const [activeCat, setActiveCat] = useState(() => categories[0]?.id ?? "");
-  const [modal, setModal] = useState<Product | null>(null);
   const productsHeader = getProductsHeaderCustomization(settings);
   const hideHeader = productsHeader.hideHeader === true;
   const showLang = isProductsLangToggleEnabled(settings);
@@ -109,10 +107,10 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
         }
       >
         <div
-          dir="ltr"
+          dir={lang === "ar" ? "rtl" : "ltr"}
           key={`${lang}-${activeCat}`}
           className={cn(
-            "grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-hidden px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:grid-cols-[minmax(280px,46%)_minmax(0,54%)] md:items-stretch md:gap-3 md:px-5 ipad-lg:grid-cols-[minmax(300px,48%)_minmax(0,52%)] ipad-lg:px-6",
+            "grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-hidden px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:grid-cols-[minmax(0,46%)_minmax(0,54%)] md:items-stretch md:gap-3 md:px-5 ipad-lg:grid-cols-[minmax(0,48%)_minmax(0,52%)] ipad-lg:px-6",
             hideHeader && !hasSubheader ? "pt-1 md:pt-2" : "pt-2 md:pt-3",
             menuContentEnter,
           )}
@@ -123,7 +121,7 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
             </div>
           ) : (
           <>
-          <aside className="order-2 flex min-h-0 flex-col gap-2.5 overflow-y-auto overscroll-y-contain md:order-1 md:py-1">
+          <aside className="order-2 flex min-h-0 min-w-0 flex-col gap-2.5 overflow-y-auto overscroll-y-contain md:order-1 md:py-1">
             {visibleProducts.map((p) => (
               <ProductListCard
                 key={p.id}
@@ -137,14 +135,14 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
             ))}
           </aside>
 
-          <div className="order-1 min-h-0 overflow-hidden md:order-2">
+          <div className="order-1 min-h-0 min-w-0 overflow-hidden md:order-2">
             {selected ? (
-              <ProductImagePanel
+              <ProductDetailCard
                 product={selected}
                 lang={lang}
                 cardBg={cardBg}
-                hint={ui.tapForDetails}
-                onOpen={() => setModal(selected)}
+                accentColor={palette.accentColor}
+                variant="panel"
                 className="h-full"
               />
             ) : (
@@ -160,10 +158,6 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
           )}
         </div>
       </MenuProductTopChrome>
-
-      {modal && (
-        <ProductDetailModal product={modal} lang={lang} onClose={() => setModal(null)} />
-      )}
     </div>
   );
 };

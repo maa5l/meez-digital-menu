@@ -17,7 +17,7 @@ export function ThemeEditorNav({ active, onSelect, className }: Props) {
       className={cn(
         "flex shrink-0 flex-col gap-4 overflow-y-auto overscroll-y-contain",
         "rounded-2xl border border-border/80 bg-card p-3 shadow-sm",
-        "md:max-h-[calc(100dvh-12rem)] md:w-56 lg:w-60",
+        "lg:max-h-[calc(100dvh-12rem)] lg:w-60",
         className,
       )}
       aria-label="أقسام تخصيص المنيو"

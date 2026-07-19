@@ -34,10 +34,10 @@ const ProductCornerBadge = ({
     >
       <span
         className={cn(
-          "inline-block truncate rounded-lg font-black leading-tight",
+          "inline-block truncate rounded-lg font-black leading-tight shadow-md ring-1 ring-white/90",
           size === "md"
             ? "max-w-[10rem] px-3 py-1.5 text-[10px] md:text-[11px]"
-            : "max-w-[5.5rem] px-2 py-1 text-[8px] md:max-w-[6.5rem] md:px-2.5 md:text-[9px]",
+            : "max-w-[7.5rem] px-2.5 py-1 text-[9px] md:max-w-[8.5rem] md:px-3 md:text-[10px]",
         )}
         style={{ backgroundColor: color, color: fg }}
       >

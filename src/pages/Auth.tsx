@@ -15,7 +15,6 @@ import { RateLimitError, getErrorMessage } from "@/lib/errors";
 import { ROUTES } from "@/config/app";
 import { toast } from "sonner";
 
-/** OTP disabled temporarily for debugging — email + password login only. */
 type AuthMode = "login" | "signup";
 
 const Auth = () => {
@@ -120,9 +119,6 @@ const Auth = () => {
           autoComplete="current-password"
         />
       </div>
-      <p className="text-xs text-muted-foreground">
-        تسجيل دخول مباشر بكلمة المرور (OTP disabled temporarily for debugging).
-      </p>
       {fieldError && <p className="text-destructive text-sm font-semibold">{fieldError}</p>}
       <Button type="submit" variant="hero" size="xl" className="w-full" disabled={loading}>
         {loading ? (
@@ -210,12 +206,7 @@ const Auth = () => {
               وضع تجريبي محلي: الحساب يُحفظ في المتصفح فقط. لإيقافه:{" "}
               <code className="text-xs">VITE_USE_LOCAL_MOCK_AUTH=false</code>
             </p>
-          ) : (
-            <p className="mb-4 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-xs text-blue-950">
-              OTP disabled temporarily for debugging — password login only. في Supabase: عطّل Confirm
-              email و Magic Link.
-            </p>
-          )}
+          ) : null}
 
           {mode === "signup" ? (
             <form onSubmit={onSignup} className="space-y-5" noValidate>

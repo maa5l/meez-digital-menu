@@ -136,6 +136,7 @@ const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; c
           crop={modal}
           lang={lang}
           accent={palette.accentColor}
+          fallbackTextColor={palette.textColor}
           featured={modal.id === settings.featuredCropId}
           onClose={() => setModal(null)}
         />

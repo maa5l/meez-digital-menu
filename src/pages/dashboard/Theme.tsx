@@ -99,12 +99,12 @@ const Theme = () => {
           </div>
         </div>
 
-        {/* تنقّل أفقي — آيباد */}
-        <ThemeEditorNavMobile active={section} onSelect={setSection} className="mb-4 md:hidden" />
+        {/* تنقّل أفقي — جوال وآيباد */}
+        <ThemeEditorNavMobile active={section} onSelect={setSection} className="sticky top-[4.75rem] z-20 -mx-4 mb-4 bg-background/95 px-4 py-2 backdrop-blur-sm lg:hidden sm:-mx-6 sm:px-6 md:-mx-10 md:px-10" />
 
         <div className="flex min-h-0 flex-col gap-5 lg:flex-row lg:items-start">
-          {/* شريط جانبي — سطح مكتب / آيباد أفقي */}
-          <ThemeEditorNav active={section} onSelect={setSection} className="hidden md:flex" />
+          {/* شريط جانبي — سطح مكتب / آيباد أفقي كبير */}
+          <ThemeEditorNav active={section} onSelect={setSection} className="hidden lg:flex" />
 
           <div className="min-w-0 flex-1 space-y-5">
             <ThemeSectionContent
@@ -120,7 +120,7 @@ const Theme = () => {
           </div>
 
           {showSidePreview && (
-            <div className="hidden w-full shrink-0 xl:block xl:w-auto">
+            <div className="hidden w-full shrink-0 lg:block lg:w-auto">
               <div className="sticky top-[5.5rem] flex justify-center">
                 <ThemePreviewFrame
                   activeSection={section}
@@ -165,11 +165,11 @@ function ThemeSectionContent({
     case "overview":
       return (
         <ThemeSectionPanel title="نظرة عامة" description="ملخص سريع لإعدادات المنيو الحالية">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
             <OverviewStat
               icon={<UtensilsCrossed className="h-5 w-5" />}
               label="منيو المنتجات"
-              value={settings.productTemplate === "featured" ? "بطاقات" : "تفاصيل"}
+              value={settings.productTemplate === "featured" ? "مميّز + بطاقات" : "مميّز + تفاصيل"}
               swatch={productsColors.accentColor}
             />
             <OverviewStat
@@ -179,9 +179,9 @@ function ThemeSectionContent({
               swatch={cropsColors.accentColor}
             />
           </div>
-          <ThemeCard>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              اختر قسماً من القائمة الجانبية لتعديل إعداد واحد فقط. التغييرات تظهر في المعاينة مباشرة قبل الحفظ.
+          <ThemeCard className="border-dashed bg-secondary/30">
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              اختر قسماً من الشريط أعلاه لتعديل إعداد واحد. التغييرات تظهر في المعاينة مباشرة قبل الحفظ.
             </p>
           </ThemeCard>
         </ThemeSectionPanel>
@@ -384,13 +384,24 @@ function OverviewStat({
   swatch?: string;
 }) {
   return (
-    <ThemeCard className="flex items-center gap-3">
-      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/15 text-accent">{icon}</div>
-      <div className="min-w-0 flex-1">
-        <div className="text-xs text-muted-foreground">{label}</div>
-        <div className="font-display font-bold text-primary">{value}</div>
+    <ThemeCard className="flex h-full flex-col gap-4" padding="compact">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
+          {icon}
+        </div>
+        {swatch && (
+          <span
+            className="h-8 w-8 shrink-0 rounded-full border-2 border-border/70 shadow-sm"
+            style={{ background: swatch }}
+            title="لون الثيم"
+            aria-hidden
+          />
+        )}
       </div>
-      {swatch && <span className="h-9 w-9 shrink-0 rounded-lg border border-border" style={{ background: swatch }} />}
+      <div className="space-y-1">
+        <p className="text-xs font-semibold text-muted-foreground">{label}</p>
+        <p className="font-display text-base font-bold leading-snug text-primary sm:text-lg">{value}</p>
+      </div>
     </ThemeCard>
   );
 }
@@ -513,6 +524,27 @@ function ColorsSection({
   palette: { bgColor: string; textColor: string; accentColor: string };
   onChange: (patch: Partial<typeof palette>) => void;
 }) {
+  const fields = [
+    {
+      key: "bgColor" as const,
+      label: "الخلفية",
+      hint: "لون خلفية شاشة المنيو",
+      value: palette.bgColor,
+    },
+    {
+      key: "textColor" as const,
+      label: "النص",
+      hint: "العناوين والنصوص الأساسية",
+      value: palette.textColor,
+    },
+    {
+      key: "accentColor" as const,
+      label: "مميّز",
+      hint: "التمييز والعناصر النشطة",
+      value: palette.accentColor,
+    },
+  ];
+
   return (
     <ThemeSectionPanel title={title} description={description}>
       <ThemeCard>
@@ -520,17 +552,37 @@ function ColorsSection({
           <Palette className="h-4 w-4" />
           ألوان الثيم
         </div>
+
         <div
-          className="mb-5 h-16 rounded-xl border border-border"
-          style={{
-            background: `linear-gradient(90deg, ${palette.bgColor} 33%, ${palette.accentColor} 33% 66%, ${palette.textColor} 66%)`,
-          }}
+          className="mb-5 overflow-hidden rounded-2xl border border-border/80"
+          style={{ background: palette.bgColor, color: palette.textColor }}
           aria-hidden
-        />
-        <div className="grid gap-4 sm:grid-cols-3">
-          <ColorPickerField label="الخلفية" value={palette.bgColor} onChange={(v) => onChange({ bgColor: v })} />
-          <ColorPickerField label="النص" value={palette.textColor} onChange={(v) => onChange({ textColor: v })} />
-          <ColorPickerField label="مميّز" value={palette.accentColor} onChange={(v) => onChange({ accentColor: v })} />
+        >
+          <div className="border-b border-black/10 px-4 py-3">
+            <p className="text-[11px] font-semibold opacity-60">معاينة سريعة</p>
+            <p className="font-display text-lg font-black">منيو المنتجات</p>
+          </div>
+          <div className="flex items-center justify-between gap-3 px-4 py-3">
+            <span
+              className="rounded-full px-3 py-1 text-xs font-bold text-white shadow-sm"
+              style={{ background: palette.accentColor }}
+            >
+              مميّز
+            </span>
+            <span className="text-sm font-bold opacity-80">12 ر.س</span>
+          </div>
+        </div>
+
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+          {fields.map((field) => (
+            <ColorPickerField
+              key={field.key}
+              label={field.label}
+              hint={field.hint}
+              value={field.value}
+              onChange={(v) => onChange({ [field.key]: v })}
+            />
+          ))}
         </div>
       </ThemeCard>
     </ThemeSectionPanel>

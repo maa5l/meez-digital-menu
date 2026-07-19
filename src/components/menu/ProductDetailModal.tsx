@@ -1,7 +1,9 @@
-import { useEffect } from "react";
+import { X } from "lucide-react";
 import ProductCornerBadge from "@/components/menu/ProductCornerBadge";
+import { MenuModalPortal } from "@/components/menu/MenuModalPortal";
 import { ProductModalDetails } from "@/components/menu/ProductCardParts";
 import { hasProductBadge, productBadgeColor, productBadgeLabel } from "@/lib/product-badge";
+import { getMenuUi } from "@/lib/menu-i18n";
 import { PRODUCT_CARD, PRODUCT_IMAGE_ASPECT } from "@/lib/product-card-spec";
 import { localizeProduct, type MenuLang } from "@/lib/product-i18n";
 import { cn } from "@/lib/utils";
@@ -13,34 +15,38 @@ type Props = {
   onClose: () => void;
 };
 
-/** نافذة تفاصيل المنتج — إغلاق بالضغط خارج النافذة فقط */
+/** نافذة تفاصيل المنتج — portal + blur + حركة سلسة */
 const ProductDetailModal = ({ product, lang, onClose }: Props) => {
   const localized = localizeProduct(product, lang);
   const isAr = lang === "ar";
-
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, []);
+  const ui = getMenuUi(lang);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/60 p-4 backdrop-blur-sm overscroll-none md:p-6"
-      onClick={onClose}
+    <MenuModalPortal
+      onClose={onClose}
       dir={isAr ? "rtl" : "ltr"}
+      className="max-w-[min(94vw,520px)] md:max-w-[min(92vw,720px)] lg:max-w-[min(90vw,780px)]"
+      labelledBy="product-modal-title"
     >
-      <div
-        className={cn(
-          "flex w-full max-w-[min(94vw,520px)] flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-2xl",
-          "md:max-h-[min(88dvh,640px)] md:max-w-[min(92vw,720px)] md:flex-row",
-          "lg:max-w-[min(90vw,780px)]",
-        )}
-        onClick={(e) => e.stopPropagation()}
-        onTouchMove={(e) => e.stopPropagation()}
-      >
+      <div className="flex flex-col gap-3">
+        <div className={cn("flex shrink-0", isAr ? "justify-start" : "justify-end")}>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex items-center gap-2 rounded-full bg-white/95 px-4 py-2.5 text-sm font-bold text-[#1a1a1a] shadow-lg ring-1 ring-black/[0.08] touch-manipulation"
+            aria-label={ui.close}
+          >
+            <X className="h-4 w-4" aria-hidden />
+            {ui.close}
+          </button>
+        </div>
+
+        <div
+          className={cn(
+            "flex w-full flex-col overflow-hidden rounded-[1.75rem] bg-white shadow-2xl",
+            "md:max-h-[min(88dvh,640px)] md:flex-row",
+          )}
+        >
         {product.image ? (
           <div
             className={cn(
@@ -78,11 +84,15 @@ const ProductDetailModal = ({ product, lang, onClose }: Props) => {
 
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto overscroll-y-contain px-4 py-4 md:px-5 md:py-5 lg:px-6">
+            <h2 id="product-modal-title" className="sr-only">
+              {localized.name}
+            </h2>
             <ProductModalDetails product={product} lang={lang} />
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </MenuModalPortal>
   );
 };
 

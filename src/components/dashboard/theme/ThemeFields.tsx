@@ -128,36 +128,42 @@ export function ImageUploadField({
 
 export function ColorPickerField({
   label,
+  hint,
   value,
   onChange,
   preview,
 }: {
   label: string;
+  hint?: string;
   value: string;
   onChange: (v: string) => void;
   preview?: ReactNode;
 }) {
   return (
-    <div className="space-y-2">
-      <span className="text-xs font-bold text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-2">
-        <input
-          type="color"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-11 w-11 shrink-0 cursor-pointer rounded-lg border-0 bg-transparent touch-manipulation"
-          aria-label={label}
-        />
+    <div className="rounded-xl border border-border/80 bg-secondary/25 p-3 md:p-4">
+      <div className="mb-3 text-right">
+        <div className="text-sm font-bold text-primary">{label}</div>
+        {hint && <div className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">{hint}</div>}
+      </div>
+      <div className="flex items-center gap-2.5">
+        <label className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-border bg-background shadow-inner">
+          <input
+            type="color"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="absolute inset-0 h-[160%] w-[160%] -translate-x-[15%] -translate-y-[15%] cursor-pointer border-0 bg-transparent p-0 touch-manipulation"
+            aria-label={label}
+          />
+        </label>
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="min-w-0 flex-1 bg-transparent font-mono text-xs uppercase text-foreground outline-none"
+          className="h-10 min-w-0 flex-1 rounded-lg border border-border bg-background px-3 font-mono text-xs uppercase text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring"
           spellCheck={false}
+          dir="ltr"
         />
-        {preview ?? (
-          <span className="h-9 w-9 shrink-0 rounded-lg border border-border" style={{ background: value }} aria-hidden />
-        )}
+        {preview}
       </div>
     </div>
   );

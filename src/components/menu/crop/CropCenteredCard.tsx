@@ -73,7 +73,7 @@ const CropCenteredCard = ({
 }: Props) => {
   const isCarousel = variant === "carousel";
   const isPopup = variant === "popup";
-  const isFeature = variant === "feature" || scrollable;
+  const isFeature = variant === "feature" || (scrollable && !isPopup);
   const isCompact = isCarousel || isPopup;
   const L = cropFieldLabels[lang];
   const profile = buildCropProfile(crop, lang);
@@ -86,6 +86,7 @@ const CropCenteredCard = ({
 
   const showImage = Boolean(displaySrc) && !imageFailed;
   const fg = showImage ? "#ffffff" : surface.foreground;
+  const pinFeaturedBadge = Boolean(featured && (isCarousel || isPopup));
 
   const content = (
     <div
@@ -103,7 +104,7 @@ const CropCenteredCard = ({
           isCompact ? "max-w-[94%] gap-2 md:gap-2.5" : "max-w-xs gap-4 sm:max-w-sm sm:gap-5",
         )}
       >
-        {featured && (
+        {featured && !pinFeaturedBadge && (
           <span
             className={cn(
               "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-white shadow-sm",
@@ -177,6 +178,7 @@ const CropCenteredCard = ({
       className={cn(
         "relative flex flex-col overflow-hidden rounded-[1.75rem]",
         isCarousel && "h-full min-h-0 max-h-full",
+        isPopup && scrollable && "overflow-y-auto overscroll-y-contain",
         onClick && "cursor-pointer touch-manipulation transition-transform active:scale-[0.99]",
         className,
       )}
@@ -202,6 +204,26 @@ const CropCenteredCard = ({
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-black/30 to-black/55" />
         </>
+      )}
+
+      {pinFeaturedBadge && (
+        <span
+          className={cn(
+            "absolute top-3 z-20 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold text-white shadow-md ring-1 ring-white/25 backdrop-blur-[2px] start-3 md:px-3 md:py-1 md:text-xs",
+          )}
+          style={{ background: accentColor }}
+        >
+          <Sparkles className="h-3 w-3 md:h-3.5 md:w-3.5" aria-hidden />
+          {L.featured}
+        </span>
+      )}
+
+      {isCarousel && onClick && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/60 via-black/30 to-transparent px-3 pb-3 pt-10">
+          <span className="block text-center text-[10px] font-bold text-white/95 md:text-xs">
+            {L.tapForDetails}
+          </span>
+        </div>
       )}
 
       {isFeature && !isCompact ? (

@@ -21,8 +21,6 @@ import { usesSupabaseAuth } from "@/config/env";
 import { logger } from "@/lib/logger";
 import { ensureSubscriptionRecord } from "@/services/subscription/subscription-enforcement";
 
-/** OTP disabled — login uses signInWithPassword only until SMS/email OTP is re-enabled. */
-
 async function hydrateVenueForUser(userId: string, venueName?: string): Promise<void> {
   if (shouldUseVenueDatabase()) {
     const venue = await pullVenueFromCloud(userId);
@@ -110,9 +108,7 @@ function mapPasswordAuthError(error: unknown): Error {
   }
   const msg = String((error as { message?: string }).message).toLowerCase();
   if (isEmailNotConfirmed(error)) {
-    return new Error(
-      "البريد غير مؤكد. عطّل Confirm email في Supabase: Authentication → Providers → Email → Confirm email (OFF).",
-    );
+    return new Error("البريد الإلكتروني غير مؤكد. تحقق من بريدك أو تواصل مع الدعم.");
   }
   if (msg.includes("invalid login credentials") || msg.includes("invalid credentials")) {
     return new Error("البريد أو كلمة المرور غير صحيحة.");
@@ -125,7 +121,6 @@ function mapPasswordAuthError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String((error as { message?: string }).message));
 }
 
-/** تسجيل دخول بكلمة المرور — OTP disabled temporarily for debugging */
 export async function signInWithPassword(email: string, password: string): Promise<void> {
   const normalizedEmail = email.trim().toLowerCase();
 
@@ -180,7 +175,6 @@ export async function signUp(
     password,
     options: {
       data: { venue_name: venueName ?? "" },
-      // OTP disabled temporarily for debugging — no emailRedirectTo / no confirmation emails
     },
   });
 
@@ -198,9 +192,7 @@ export async function signUp(
     return { needsEmailConfirmation: false };
   } catch (loginError) {
     if (isEmailNotConfirmed(loginError)) {
-      throw new Error(
-        "تم إنشاء الحساب لكن البريد يحتاج تأكيداً. عطّل Confirm email في Supabase: Authentication → Providers → Email.",
-      );
+      throw new Error("تم إنشاء الحساب. يرجى تأكيد بريدك الإلكتروني قبل تسجيل الدخول.");
     }
     throw loginError;
   }

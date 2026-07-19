@@ -92,12 +92,12 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 md:px-5 md:pt-2 ipad-lg:px-6">
           <div
             ref={trackRef}
-            className="flex min-h-0 flex-1 items-center overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="flex min-h-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             style={{ paddingBlock: CROP_TRACK_VERTICAL_PAD }}
           >
             <div
               className={cn(
-                "flex h-full min-h-0 items-center gap-3 md:gap-4",
+                "flex h-full min-h-0 items-stretch gap-3 md:gap-4",
                 lang === "ar" ? "flex-row-reverse" : "flex-row",
               )}
             >
@@ -124,6 +124,7 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
           crop={modal}
           lang={lang}
           accent={palette.accentColor}
+          fallbackTextColor={palette.textColor}
           featured={modal.id === settings.featuredCropId}
           onClose={() => setModal(null)}
         />
