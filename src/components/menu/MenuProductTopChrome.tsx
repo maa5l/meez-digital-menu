@@ -43,15 +43,16 @@ export function MenuProductTopChrome({
 }: Props) {
   const layout = useMenuLayoutMetrics();
   const hasSubheader = Boolean(subheader);
+  const headerCustomization = getProductsHeaderCustomization(settings);
   const scrollPaddingTop = getMenuScrollPaddingTop(
     hasSubheader,
     visible,
     hideHeader,
     layout,
     showLangInCompactBar,
+    headerCustomization,
   );
-  const subheaderTop = getMenuSubheaderTop(visible, hideHeader, layout, showLangInCompactBar);
-  const headerCustomization = getProductsHeaderCustomization(settings);
+  const subheaderTop = getMenuSubheaderTop(visible, hideHeader, layout, showLangInCompactBar, headerCustomization);
   const palette = getProductsPalette(settings);
   const calorieColor = getCalorieDisclaimerColor(headerCustomization, palette.textColor);
   const headerFg = headerCustomization.headerTextColor ?? palette.textColor;

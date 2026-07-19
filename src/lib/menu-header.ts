@@ -4,6 +4,30 @@ import {
   getMenuLayoutMetrics,
   type MenuLayoutMetrics,
 } from "@/lib/menu-layout-metrics";
+import { HEADER_IMAGE_SPEC } from "@/lib/header-image-spec";
+
+/** مساحة عنوان مميز عند عدم وجود بانر headerImage */
+const COMPACT_TITLE_BLOCK_PX = 40;
+
+type HeaderHeightInput = Pick<
+  MenuHeaderCustomization,
+  "headerImage" | "featuredTitle" | "featuredSubtitle"
+>;
+
+/** ارتفاع الهيدر الفعلي — مضغوط بدون بانر، أو بانر كامل مع headerImage */
+export function getEffectiveHeaderHeight(
+  metrics: MenuLayoutMetrics,
+  customization?: HeaderHeightInput,
+): number {
+  const hasBannerImage = Boolean(customization?.headerImage?.trim());
+  if (!hasBannerImage) {
+    const hasTitle =
+      Boolean(customization?.featuredTitle?.trim()) ||
+      Boolean(customization?.featuredSubtitle?.trim());
+    return metrics.compactTopHeight + (hasTitle ? COMPACT_TITLE_BLOCK_PX : 0);
+  }
+  return Math.min(metrics.headerHeight, HEADER_IMAGE_SPEC.displayHeight);
+}
 
 /** @deprecated استخدم getMenuLayoutMetrics — قيمة افتراضية للآيباد أفقي */
 export const MENU_PRODUCT_HEADER_HEIGHT = DEFAULT_MENU_LAYOUT_METRICS.headerHeight;
@@ -34,8 +58,9 @@ export function getMenuProductHeaderHeight(viewportWidth?: number): number {
 export function getMenuTopChromeHeight(
   hasSubheader: boolean,
   metrics: MenuLayoutMetrics = DEFAULT_MENU_LAYOUT_METRICS,
+  customization?: HeaderHeightInput,
 ): number {
-  return metrics.headerHeight + (hasSubheader ? metrics.subheaderHeight : 0);
+  return getEffectiveHeaderHeight(metrics, customization) + (hasSubheader ? metrics.subheaderHeight : 0);
 }
 
 /** ارتفاع الشريط العلوي عند إخفاء الهيدر — صفر أو شريط اللغة فقط */
@@ -53,11 +78,12 @@ export function getMenuScrollPaddingTop(
   hideHeader = false,
   metrics: MenuLayoutMetrics = DEFAULT_MENU_LAYOUT_METRICS,
   showLangInCompactBar = false,
+  customization?: HeaderHeightInput,
 ): number {
   if (hideHeader) {
     return getHiddenHeaderTopHeight(showLangInCompactBar, metrics) + (hasSubheader ? metrics.subheaderHeight : 0);
   }
-  if (headerVisible) return getMenuTopChromeHeight(hasSubheader, metrics);
+  if (headerVisible) return getMenuTopChromeHeight(hasSubheader, metrics, customization);
   return hasSubheader ? metrics.subheaderHeight : 0;
 }
 
@@ -67,9 +93,10 @@ export function getMenuSubheaderTop(
   hideHeader = false,
   metrics: MenuLayoutMetrics = DEFAULT_MENU_LAYOUT_METRICS,
   showLangInCompactBar = false,
+  customization?: HeaderHeightInput,
 ): number {
   if (hideHeader) return getHiddenHeaderTopHeight(showLangInCompactBar, metrics);
-  return headerVisible ? metrics.headerHeight : 0;
+  return headerVisible ? getEffectiveHeaderHeight(metrics, customization) : 0;
 }
 
 export const headerHideTransition =

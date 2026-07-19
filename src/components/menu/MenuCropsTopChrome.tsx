@@ -48,15 +48,16 @@ export function MenuCropsTopChrome({
 }: Props) {
   const layout = useMenuLayoutMetrics();
   const hasSubheader = Boolean(subheader);
+  const headerCustomization = getCropsHeaderCustomization(settings);
   const scrollPaddingTop = getMenuScrollPaddingTop(
     hasSubheader,
     visible,
     hideHeader,
     layout,
     showLangInCompactBar,
+    headerCustomization,
   );
-  const subheaderTop = getMenuSubheaderTop(visible, hideHeader, layout, showLangInCompactBar);
-  const headerCustomization = getCropsHeaderCustomization(settings);
+  const subheaderTop = getMenuSubheaderTop(visible, hideHeader, layout, showLangInCompactBar, headerCustomization);
   const palette = getCropsPalette(settings);
   const calorieColor = getCalorieDisclaimerColor(headerCustomization, palette.textColor);
   const headerFg = headerCustomization.headerTextColor ?? palette.textColor;

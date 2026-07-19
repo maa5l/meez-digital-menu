@@ -2,6 +2,7 @@ import MenuHeaderChromeRow from "@/components/menu/MenuHeaderChromeRow";
 import { useMenuLayoutMetrics } from "@/hooks/useMenuLayoutMetrics";
 import {
   getCalorieDisclaimerColor,
+  getEffectiveHeaderHeight,
   headerHideTransition,
 } from "@/lib/menu-header";
 import type { MenuHeaderCustomization, MenuPalette } from "@/types/domain";
@@ -35,11 +36,13 @@ const MenuVenueHeader = ({
   const layout = useMenuLayoutMetrics();
   const headerBg = customization.headerBgColor ?? `${palette.textColor}18`;
   const headerFg = customization.headerTextColor ?? palette.textColor;
-  const headerHeight = layout.headerHeight;
+  const bannerHasDesign = Boolean(customization.headerImage?.trim());
+  const headerHeight = getEffectiveHeaderHeight(layout, customization);
   const title =
     customization.featuredTitle || (lang === "ar" ? defaultTitleAr : defaultTitleEn);
-  const bannerSrc = customization.headerImage || customization.featuredImage;
-  const bannerHasDesign = Boolean(customization.headerImage);
+  const bannerSrc = bannerHasDesign
+    ? customization.headerImage
+    : customization.featuredImage || undefined;
   const calorieFallback = bannerSrc ? "#ffffff" : headerFg;
   const calorieColor = getCalorieDisclaimerColor(customization, calorieFallback);
   const trailing = chromeTrailing ?? headerTrailing;
@@ -80,6 +83,7 @@ const MenuVenueHeader = ({
       <div
         className={cn(
           "relative z-10 flex h-full min-h-0 flex-col px-4 py-1.5 md:px-6 md:py-2",
+          bannerHasDesign ? "gap-0" : "gap-1",
           bannerSrc && "pointer-events-none",
         )}
       >
@@ -95,39 +99,32 @@ const MenuVenueHeader = ({
           />
         </div>
 
-        <div
-          className={cn(
-            "flex min-h-0 flex-1 flex-col justify-end pb-0.5 pt-1 md:pt-1.5",
-            bannerSrc && "pointer-events-none",
-          )}
-        >
-          {!bannerHasDesign && (
-            <div className={cn("max-w-full overflow-hidden px-2 text-center", bannerSrc && "pointer-events-auto")}>
-              <h1
+        {!bannerHasDesign && (
+          <div className={cn("shrink-0 max-w-full overflow-hidden px-2 text-center", bannerSrc && "pointer-events-auto")}>
+            <h1
+              className={cn(
+                "font-display mx-auto max-w-full break-words font-black leading-tight line-clamp-2",
+                bannerSrc
+                  ? "text-[11px] text-white drop-shadow-md sm:text-xs md:text-sm ipad-lg:text-base"
+                  : "text-sm md:text-lg ipad-lg:text-xl",
+              )}
+            >
+              {title}
+            </h1>
+            {customization.featuredSubtitle && (
+              <p
                 className={cn(
-                  "font-display mx-auto max-w-full break-words font-black leading-tight line-clamp-2",
+                  "mx-auto mt-0.5 max-w-full break-words line-clamp-2 font-bold",
                   bannerSrc
-                    ? "text-[11px] text-white drop-shadow-md sm:text-xs md:text-sm ipad-lg:text-base"
-                    : "text-sm md:text-lg ipad-lg:text-xl",
+                    ? "text-[9px] text-white/90 drop-shadow-sm sm:text-[10px] md:text-xs"
+                    : "text-[9px] opacity-70 md:text-[10px]",
                 )}
               >
-                {title}
-              </h1>
-              {customization.featuredSubtitle && (
-                <p
-                  className={cn(
-                    "mx-auto mt-0.5 max-w-full break-words line-clamp-2 font-bold",
-                    bannerSrc
-                      ? "text-[9px] text-white/90 drop-shadow-sm sm:text-[10px] md:text-xs"
-                      : "text-[9px] opacity-70 md:text-[10px]",
-                  )}
-                >
-                  {customization.featuredSubtitle}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
+                {customization.featuredSubtitle}
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </header>
   );

@@ -62,12 +62,14 @@ export function getBannerHeaderHeight(viewportWidth: number): number {
 }
 
 function resolveHeaderHeight(viewportWidth: number, tier: MenuViewportTier): number {
-  const proportional = getBannerHeaderHeight(viewportWidth);
+  const effectiveWidth = Math.min(viewportWidth, HEADER_IMAGE_SPEC.displayWidth);
+  const proportional = getBannerHeaderHeight(effectiveWidth);
   const floor = METRICS_BY_TIER[tier].headerHeight;
+  const cap = HEADER_IMAGE_SPEC.displayHeight;
   if (tier === "compact") {
-    return Math.max(floor, Math.min(proportional, 180));
+    return Math.max(floor, Math.min(proportional, Math.min(180, cap)));
   }
-  return Math.max(floor, proportional);
+  return Math.min(Math.max(floor, proportional), cap);
 }
 
 export function getMenuLayoutMetrics(viewportWidth: number): MenuLayoutMetrics {
