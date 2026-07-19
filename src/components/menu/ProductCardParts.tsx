@@ -14,6 +14,7 @@ import { menuChromeMotion } from "@/lib/menu-header";
 import type { Product } from "@/types/domain";
 import { Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
+import MenuProductImage from "@/components/menu/MenuProductImage";
 import ProductCornerBadge from "@/components/menu/ProductCornerBadge";
 
 type Lang = MenuLang;
@@ -553,10 +554,15 @@ export const ProductGridCard = ({
         <ProductImageBadge product={product} lang={lang} placement="inset" />
         <div className="absolute inset-0 flex items-center justify-center">
           {product.image ? (
-            <img
+            <MenuProductImage
               src={product.image}
               alt={product.name}
               className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
+              placeholder={
+                <span className="px-2 text-center text-xs font-bold text-muted-foreground/40">
+                  {labels[lang].noImage}
+                </span>
+              }
             />
           ) : (
             <span className="px-2 text-center text-xs font-bold text-muted-foreground/40">
@@ -616,10 +622,13 @@ export const ProductListCard = ({
     <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl bg-white">
       <ProductImageBadge product={product} lang={lang} size="sm" placement="inset" />
       {product.image ? (
-        <img
+        <MenuProductImage
           src={product.image}
           alt={localized.name}
           className="absolute inset-0 h-full w-full object-cover object-center"
+          placeholder={
+            <span className="px-1 text-center text-[9px] font-bold text-muted-foreground/50">{labels[lang].img}</span>
+          }
         />
       ) : (
         <span className="px-1 text-center text-[9px] font-bold text-muted-foreground/50">{labels[lang].img}</span>
@@ -684,11 +693,15 @@ export const ProductImagePanel = ({
     >
       <ProductImageBadge product={product} lang={lang} size="md" placement="inset" />
       {product.image ? (
-        <img
+        <MenuProductImage
           src={product.image}
           alt={localized.name}
           className="absolute inset-0 h-full w-full object-cover object-center"
-          decoding="async"
+          placeholder={
+            <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-muted-foreground/50">
+              {labels[lang].noImage}
+            </span>
+          }
         />
       ) : (
         <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-muted-foreground/50">
@@ -741,10 +754,15 @@ export const ProductDetailCard = ({
           <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl bg-white">
             <ProductImageBadge product={product} lang={lang} size="md" placement="inset" />
             {product.image ? (
-              <img
+              <MenuProductImage
                 src={product.image}
                 alt={localized.name}
                 className="absolute inset-0 h-full w-full object-contain object-center"
+                placeholder={
+                  <span className="flex h-full items-center justify-center text-sm font-bold text-muted-foreground/50">
+                    {labels[lang].noImage}
+                  </span>
+                }
               />
             ) : (
               <span className="flex h-full items-center justify-center text-sm font-bold text-muted-foreground/50">
@@ -776,10 +794,15 @@ export const ProductDetailCard = ({
         >
           <ProductImageBadge product={product} lang={lang} size="md" placement="inset" />
           {product.image ? (
-            <img
+            <MenuProductImage
               src={product.image}
               alt={localized.name}
               className="absolute inset-0 h-full w-full object-cover object-center"
+              placeholder={
+                <span className="flex h-full items-center justify-center text-sm font-bold text-muted-foreground/50">
+                  {labels[lang].noImage}
+                </span>
+              }
             />
           ) : (
             <span className="flex h-full items-center justify-center text-sm font-bold text-muted-foreground/50">

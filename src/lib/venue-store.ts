@@ -314,26 +314,30 @@ export async function loadVenueForDeviceAsync(
   deviceCode: string,
   _knownRemoteUpdatedAt?: string | null,
 ): Promise<VenueData> {
-  return syncVenueForDeviceIfStale(deviceCode);
+  const result = await syncVenueForDeviceIfStale(deviceCode);
+  return result.venue;
 }
 
 /** مزامنة كاملة فقط عند تغيّر updated_at — وإلا البيانات المحلية */
 export async function syncVenueForDeviceIfStale(
   deviceCode: string,
   force = false,
-): Promise<VenueData> {
+): Promise<{ venue: VenueData; changed: boolean }> {
   const code = deviceCode.trim().toUpperCase();
-  if (!shouldUseVenueDatabase()) return loadVenueForDevice(code);
+  if (!shouldUseVenueDatabase()) {
+    return { venue: loadVenueForDevice(code), changed: false };
+  }
 
   try {
     const remoteUpdatedAt = await fetchVenueUpdatedAtForDevice(code, force);
     const cacheKey = deviceRemoteUpdatedKey(code);
+    const remembered = getRememberedRemoteUpdatedAt(cacheKey);
     if (
       !force &&
       remoteUpdatedAt &&
-      getRememberedRemoteUpdatedAt(cacheKey) === remoteUpdatedAt
+      remembered === remoteUpdatedAt
     ) {
-      return loadVenueForDevice(code);
+      return { venue: loadVenueForDevice(code), changed: false };
     }
 
     const remote = await fetchVenueForDeviceFromDatabase(code, force);
@@ -347,14 +351,16 @@ export async function syncVenueForDeviceIfStale(
         remoteUpdatedAt: remoteUpdatedAt ?? undefined,
       });
       rememberRemoteUpdatedAt(cacheKey, remoteUpdatedAt);
-      return normalized;
+      const changed = Boolean(remoteUpdatedAt && remoteUpdatedAt !== remembered);
+      return { venue: normalized, changed: force || changed };
     }
   } catch (err) {
     logger.error("venue.device_cloud_load_failed", {
       code,
       message: err instanceof Error ? err.message : String(err),
     });
+    throw err;
   }
 
-  return loadVenueForDevice(code);
+  return { venue: loadVenueForDevice(code), changed: false };
 }

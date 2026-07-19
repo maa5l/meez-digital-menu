@@ -14,8 +14,15 @@ export function FaultScreen({ fault, onRetry, onUnlink }: Props) {
       <View style={styles.card}>
         <Logo size={56} />
         <Text style={styles.codeLabel}>{fault.code}</Text>
-        <Text style={styles.title}>{fault.message}</Text>
-        {fault.detail ? <Text style={styles.detail}>{fault.detail}</Text> : null}
+        <Text style={styles.title}>{fault.title}</Text>
+        <Text style={styles.message}>{fault.message}</Text>
+        {fault.hint ? <Text style={styles.detail}>{fault.hint}</Text> : null}
+        {fault.detail && fault.detail !== fault.message ? (
+          <Text style={styles.technical}>{fault.detail}</Text>
+        ) : null}
+        {fault.autoRetry ? (
+          <Text style={styles.autoRetry}>سيتم إعادة المحاولة تلقائيًا...</Text>
+        ) : null}
 
         <Pressable style={styles.primaryBtn} onPress={onRetry}>
           <Text style={styles.primaryText}>إعادة محاولة</Text>
@@ -57,11 +64,29 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 28,
   },
+  message: {
+    color: "rgba(248,241,228,0.92)",
+    fontSize: 15,
+    fontWeight: "600",
+    textAlign: "center",
+    lineHeight: 24,
+  },
   detail: {
     color: "rgba(248,241,228,0.7)",
     fontSize: 13,
     textAlign: "center",
     lineHeight: 20,
+  },
+  technical: {
+    color: "rgba(248,241,228,0.45)",
+    fontSize: 11,
+    textAlign: "center",
+    lineHeight: 18,
+  },
+  autoRetry: {
+    color: "rgba(196,163,90,0.95)",
+    fontSize: 12,
+    textAlign: "center",
   },
   primaryBtn: {
     marginTop: 16,

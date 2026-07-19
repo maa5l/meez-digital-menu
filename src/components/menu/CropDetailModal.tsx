@@ -13,7 +13,7 @@ type Props = {
   onClose: () => void;
 };
 
-/** نافذة تفاصيل المحصول — ملء شاشة الآيباد */
+/** نافذة تفاصيل المحصول — وسط الشاشة مع تعتيم الخلفية */
 const CropDetailModal = ({ crop, lang, accent, featured, onClose }: Props) => {
   const L = cropFieldLabels[lang];
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -37,7 +37,7 @@ const CropDetailModal = ({ crop, lang, accent, featured, onClose }: Props) => {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex bg-black/75 backdrop-blur-sm"
+      className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden bg-black/65 p-3 backdrop-blur-md md:p-6"
       onClick={onClose}
       dir={lang === "ar" ? "rtl" : "ltr"}
       role="dialog"
@@ -46,10 +46,11 @@ const CropDetailModal = ({ crop, lang, accent, featured, onClose }: Props) => {
     >
       <div
         className={cn(
-          "relative flex h-[100dvh] w-full max-w-full flex-col overflow-hidden bg-[#faf8f5]",
+          "relative flex max-h-[min(92dvh,760px)] w-full max-w-[min(96vw,720px)] flex-col overflow-hidden rounded-[1.75rem] bg-[#faf8f5] shadow-2xl",
           "pb-[env(safe-area-inset-bottom)]",
         )}
         onClick={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
       >
         <div
           className={cn(
@@ -91,7 +92,7 @@ const CropDetailModal = ({ crop, lang, accent, featured, onClose }: Props) => {
             crop={crop}
             lang={lang}
             accentColor={accent}
-            featured={false}
+            featured={featured}
             variant="full"
           />
         </div>

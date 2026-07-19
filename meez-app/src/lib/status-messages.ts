@@ -1,14 +1,11 @@
 import type { RegistrationPeek } from "@/services/kiosk-check";
+import { classifyUserFacingError } from "@/lib/user-facing-errors";
 
 export type StatusDetail = {
   title: string;
   message: string;
   hint?: string;
 };
-
-function isNetworkMessage(message: string): boolean {
-  return /failed to fetch|network|timeout|internet|اتصال|شبكة/i.test(message);
-}
 
 export function describeRegistrationStatus(
   peek: RegistrationPeek | null | undefined,
@@ -48,13 +45,15 @@ export function describeRegistrationStatus(
       };
     }
 
-    const message = peek.message ?? "تعذّر الاتصال بالخادم";
+    const classified = classifyUserFacingError(peek.message ?? "network", {
+      faultCode: peek.reason === "network" ? "NETWORK" : undefined,
+    });
     return {
-      title: isNetworkMessage(message) ? "مشكلة في الاتصال" : "خطأ في التفعيل",
-      message,
-      hint: isNetworkMessage(message)
-        ? "تحقق من الإنترنت على التابلت ثم انتظر — سيُعاد الإعلان عن الرمز تلقائياً"
-        : "إذا استمر الخطأ، أعد تشغيل التطبيق أو تواصل مع الدعم",
+      title: classified.title,
+      message: classified.message,
+      hint: classified.autoRetry
+        ? "سيتم إعادة المحاولة تلقائيًا..."
+        : classified.hint,
     };
   }
 
@@ -82,10 +81,11 @@ export function describeRegistrationStatus(
 }
 
 export function describeBootError(message: string): StatusDetail {
+  const classified = classifyUserFacingError(message);
   return {
-    title: "تعذّر تشغيل التطبيق",
-    message,
-    hint: "أعد تشغيل التطبيق. إذا تكرر الخطأ، أعد تثبيت آخر نسخة من APK",
+    title: classified.title,
+    message: classified.message,
+    hint: classified.hint ?? "أعد تشغيل التطبيق. إذا تكرر الخطأ، أعد تثبيت آخر نسخة من APK",
   };
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useImageAutoRetry } from "@/hooks/useImageAutoRetry";
 import { Sparkles } from "lucide-react";
 import { buildCropProfile } from "@/lib/crop-profile";
 import { cropFieldLabels } from "@/lib/crop-i18n";
@@ -6,6 +6,7 @@ import { resolveCropSurface } from "@/lib/crop-surface";
 import type { Crop } from "@/types/domain";
 import type { MenuLang } from "@/lib/product-i18n";
 import { cn } from "@/lib/utils";
+import type { CSSProperties } from "react";
 
 type Props = {
   crop: Crop;
@@ -81,13 +82,9 @@ const CropCenteredCard = ({
     cardColor: `${fallbackTextColor}15`,
   });
   const imageUrl = crop.image?.trim();
-  const [imageFailed, setImageFailed] = useState(false);
+  const { displaySrc, failed: imageFailed, handleError, reloadKey } = useImageAutoRetry(imageUrl);
 
-  useEffect(() => {
-    setImageFailed(false);
-  }, [crop.id, imageUrl]);
-
-  const showImage = Boolean(imageUrl) && !imageFailed;
+  const showImage = Boolean(displaySrc) && !imageFailed;
   const fg = showImage ? "#ffffff" : surface.foreground;
 
   const content = (
@@ -196,11 +193,12 @@ const CropCenteredCard = ({
       {showImage && (
         <>
           <img
-            src={imageUrl}
+            key={reloadKey}
+            src={displaySrc}
             alt=""
             className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center"
             decoding="async"
-            onError={() => setImageFailed(true)}
+            onError={handleError}
           />
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-black/30 to-black/55" />
         </>

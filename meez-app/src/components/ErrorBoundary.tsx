@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { APP_BACKGROUND } from "@/components/AppShell";
 import { logger } from "@/lib/logger";
+import { classifyUserFacingError } from "@/lib/user-facing-errors";
 
 type Props = {
   children: ReactNode;
@@ -34,12 +35,12 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render(): ReactNode {
     if (this.state.error) {
+      const detail = classifyUserFacingError(this.state.error);
       return (
         <View style={styles.root}>
-          <Text style={styles.title}>حدث خطأ غير متوقع</Text>
-          <Text style={styles.detail}>
-            {this.state.error.message || "تعذّر عرض الواجهة. أعد المحاولة أو ألغِ ربط الجهاز."}
-          </Text>
+          <Text style={styles.title}>{detail.title}</Text>
+          <Text style={styles.detail}>{detail.message}</Text>
+          {detail.hint ? <Text style={styles.hint}>{detail.hint}</Text> : null}
           <Pressable style={styles.btn} onPress={this.handleReset}>
             <Text style={styles.btnText}>إعادة المحاولة</Text>
           </Pressable>
@@ -69,6 +70,12 @@ const styles = StyleSheet.create({
   detail: {
     color: "rgba(248,241,228,0.8)",
     fontSize: 14,
+    textAlign: "center",
+    maxWidth: 420,
+  },
+  hint: {
+    color: "rgba(196,163,90,0.95)",
+    fontSize: 12,
     textAlign: "center",
     maxWidth: 420,
   },

@@ -4,6 +4,7 @@ import CropCarouselCard from "@/components/menu/crop/CropCarouselCard";
 import CropDetailModal from "@/components/menu/CropDetailModal";
 import { MenuCropsTopChrome } from "@/components/menu/MenuCropsTopChrome";
 import { useMenuLang } from "@/context/MenuLangContext";
+import { useMenuKioskSync } from "@/hooks/useMenuKioskSync";
 import { getCropsHeaderCustomization, isCropsLangToggleEnabled } from "@/lib/menu-header-settings";
 import { getCropsPalette, palettePageStyle } from "@/lib/menu-palette";
 import { menuContentEnter } from "@/lib/menu-header";
@@ -61,6 +62,14 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
   const palette = getCropsPalette(settings);
   const bgStyle = palettePageStyle(palette);
   const cardWidth = cardHeight > 0 ? Math.round(cardHeight * CROP_CARD_ASPECT) : undefined;
+
+  useMenuKioskSync(true);
+
+  useEffect(() => {
+    if (!modal) return;
+    const fresh = crops.find((c) => c.id === modal.id);
+    if (fresh) setModal(fresh);
+  }, [crops, modal]);
 
   return (
     <div

@@ -10,6 +10,18 @@ export type MenuPalette = {
   bgImage?: string;
 };
 
+function normalizeBgImage(bgImage?: string): string | undefined {
+  const trimmed = bgImage?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function cleanPalette(palette: MenuPalette): MenuPalette {
+  return {
+    ...palette,
+    bgImage: normalizeBgImage(palette.bgImage),
+  };
+}
+
 export const defaultProductsPalette: MenuPalette = {
   bgColor: "#F1EFEC",
   textColor: "#030303",
@@ -57,20 +69,21 @@ export function migrateMenuSettings(settings: MenuSettings): MenuSettings {
 }
 
 export function getProductsPalette(settings: MenuSettings): MenuPalette {
-  return migrateMenuSettings(settings).productsColors!;
+  return cleanPalette(migrateMenuSettings(settings).productsColors!);
 }
 
 export function getCropsPalette(settings: MenuSettings): MenuPalette {
-  return migrateMenuSettings(settings).cropsColors!;
+  return cleanPalette(migrateMenuSettings(settings).cropsColors!);
 }
 
 export function palettePageStyle(palette: MenuPalette): CSSProperties {
-  return palette.bgImage
+  const cleaned = cleanPalette(palette);
+  return cleaned.bgImage
     ? {
-        backgroundImage: `linear-gradient(${palette.bgColor}cc, ${palette.bgColor}ee), url(${palette.bgImage})`,
+        backgroundImage: `linear-gradient(${cleaned.bgColor}cc, ${cleaned.bgColor}ee), url(${cleaned.bgImage})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
-        color: palette.textColor,
+        color: cleaned.textColor,
       }
-    : { background: palette.bgColor, color: palette.textColor };
+    : { background: cleaned.bgColor, color: cleaned.textColor };
 }

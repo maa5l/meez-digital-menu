@@ -18,6 +18,7 @@ import { AppState, type AppStateStatus, type NativeEventSubscription } from "rea
 const POLL_MS = 12_000;
 const MIN_BACKOFF_MS = 15_000;
 const ANNOUNCE_MS = 10 * 60 * 1000;
+const FAULT_AUTO_RETRY_MS = 8_000;
 
 type Listener = () => void;
 
@@ -42,6 +43,7 @@ export class KioskSupervisor {
   private listeners = new Set<Listener>();
   private pollId: ReturnType<typeof setInterval> | undefined;
   private backoffId: ReturnType<typeof setTimeout> | undefined;
+  private faultRetryId: ReturnType<typeof setTimeout> | undefined;
   private announceId: ReturnType<typeof setInterval> | undefined;
   private appStateSub: NativeEventSubscription | undefined;
   private openingLock = false;
@@ -80,6 +82,7 @@ export class KioskSupervisor {
   /** Re-run boot after STORAGE fault (keeps singleton alive). */
   async restart(): Promise<void> {
     this.stopPolling();
+    this.clearFaultRetry();
     if (this.announceId != null) {
       clearInterval(this.announceId);
       this.announceId = undefined;
@@ -124,6 +127,7 @@ export class KioskSupervisor {
   stop(): void {
     this.started = false;
     this.stopPolling();
+    this.clearFaultRetry();
     if (this.announceId != null) {
       clearInterval(this.announceId);
       this.announceId = undefined;
@@ -145,6 +149,25 @@ export class KioskSupervisor {
       clearTimeout(this.backoffId);
       this.backoffId = undefined;
     }
+  }
+
+  private clearFaultRetry(): void {
+    if (this.faultRetryId != null) {
+      clearTimeout(this.faultRetryId);
+      this.faultRetryId = undefined;
+    }
+  }
+
+  private scheduleFaultRetry(): void {
+    this.clearFaultRetry();
+    const { fault } = this.snapshot;
+    if (!fault?.autoRetry) return;
+
+    this.faultRetryId = setTimeout(() => {
+      if (this.snapshot.phase !== "fault" || !this.snapshot.fault?.autoRetry) return;
+      logger.audit("kiosk.fault_auto_retry", { code: this.snapshot.fault.code });
+      void this.openMenu();
+    }, FAULT_AUTO_RETRY_MS);
   }
 
   private startPolling(): void {
@@ -228,6 +251,7 @@ export class KioskSupervisor {
 
       const url = getMenuUrlForCode(code);
       logger.audit("kiosk.open_menu", { url, code });
+      this.clearFaultRetry();
       this.patch({
         menuUrl: url,
         phase: "menu",
@@ -245,12 +269,14 @@ export class KioskSupervisor {
 
   reportFault(code: FaultCode, detail?: string): void {
     const fault = faultFromCode(code, detail);
-    logger.error("kiosk.fault", { code, detail });
+    logger.error("kiosk.fault", { code, detail, logLabel: fault.message });
+    this.clearFaultRetry();
     this.patch({
       phase: "fault",
       fault,
       menuUrl: null,
     });
+    this.scheduleFaultRetry();
   }
 
   onWebMessage(raw: string): void {
@@ -287,6 +313,7 @@ export class KioskSupervisor {
     };
 
     logger.audit("kiosk.force_pairing", { code, reason });
+    this.clearFaultRetry();
     this.patch({
       phase: "pairing",
       menuUrl: null,

@@ -8,12 +8,14 @@ import {
 } from "react-native-webview";
 import { APP_BACKGROUND } from "@/components/AppShell";
 import { logger } from "@/lib/logger";
+import { classifyUserFacingError } from "@/lib/user-facing-errors";
 import { isBlockedMenuUrl } from "@/lib/blocked-menu-hosts";
 import { getTrustedMenuOrigins, isAllowedMenuNavigation } from "@/lib/trusted-menu-origin";
 
 /** Spec baseline 5s; allow headroom for gate RPC + catalog fetch after HTML onLoadEnd */
 const READY_ACK_MS = 12_000;
 const HARD_TIMEOUT_MS = 25_000;
+const LOAD_AUTO_RETRY_MS = 8_000;
 
 const KIOSK_BG_INJECTED_JS = `
 (function () {
@@ -26,7 +28,7 @@ true;
 
 const KIOSK_SOFT_REFRESH_JS = `
 (function () {
-  window.dispatchEvent(new Event("meez:venue-updated"));
+  window.dispatchEvent(new Event("meez:menu-kiosk-reset"));
 })();
 true;
 `;
@@ -98,12 +100,15 @@ function describeLoadError(statusCode: number | undefined, url: string): LoadErr
   if (statusCode === 404) {
     return { title: "الصفحة غير موجودة", detail: "تأكد من نشر المنيو على العنوان الصحيح." };
   }
-  if (statusCode && statusCode >= 500) {
-    return { title: "خطأ في الخادم", detail: `الخادم أعاد ${statusCode}. حاول مرة أخرى.` };
-  }
+
+  const classified = classifyUserFacingError(
+    statusCode && statusCode >= 500 ? `HTTP ${statusCode}` : "network request failed",
+    { faultCode: statusCode && statusCode >= 500 ? undefined : "NETWORK" },
+  );
+
   return {
-    title: "تعذّر تحميل المنيو",
-    detail: "تحقق من الاتصال بالإنترنت أو إعدادات EXPO_PUBLIC_MENU_WEB_URL.",
+    title: classified.title,
+    detail: classified.message,
   };
 }
 
@@ -119,6 +124,7 @@ export function MenuWebView({
   const failCountRef = useRef(0);
   const readyReceivedRef = useRef(false);
   const ackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [awaitingReady, setAwaitingReady] = useState(false);
   const [loadError, setLoadError] = useState<LoadError | null>(() => {
@@ -132,6 +138,13 @@ export function MenuWebView({
     if (ackTimerRef.current != null) {
       clearTimeout(ackTimerRef.current);
       ackTimerRef.current = null;
+    }
+  }, []);
+
+  const clearAutoRetry = useCallback(() => {
+    if (autoRetryRef.current != null) {
+      clearTimeout(autoRetryRef.current);
+      autoRetryRef.current = null;
     }
   }, []);
 
@@ -160,11 +173,15 @@ export function MenuWebView({
     failCountRef.current = 0;
     readyReceivedRef.current = false;
     clearAckTimer();
+    clearAutoRetry();
     setAwaitingReady(false);
     setLoadError(isBlockedMenuUrl(menuUrl) ? describeLoadError(undefined, menuUrl) : null);
     setIsLoading(true);
-    return () => clearAckTimer();
-  }, [menuUrl, clearAckTimer]);
+    return () => {
+      clearAckTimer();
+      clearAutoRetry();
+    };
+  }, [menuUrl, clearAckTimer, clearAutoRetry]);
 
   useEffect(() => {
     if (!isLoading || loadError || awaitingReady) return;
@@ -248,18 +265,35 @@ export function MenuWebView({
   const handleRetry = useCallback(() => {
     readyReceivedRef.current = false;
     clearAckTimer();
+    clearAutoRetry();
     setLoadError(null);
     setAwaitingReady(false);
     setIsLoading(true);
     webViewRef.current?.reload();
     onRetry?.();
-  }, [clearAckTimer, onRetry]);
+  }, [clearAckTimer, clearAutoRetry, onRetry]);
+
+  useEffect(() => {
+    if (!loadError) {
+      clearAutoRetry();
+      return;
+    }
+    if (isBlockedMenuUrl(menuUrl)) return;
+
+    autoRetryRef.current = setTimeout(() => {
+      logger.audit("webview.load_auto_retry", { url: menuUrl });
+      handleRetry();
+    }, LOAD_AUTO_RETRY_MS);
+
+    return () => clearAutoRetry();
+  }, [loadError, menuUrl, handleRetry, clearAutoRetry]);
 
   if (loadError) {
     return (
       <View style={styles.errorRoot}>
         <Text style={styles.errorTitle}>{loadError.title}</Text>
         <Text style={styles.errorDetail}>{loadError.detail}</Text>
+        <Text style={styles.autoRetryHint}>سيتم إعادة المحاولة تلقائيًا...</Text>
         <Text style={styles.errorUrl} selectable>
           {menuUrl}
         </Text>
@@ -419,6 +453,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     maxWidth: 420,
+  },
+  autoRetryHint: {
+    color: "rgba(196,163,90,0.95)",
+    fontSize: 12,
+    textAlign: "center",
   },
   errorUrl: {
     marginTop: 8,

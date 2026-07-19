@@ -1,8 +1,24 @@
 import type { MenuHeaderCustomization, MenuSettings } from "@/types/domain";
 
+function normalizeImageUrl(value?: string): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function normalizeHeaderCustomization(
+  header: MenuHeaderCustomization,
+): MenuHeaderCustomization {
+  return {
+    ...header,
+    featuredImage: normalizeImageUrl(header.featuredImage),
+    headerImage: normalizeImageUrl(header.headerImage),
+    logoImage: normalizeImageUrl(header.logoImage),
+  };
+}
+
 /** إعدادات هيدر منيو المنتجات (حقول مسطّحة للتوافق) */
 export function getProductsHeaderCustomization(settings: MenuSettings): MenuHeaderCustomization {
-  return {
+  return normalizeHeaderCustomization({
     featuredTitle: settings.featuredTitle,
     featuredSubtitle: settings.featuredSubtitle,
     featuredImage: settings.featuredImage,
@@ -14,12 +30,12 @@ export function getProductsHeaderCustomization(settings: MenuSettings): MenuHead
     showLanguageToggle: settings.showLanguageToggle,
     autoHideHeaderOnScroll: settings.autoHideHeaderOnScroll,
     hideHeader: settings.hideHeader,
-  };
+  });
 }
 
 /** إعدادات هيدر منيو المحاصيل */
 export function getCropsHeaderCustomization(settings: MenuSettings): MenuHeaderCustomization {
-  return settings.cropsHeader ?? {};
+  return normalizeHeaderCustomization(settings.cropsHeader ?? {});
 }
 
 export function patchProductsHeader(

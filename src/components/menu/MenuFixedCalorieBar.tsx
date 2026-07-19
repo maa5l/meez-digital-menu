@@ -15,6 +15,8 @@ type Props = {
   onLangToggle?: () => void;
   /** داخل تدفّق flex — بدون position:fixed */
   embedded?: boolean;
+  /** lang-only = شريط اللغة فقط بدون شعار أو سعرات */
+  variant?: "full" | "lang-only";
 };
 
 /** شريط علوي مدمج — إفصاح السعرات + الشعار في صف واحد */
@@ -26,8 +28,11 @@ const MenuFixedCalorieBar = ({
   showLang = false,
   onLangToggle,
   embedded = false,
+  variant = "full",
 }: Props) => {
   const layout = useMenuLayoutMetrics();
+  const langOnly = variant === "lang-only";
+  const barHeight = langOnly ? layout.langBarHeight : layout.compactTopHeight;
 
   return (
   <div
@@ -37,17 +42,12 @@ const MenuFixedCalorieBar = ({
       embedded && "relative shrink-0",
       menuChromeMotion,
     )}
-    style={{ minHeight: layout.compactTopHeight }}
+    style={{ minHeight: barHeight }}
   >
-    <div className="relative px-3 py-1.5 md:px-5 md:py-2">
-      <MenuHeaderChromeRow
-        lang={lang}
-        textColor={textColor}
-        headerFg={headerFg}
-        customization={customization}
-        logoSizePx={layout.logoSizePx}
-        trailing={
-          showLang && onLangToggle ? (
+    <div className={cn("relative px-3 md:px-5", langOnly ? "py-1" : "py-1.5 md:py-2")}>
+      {langOnly ? (
+        showLang && onLangToggle ? (
+          <div className="flex justify-end" dir="ltr">
             <MenuLangToggle
               lang={lang}
               onToggle={onLangToggle}
@@ -55,9 +55,28 @@ const MenuFixedCalorieBar = ({
               variant="tab"
               className="px-2.5 py-1 text-[11px] md:px-3 md:py-1.5 md:text-xs"
             />
-          ) : undefined
-        }
-      />
+          </div>
+        ) : null
+      ) : (
+        <MenuHeaderChromeRow
+          lang={lang}
+          textColor={textColor}
+          headerFg={headerFg}
+          customization={customization}
+          logoSizePx={layout.logoSizePx}
+          trailing={
+            showLang && onLangToggle ? (
+              <MenuLangToggle
+                lang={lang}
+                onToggle={onLangToggle}
+                textColor={textColor}
+                variant="tab"
+                className="px-2.5 py-1 text-[11px] md:px-3 md:py-1.5 md:text-xs"
+              />
+            ) : undefined
+          }
+        />
+      )}
     </div>
   </div>
   );

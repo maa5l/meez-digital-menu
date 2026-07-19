@@ -1,9 +1,10 @@
 import { useEffect } from "react";
-import { Loader2, ShieldAlert } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { UserErrorPanel } from "@/components/UserErrorPanel";
+import { postKioskReady } from "@/lib/kiosk-bridge";
+import { errorFromKioskReason } from "@/lib/user-facing-errors";
 import type { KioskAccessCheck } from "@/types/subscription";
 import { SUPPORT } from "@/config/support";
-import { postKioskReady } from "@/lib/kiosk-bridge";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   code: string;
@@ -11,31 +12,6 @@ type Props = {
   registrationStatus?: "checking" | "not_registered" | "registered";
   kioskMode?: boolean;
 };
-
-function titleFor(check: KioskAccessCheck, checking: boolean): string {
-  if (checking) return "جاري التحقق…";
-  if (!check.registered) return "الجهاز غير مفعّل";
-  switch (check.reason) {
-    case "device_inactive":
-      return "الجهاز معطّل";
-    case "subscription_suspended":
-    case "subscription_expired":
-    case "subscription_canceled":
-      return "انتهى الاشتراك";
-    default:
-      return "الاشتراك غير نشط";
-  }
-}
-
-function bodyFor(check: KioskAccessCheck): string {
-  if (!check.registered) {
-    return "فعّل هذا الرمز من لوحة التحكم ثم أعد فتح الصفحة.";
-  }
-  if (check.access?.status === "suspended") {
-    return "تم إيقاف عرض المنيو. تواصل مع إدارة المنشأة.";
-  }
-  return "انتهت فترة التجربة أو الاشتراك. تواصل مع فريق ميز لتفعيل الحساب.";
-}
 
 export function KioskSubscriptionBlocked({
   code,
@@ -45,8 +21,10 @@ export function KioskSubscriptionBlocked({
 }: Props) {
   const checking = registrationStatus === "checking";
   const showContact = check.registered && !check.allowed && !kioskMode;
+  const error = checking
+    ? errorFromKioskReason("checking", "جاري التحقق من حالة الجهاز...")
+    : errorFromKioskReason(check.reason, check.access?.message);
 
-  // Prove SPA painted so the Expo shell does not treat gate/blocked UI as LOAD_BLANK
   useEffect(() => {
     if (!kioskMode) return;
     const id = requestAnimationFrame(() => postKioskReady({ empty: false }));
@@ -58,23 +36,19 @@ export function KioskSubscriptionBlocked({
       className="min-h-screen flex flex-col items-center justify-center p-8 text-center bg-gradient-hero text-primary-foreground"
       dir="rtl"
     >
-      {checking ? (
-        <Loader2 className="w-12 h-12 animate-spin text-accent mb-6" aria-hidden />
-      ) : (
-        <div className="w-16 h-16 rounded-2xl bg-accent/25 flex items-center justify-center mb-6">
-          <ShieldAlert className="w-8 h-8 text-accent" aria-hidden />
-        </div>
-      )}
-
-      <h1 className="font-display font-black text-2xl md:text-3xl mb-3">
-        {checking ? "جاري التحقق من الاشتراك" : titleFor(check, checking)}
-      </h1>
-      <p className="text-primary-foreground/80 max-w-md mb-6">
-        {checking ? "يرجى الانتظار…" : bodyFor(check)}
-      </p>
+      <UserErrorPanel
+        error={{
+          ...error,
+          title: checking ? "جاري التحقق من الاشتراك" : error.title,
+          message: checking ? "يرجى الانتظار…" : error.message,
+          autoRetry: checking || error.autoRetry,
+        }}
+        loading={checking}
+        className="text-primary-foreground"
+      />
 
       {showContact && (
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="mt-4 flex flex-col sm:flex-row gap-3">
           <Button asChild variant="secondary">
             <a href={SUPPORT.whatsappHref} target="_blank" rel="noopener noreferrer">
               {SUPPORT.whatsappLabel}
@@ -86,7 +60,7 @@ export function KioskSubscriptionBlocked({
         </div>
       )}
 
-      <div className="font-mono text-sm tracking-widest opacity-70" dir="ltr">
+      <div className="mt-6 font-mono text-sm tracking-widest opacity-70" dir="ltr">
         {code}
       </div>
     </div>

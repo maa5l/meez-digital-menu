@@ -7,6 +7,16 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", "index.js"],
-  "exclude": ["node_modules"]
+  "include": ["index.js", "src/**/*.ts", "src/**/*.tsx"],
+  "exclude": [
+    "node_modules",
+    "src/main.tsx",
+    "src/index.css",
+    "src/vite-env.d.ts",
+    "src/plugins",
+    "index.html",
+    "vite.config.ts",
+    "tailwind.config.ts",
+    "tsconfig.app.json"
+  ]
 }

@@ -9,7 +9,8 @@ import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
 import { getProductsHeaderCustomization, isProductsLangToggleEnabled } from "@/lib/menu-header-settings";
 import { getProductsPalette, palettePageStyle } from "@/lib/menu-palette";
 import { menuContentEnter } from "@/lib/menu-header";
-import { cn } from "@/lib/utils";
+import { emptyCategoryNotice } from "@/lib/user-facing-errors";
+import { UserErrorPanel } from "@/components/UserErrorPanel";
 
 type Props = {
   settings: MenuSettings;
@@ -26,7 +27,8 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
   const showLang = isProductsLangToggleEnabled(settings);
   const autoHideHeader = !hideHeader && productsHeader.autoHideHeaderOnScroll !== false;
   const { scrollRef, headerVisible } = useProductTemplateScroll(autoHideHeader);
-  const hasSubheader = categories.length > 0 || showLang;
+  const showLangInCompactBar = hideHeader && showLang && categories.length === 0;
+  const hasSubheader = categories.length > 0 || (showLang && !showLangInCompactBar);
 
   useEffect(() => {
     if (categories.length === 0) {
@@ -61,7 +63,7 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
         lang={lang}
         visible={headerVisible}
         hideHeader={hideHeader}
-        showLangInCompactBar={hideHeader && showLang && categories.length === 0}
+        showLangInCompactBar={showLangInCompactBar}
         onLangToggle={toggleLang}
         scrollRef={scrollRef}
         subheader={
@@ -81,7 +83,10 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
           ) : undefined
         }
       >
-        <div className="px-4 pb-6 pt-4 md:px-8 md:pb-6 md:pt-5">
+        <div className={cn("px-4 pb-6 md:px-8 md:pb-6", hideHeader && !hasSubheader ? "pt-2 md:pt-3" : "pt-4 md:pt-5")}>
+          {categories.length > 0 && visible.length === 0 ? (
+            <UserErrorPanel error={emptyCategoryNotice()} compact className="py-10" />
+          ) : (
           <div
             key={`${lang}-${activeCat}`}
             className={cn(
@@ -99,6 +104,7 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
               />
             ))}
           </div>
+          )}
         </div>
       </MenuProductTopChrome>
 

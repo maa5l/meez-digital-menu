@@ -43,8 +43,14 @@ export function MenuProductTopChrome({
 }: Props) {
   const layout = useMenuLayoutMetrics();
   const hasSubheader = Boolean(subheader);
-  const scrollPaddingTop = getMenuScrollPaddingTop(hasSubheader, visible, hideHeader, layout);
-  const subheaderTop = getMenuSubheaderTop(visible, hideHeader, layout);
+  const scrollPaddingTop = getMenuScrollPaddingTop(
+    hasSubheader,
+    visible,
+    hideHeader,
+    layout,
+    showLangInCompactBar,
+  );
+  const subheaderTop = getMenuSubheaderTop(visible, hideHeader, layout, showLangInCompactBar);
   const headerCustomization = getProductsHeaderCustomization(settings);
   const palette = getProductsPalette(settings);
   const calorieColor = getCalorieDisclaimerColor(headerCustomization, palette.textColor);
@@ -52,15 +58,18 @@ export function MenuProductTopChrome({
   const panelFlow = layoutMode === "panel";
 
   const headerNode = hideHeader ? (
-    <MenuFixedCalorieBar
-      lang={lang}
-      textColor={calorieColor}
-      headerFg={headerFg}
-      customization={headerCustomization}
-      showLang={showLangInCompactBar}
-      onLangToggle={onLangToggle}
-      embedded={panelFlow}
-    />
+    showLangInCompactBar ? (
+      <MenuFixedCalorieBar
+        lang={lang}
+        textColor={calorieColor}
+        headerFg={headerFg}
+        customization={headerCustomization}
+        showLang
+        onLangToggle={onLangToggle}
+        embedded={panelFlow}
+        variant="lang-only"
+      />
+    ) : null
   ) : (
     <MenuProductHeader
       settings={settings}

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import ProductCornerBadge from "@/components/menu/ProductCornerBadge";
 import { ProductModalDetails } from "@/components/menu/ProductCardParts";
 import { hasProductBadge, productBadgeColor, productBadgeLabel } from "@/lib/product-badge";
-import { PRODUCT_IMAGE_ASPECT } from "@/lib/product-card-spec";
+import { PRODUCT_CARD, PRODUCT_IMAGE_ASPECT } from "@/lib/product-card-spec";
 import { localizeProduct, type MenuLang } from "@/lib/product-i18n";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/types/domain";
@@ -44,13 +44,16 @@ const ProductDetailModal = ({ product, lang, onClose }: Props) => {
         {product.image ? (
           <div
             className={cn(
-              "relative flex shrink-0 flex-col",
-              "p-4 pb-0 md:w-[34%] md:min-h-0 md:justify-center md:p-4 md:pe-3",
+              "relative flex shrink-0 flex-col items-center justify-center",
+              "p-4 pb-0 md:w-[38%] md:min-h-0 md:p-5 md:pe-4",
             )}
           >
             <div
-              className="relative mx-auto w-full max-w-[220px] overflow-hidden rounded-[1.25rem] border-2 border-black/[0.06] bg-neutral-50 md:max-w-none"
-              style={{ aspectRatio: PRODUCT_IMAGE_ASPECT }}
+              className="relative mx-auto w-full max-w-[250px] overflow-hidden rounded-[1.25rem] border-2 border-black/[0.06] bg-neutral-50"
+              style={{
+                aspectRatio: PRODUCT_IMAGE_ASPECT,
+                maxHeight: PRODUCT_CARD.imageHeight,
+              }}
             >
               {hasProductBadge(product, lang) && (
                 <ProductCornerBadge
@@ -64,7 +67,10 @@ const ProductDetailModal = ({ product, lang, onClose }: Props) => {
               <img
                 src={product.image}
                 alt={localized.name}
-                className="absolute inset-0 h-full w-full object-contain p-3"
+                className="block h-full w-full object-contain object-center"
+                width={PRODUCT_CARD.imageWidth}
+                height={PRODUCT_CARD.imageHeight}
+                decoding="async"
               />
             </div>
           </div>

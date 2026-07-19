@@ -12,7 +12,10 @@ export type FaultCode =
 
 export type Fault = {
   code: FaultCode;
+  title: string;
   message: string;
+  hint?: string;
+  autoRetry?: boolean;
   detail?: string;
 };
 

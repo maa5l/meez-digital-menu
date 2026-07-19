@@ -1,6 +1,8 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { UserErrorPanel } from "@/components/UserErrorPanel";
 import { postKioskFault } from "@/lib/kiosk-bridge";
 import { logger } from "@/lib/logger";
+import { classifyUserFacingError } from "@/lib/user-facing-errors";
 
 type Props = {
   children: ReactNode;
@@ -34,22 +36,10 @@ export class MenuErrorBoundary extends Component<Props, State> {
 
   render(): ReactNode {
     if (this.state.error) {
+      const detail = classifyUserFacingError(this.state.error, { faultCode: "SCHEMA" });
       return (
-        <div
-          className="flex h-screen flex-col items-center justify-center gap-4 px-6 text-center"
-          style={{ background: "#1a1510", color: "#f8f1e4" }}
-          dir="rtl"
-        >
-          <p className="text-lg font-bold">خطأ برمجي في بنية بيانات المنتجات.</p>
-          <p className="max-w-md text-sm opacity-80">{this.state.error.message}</p>
-          <button
-            type="button"
-            className="rounded-xl px-6 py-3 text-sm font-semibold"
-            style={{ background: "#7B4A32" }}
-            onClick={this.handleRetry}
-          >
-            إعادة محاولة
-          </button>
+        <div className="flex h-screen flex-col items-center justify-center" style={{ background: "#1a1510", color: "#f8f1e4" }}>
+          <UserErrorPanel error={detail} onRetry={this.handleRetry} className="text-[#f8f1e4]" />
         </div>
       );
     }

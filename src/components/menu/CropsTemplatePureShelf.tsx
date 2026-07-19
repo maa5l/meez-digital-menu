@@ -1,17 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Crop, MenuSettings } from "@/types/domain";
 import CropDetailModal from "@/components/menu/CropDetailModal";
-import CropFeatureCard from "@/components/menu/CropFeatureCard";
+import CropHeroImage from "@/components/menu/crop/CropHeroImage";
 import { CropListItemLabel } from "@/components/menu/CropDisplay";
 import { MenuCropsTopChrome } from "@/components/menu/MenuCropsTopChrome";
 import { useMenuLang } from "@/context/MenuLangContext";
+import { useMenuKioskSync } from "@/hooks/useMenuKioskSync";
+import { buildCropProfile } from "@/lib/crop-profile";
 import { getCropsHeaderCustomization, isCropsLangToggleEnabled } from "@/lib/menu-header-settings";
 import { getCropsPalette, palettePageStyle } from "@/lib/menu-palette";
 import { menuContentEnter } from "@/lib/menu-header";
 import { cn } from "@/lib/utils";
 
 /**
- * Crops Template — قائمة جانبية + بطاقة تفاصيل كتالوج قهوة.
+ * Crops Template — قائمة جانبية + معاينة مختصرة؛ التفاصيل الكاملة في نافذة منبثقة.
  */
 const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; crops: Crop[] }) => {
   const { lang, toggleLang } = useMenuLang();
@@ -24,6 +26,23 @@ const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; c
   const [active, setActive] = useState<Crop>(initial);
   const palette = getCropsPalette(settings);
   const pageBg = palettePageStyle(palette);
+
+  useMenuKioskSync(true);
+
+  useEffect(() => {
+    if (crops.length === 0) return;
+    const next = crops.find((c) => c.id === settings.featuredCropId) || crops[0];
+    if (!next) return;
+    setActive((prev) => (crops.some((c) => c.id === prev.id) ? prev : next));
+  }, [crops, settings.featuredCropId]);
+
+  useEffect(() => {
+    if (!modal) return;
+    const fresh = crops.find((c) => c.id === modal.id);
+    if (fresh) setModal(fresh);
+  }, [crops, modal]);
+
+  const profile = buildCropProfile(active, lang);
 
   return (
     <div
@@ -84,15 +103,30 @@ const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; c
           </aside>
 
           <div className="order-1 min-h-0 overflow-hidden md:order-2">
-            <CropFeatureCard
-              crop={active}
-              lang={lang}
-              accentColor={palette.accentColor}
-              fallbackTextColor={palette.textColor}
-              featured={active.id === settings.featuredCropId}
-              className="h-full max-h-full"
-              onOpen={() => setModal(active)}
-            />
+            <button
+              type="button"
+              onClick={() => setModal(active)}
+              className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[1.75rem] bg-white/70 text-start shadow-lg ring-1 ring-black/[0.05] touch-manipulation transition-transform active:scale-[0.995]"
+            >
+              <CropHeroImage
+                imageUrl={active.image}
+                alt={profile.localized.beanName}
+                lang={lang}
+                className="max-h-[58%] shrink-0 rounded-none"
+              />
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-5 py-4 text-center">
+                <h2
+                  className="font-display text-2xl font-black leading-tight md:text-3xl"
+                  style={{ color: palette.textColor }}
+                  dir={lang === "ar" ? "rtl" : "ltr"}
+                >
+                  {profile.localized.beanName}
+                </h2>
+                <p className="text-sm font-semibold opacity-60" style={{ color: palette.textColor }}>
+                  {lang === "ar" ? "اضغط لعرض التفاصيل" : "Tap for details"}
+                </p>
+              </div>
+            </button>
           </div>
         </div>
       </MenuCropsTopChrome>

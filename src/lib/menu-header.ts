@@ -38,15 +38,24 @@ export function getMenuTopChromeHeight(
   return metrics.headerHeight + (hasSubheader ? metrics.subheaderHeight : 0);
 }
 
+/** ارتفاع الشريط العلوي عند إخفاء الهيدر — صفر أو شريط اللغة فقط */
+export function getHiddenHeaderTopHeight(
+  showLangInCompactBar: boolean,
+  metrics: MenuLayoutMetrics = DEFAULT_MENU_LAYOUT_METRICS,
+): number {
+  return showLangInCompactBar ? metrics.langBarHeight : 0;
+}
+
 /** مساحة أعلى منطقة التمرير — تتقلص عند إخفاء الهيدر مع الإبقاء على شريط التصنيفات */
 export function getMenuScrollPaddingTop(
   hasSubheader: boolean,
   headerVisible: boolean,
   hideHeader = false,
   metrics: MenuLayoutMetrics = DEFAULT_MENU_LAYOUT_METRICS,
+  showLangInCompactBar = false,
 ): number {
   if (hideHeader) {
-    return metrics.compactTopHeight + (hasSubheader ? metrics.subheaderHeight : 0);
+    return getHiddenHeaderTopHeight(showLangInCompactBar, metrics) + (hasSubheader ? metrics.subheaderHeight : 0);
   }
   if (headerVisible) return getMenuTopChromeHeight(hasSubheader, metrics);
   return hasSubheader ? metrics.subheaderHeight : 0;
@@ -57,8 +66,9 @@ export function getMenuSubheaderTop(
   headerVisible: boolean,
   hideHeader = false,
   metrics: MenuLayoutMetrics = DEFAULT_MENU_LAYOUT_METRICS,
+  showLangInCompactBar = false,
 ): number {
-  if (hideHeader) return metrics.compactTopHeight;
+  if (hideHeader) return getHiddenHeaderTopHeight(showLangInCompactBar, metrics);
   return headerVisible ? metrics.headerHeight : 0;
 }
 

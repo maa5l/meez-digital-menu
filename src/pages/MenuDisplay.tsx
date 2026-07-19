@@ -6,6 +6,7 @@ import CropsTemplateMolo from "@/components/menu/CropsTemplateMolo";
 import CropsTemplatePureShelf from "@/components/menu/CropsTemplatePureShelf";
 import MenuEmptyState from "@/components/menu/MenuEmptyState";
 import { MenuErrorBoundary } from "@/components/menu/MenuErrorBoundary";
+import { MenuSyncBanner } from "@/components/menu/MenuSyncBanner";
 import { KioskSubscriptionBlocked } from "@/components/subscription/KioskSubscriptionBlocked";
 import { useMenuVenue, type MenuVenueResult } from "@/hooks/useMenuVenue";
 import { getDeviceMenuType, getDeviceMenuTypeAsync } from "@/lib/venue-store";
@@ -23,7 +24,7 @@ import { normalizeDeviceCodeParam } from "@/lib/device-pairing";
 import { ROUTES } from "@/config/app";
 import { useMenuLang, MenuLangProvider } from "@/context/MenuLangContext";
 import { getMenuUi } from "@/lib/menu-i18n";
-import { getCropsPalette, getProductsPalette } from "@/lib/menu-palette";
+import { getCropsPalette, getProductsPalette, palettePageStyle } from "@/lib/menu-palette";
 import { isKioskMode } from "@/lib/kiosk-mode";
 import { postKioskReady } from "@/lib/kiosk-bridge";
 import { throttle } from "@/lib/throttle";
@@ -238,10 +239,11 @@ const MenuDisplayShell = ({
 
   return (
     <div
-      className="h-screen overflow-hidden flex flex-col"
+      className="relative h-screen overflow-hidden flex flex-col"
       dir={lang === "ar" ? "rtl" : "ltr"}
-      style={{ background: pagePalette.bgColor, color: pagePalette.textColor }}
+      style={palettePageStyle(pagePalette)}
     >
+      <MenuSyncBanner syncing={venue.isSyncing} notice={venue.syncNotice} error={venue.syncError} />
       {showGraceBanner && (
         <div
           className="shrink-0 px-4 py-2 text-center text-sm font-semibold bg-amber-500/90 text-primary"

@@ -10,6 +10,8 @@ export type MenuLayoutMetrics = {
   logoSizePx: number;
   calorieRowHeight: number;
   compactTopHeight: number;
+  /** شريط اللغة فقط عند إخفاء الهيدر */
+  langBarHeight: number;
 };
 
 /** ارتفاع بانر الهيدر على العرض — نفس نسبة العرض في header-image-spec */
@@ -23,6 +25,7 @@ const METRICS_BY_TIER: Record<MenuViewportTier, Omit<MenuLayoutMetrics, "tier">>
     logoSizePx: 52,
     calorieRowHeight: 40,
     compactTopHeight: 72,
+    langBarHeight: 44,
   },
   "ipad-portrait": {
     headerHeight: 172,
@@ -30,6 +33,7 @@ const METRICS_BY_TIER: Record<MenuViewportTier, Omit<MenuLayoutMetrics, "tier">>
     logoSizePx: 56,
     calorieRowHeight: 44,
     compactTopHeight: 80,
+    langBarHeight: 46,
   },
   "ipad-landscape": {
     headerHeight: 188,
@@ -37,6 +41,7 @@ const METRICS_BY_TIER: Record<MenuViewportTier, Omit<MenuLayoutMetrics, "tier">>
     logoSizePx: 56,
     calorieRowHeight: 44,
     compactTopHeight: 80,
+    langBarHeight: 46,
   },
 };
 

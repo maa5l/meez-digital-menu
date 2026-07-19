@@ -48,8 +48,14 @@ export function MenuCropsTopChrome({
 }: Props) {
   const layout = useMenuLayoutMetrics();
   const hasSubheader = Boolean(subheader);
-  const scrollPaddingTop = getMenuScrollPaddingTop(hasSubheader, visible, hideHeader, layout);
-  const subheaderTop = getMenuSubheaderTop(visible, hideHeader, layout);
+  const scrollPaddingTop = getMenuScrollPaddingTop(
+    hasSubheader,
+    visible,
+    hideHeader,
+    layout,
+    showLangInCompactBar,
+  );
+  const subheaderTop = getMenuSubheaderTop(visible, hideHeader, layout, showLangInCompactBar);
   const headerCustomization = getCropsHeaderCustomization(settings);
   const palette = getCropsPalette(settings);
   const calorieColor = getCalorieDisclaimerColor(headerCustomization, palette.textColor);
@@ -57,15 +63,18 @@ export function MenuCropsTopChrome({
   const panelFlow = layoutMode === "panel";
 
   const headerNode = hideHeader ? (
-    <MenuFixedCalorieBar
-      lang={lang}
-      textColor={calorieColor}
-      headerFg={headerFg}
-      customization={headerCustomization}
-      showLang={showLangInCompactBar}
-      onLangToggle={onLangToggle}
-      embedded={panelFlow}
-    />
+    showLangInCompactBar ? (
+      <MenuFixedCalorieBar
+        lang={lang}
+        textColor={calorieColor}
+        headerFg={headerFg}
+        customization={headerCustomization}
+        showLang
+        onLangToggle={onLangToggle}
+        embedded={panelFlow}
+        variant="lang-only"
+      />
+    ) : null
   ) : (
     <MenuCropsHeader
       settings={settings}

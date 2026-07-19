@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useImageAutoRetry } from "@/hooks/useImageAutoRetry";
 import { cropFieldLabels } from "@/lib/crop-i18n";
 import { CROP_HERO_ASPECT } from "@/lib/crop-spec";
 import type { MenuLang } from "@/lib/product-i18n";
@@ -23,16 +23,12 @@ const CropHeroImage = ({
   rounded = "2xl",
   overlay = false,
 }: Props) => {
-  const [failed, setFailed] = useState(false);
+  const { displaySrc, failed, handleError, reloadKey } = useImageAutoRetry(imageUrl);
   const L = cropFieldLabels[lang];
   const radius =
     rounded === "3xl" ? "rounded-[1.75rem]" : rounded === "2xl" ? "rounded-2xl" : "rounded-xl";
 
-  useEffect(() => {
-    setFailed(false);
-  }, [imageUrl]);
-
-  const showImage = Boolean(imageUrl) && !failed;
+  const showImage = Boolean(displaySrc) && !failed;
 
   return (
     <div
@@ -46,12 +42,13 @@ const CropHeroImage = ({
       {showImage ? (
         <>
           <img
-            src={imageUrl}
+            key={reloadKey}
+            src={displaySrc}
             alt={alt}
             className="absolute inset-0 h-full w-full object-cover object-center"
             decoding="async"
             loading="lazy"
-            onError={() => setFailed(true)}
+            onError={handleError}
           />
           {overlay && <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />}
         </>

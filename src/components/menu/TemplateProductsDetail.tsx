@@ -10,7 +10,8 @@ import { getMenuUi } from "@/lib/menu-i18n";
 import { getProductsHeaderCustomization, isProductsLangToggleEnabled } from "@/lib/menu-header-settings";
 import { menuContentEnter } from "@/lib/menu-header";
 import { getProductsPalette, palettePageStyle } from "@/lib/menu-palette";
-import { cn } from "@/lib/utils";
+import { emptyCategoryNotice } from "@/lib/user-facing-errors";
+import { UserErrorPanel } from "@/components/UserErrorPanel";
 
 type Props = {
   settings: MenuSettings;
@@ -69,7 +70,8 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
   const palette = getProductsPalette(settings);
   const bgStyle = palettePageStyle(palette);
   const cardBg = palette.cardColor || "#d4d4d4";
-  const hasSubheader = categories.length > 0 || showLang;
+  const showLangInCompactBar = hideHeader && showLang && categories.length === 0;
+  const hasSubheader = categories.length > 0 || (showLang && !showLangInCompactBar);
   const ui = getMenuUi(lang);
 
   return (
@@ -84,7 +86,7 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
         lang={lang}
         visible={headerVisible}
         hideHeader={hideHeader}
-        showLangInCompactBar={hideHeader && showLang && categories.length === 0}
+        showLangInCompactBar={showLangInCompactBar}
         onLangToggle={toggleLang}
         scrollRef={scrollRef}
         layoutMode="panel"
@@ -109,10 +111,17 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
           dir="ltr"
           key={`${lang}-${activeCat}`}
           className={cn(
-            "grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-hidden px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 md:grid-cols-[minmax(280px,46%)_minmax(0,54%)] md:items-stretch md:gap-3 md:px-5 md:pt-3 ipad-lg:grid-cols-[minmax(300px,48%)_minmax(0,52%)] ipad-lg:px-6",
+            "grid min-h-0 flex-1 grid-cols-1 gap-2.5 overflow-hidden px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:grid-cols-[minmax(280px,46%)_minmax(0,54%)] md:items-stretch md:gap-3 md:px-5 ipad-lg:grid-cols-[minmax(300px,48%)_minmax(0,52%)] ipad-lg:px-6",
+            hideHeader && !hasSubheader ? "pt-1 md:pt-2" : "pt-2 md:pt-3",
             menuContentEnter,
           )}
         >
+          {categories.length > 0 && visibleProducts.length === 0 ? (
+            <div className="col-span-full flex min-h-0 flex-1 items-center justify-center">
+              <UserErrorPanel error={emptyCategoryNotice()} compact />
+            </div>
+          ) : (
+          <>
           <aside className="order-2 flex min-h-0 flex-col gap-2.5 overflow-y-auto overscroll-y-contain md:order-1 md:py-1">
             {visibleProducts.map((p) => (
               <ProductListCard
@@ -146,6 +155,8 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
               </div>
             )}
           </div>
+          </>
+          )}
         </div>
       </MenuProductTopChrome>
 
