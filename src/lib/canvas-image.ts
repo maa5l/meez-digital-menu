@@ -153,6 +153,58 @@ export function validateImageDimensions(
   return null;
 }
 
+export type ProcessedImage = {
+  dataUrl: string;
+  width: number;
+  height: number;
+};
+
+/** تصغير مع الحفاظ على نسبة العرض — بدون قصّ إجباري */
+export async function processImageFilePreserveAspect(
+  file: File,
+  spec: Pick<
+    ImageOutputSpec,
+    "minWidth" | "minHeight" | "maxWidth" | "maxHeight" | "jpegQuality"
+  > & { maxLongEdge: number },
+): Promise<ProcessedImage> {
+  const decoded = await decodeImageFile(file);
+
+  const err = validateImageDimensions(decoded.width, decoded.height, spec);
+  if (err) throw new Error(err);
+
+  let outW = decoded.width;
+  let outH = decoded.height;
+  const longEdge = Math.max(outW, outH);
+  if (longEdge > spec.maxLongEdge) {
+    const scale = spec.maxLongEdge / longEdge;
+    outW = Math.max(1, Math.round(outW * scale));
+    outH = Math.max(1, Math.round(outH * scale));
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = outW;
+  canvas.height = outH;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("تعذّر معالجة الصورة");
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  try {
+    decoded.draw(ctx, 0, 0, outW, outH);
+  } finally {
+    decoded.dispose?.();
+  }
+
+  try {
+    const dataUrl = canvas.toDataURL("image/jpeg", spec.jpegQuality);
+    if (!dataUrl.startsWith("data:image/")) throw new Error("encode failed");
+    return { dataUrl, width: outW, height: outH };
+  } catch {
+    throw new Error("تعذّر حفظ الصورة بعد المعالجة");
+  }
+}
+
 /** قصّ وتصغير الصورة لإطار ثابت (cover) */
 export async function processImageFile(
   file: File,

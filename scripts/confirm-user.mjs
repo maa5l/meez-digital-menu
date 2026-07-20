@@ -16,10 +16,9 @@ try {
   const res = await client.query(
     `UPDATE auth.users
      SET email_confirmed_at = NOW(),
-         confirmed_at = COALESCE(confirmed_at, NOW()),
          updated_at = NOW()
      WHERE email = $1
-     RETURNING id, email, email_confirmed_at`,
+     RETURNING id, email, email_confirmed_at, confirmed_at`,
     [email],
   );
   if (!res.rowCount) {

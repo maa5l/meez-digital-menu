@@ -20,10 +20,10 @@
 ## الطريقة 2: تفعيل حساب موجود فقط
 
 ```sql
+-- confirmed_at عمود مُولَّد في Supabase — يُحدَّث تلقائياً عند تعيين email_confirmed_at
 UPDATE auth.users
 SET
   email_confirmed_at = NOW(),
-  confirmed_at = COALESCE(confirmed_at, NOW()),
   updated_at = NOW()
 WHERE email = 'owner@meez.app';
 ```
@@ -48,13 +48,13 @@ BEGIN
 
   INSERT INTO auth.users (
     instance_id, id, aud, role, email,
-    encrypted_password, email_confirmed_at, confirmed_at,
+    encrypted_password, email_confirmed_at,
     raw_app_meta_data, raw_user_meta_data, created_at, updated_at
   ) VALUES (
     '00000000-0000-0000-0000-000000000000',
     v_user_id, 'authenticated', 'authenticated', v_email,
     crypt(v_password, gen_salt('bf')),
-    NOW(), NOW(),
+    NOW(),
     '{"provider":"email","providers":["email"]}'::jsonb,
     jsonb_build_object('venue_name', v_venue, 'role', 'owner'),
     NOW(), NOW()

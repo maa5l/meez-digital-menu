@@ -23,6 +23,7 @@ export function getProductsHeaderCustomization(settings: MenuSettings): MenuHead
     featuredSubtitle: settings.featuredSubtitle,
     featuredImage: settings.featuredImage,
     headerImage: settings.headerImage,
+    headerImageAspectRatio: settings.headerImageAspectRatio,
     headerBgColor: settings.headerBgColor,
     headerTextColor: settings.headerTextColor,
     logoImage: settings.logoImage,

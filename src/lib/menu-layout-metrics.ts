@@ -5,6 +5,7 @@ export type MenuViewportTier = "compact" | "ipad-portrait" | "ipad-landscape";
 
 export type MenuLayoutMetrics = {
   tier: MenuViewportTier;
+  viewportWidth: number;
   headerHeight: number;
   subheaderHeight: number;
   logoSizePx: number;
@@ -77,6 +78,7 @@ export function getMenuLayoutMetrics(viewportWidth: number): MenuLayoutMetrics {
   const base = METRICS_BY_TIER[tier];
   return {
     tier,
+    viewportWidth,
     ...base,
     headerHeight: resolveHeaderHeight(viewportWidth, tier),
   };

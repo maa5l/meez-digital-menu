@@ -11,8 +11,21 @@ const COMPACT_TITLE_BLOCK_PX = 40;
 
 type HeaderHeightInput = Pick<
   MenuHeaderCustomization,
-  "headerImage" | "featuredTitle" | "featuredSubtitle"
+  "headerImage" | "headerImageAspectRatio" | "featuredTitle" | "featuredSubtitle"
 >;
+
+const HEADER_HEIGHT_MIN_PX = 72;
+const HEADER_HEIGHT_MAX_VIEWPORT_RATIO = 0.55;
+
+function headerHeightFromAspect(
+  viewportWidth: number,
+  aspectRatio: number,
+  floor: number,
+): number {
+  const proportional = Math.round(viewportWidth / aspectRatio);
+  const cap = Math.round(viewportWidth * HEADER_HEIGHT_MAX_VIEWPORT_RATIO);
+  return Math.min(Math.max(floor, proportional), cap);
+}
 
 /** ارتفاع الهيدر الفعلي — مضغوط بدون بانر، أو بانر كامل مع headerImage */
 export function getEffectiveHeaderHeight(
@@ -26,6 +39,16 @@ export function getEffectiveHeaderHeight(
       Boolean(customization?.featuredSubtitle?.trim());
     return metrics.compactTopHeight + (hasTitle ? COMPACT_TITLE_BLOCK_PX : 0);
   }
+
+  const aspect = customization?.headerImageAspectRatio;
+  if (aspect != null && aspect > 0 && Number.isFinite(aspect)) {
+    return headerHeightFromAspect(
+      metrics.viewportWidth,
+      aspect,
+      Math.max(metrics.compactTopHeight, HEADER_HEIGHT_MIN_PX),
+    );
+  }
+
   return Math.min(metrics.headerHeight, HEADER_IMAGE_SPEC.displayHeight);
 }
 

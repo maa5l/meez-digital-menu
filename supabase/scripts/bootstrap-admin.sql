@@ -4,7 +4,7 @@
 DO $$
 DECLARE
   v_user_id UUID;
-  v_email TEXT := 'admin@meez.app';
+  v_email TEXT := 'owner@meez.app';
 BEGIN
   SELECT id INTO v_user_id FROM auth.users WHERE email = v_email LIMIT 1;
   IF v_user_id IS NULL THEN

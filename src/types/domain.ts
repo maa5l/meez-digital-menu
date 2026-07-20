@@ -74,6 +74,8 @@ export type MenuHeaderCustomization = {
   featuredSubtitle?: string;
   featuredImage?: string;
   headerImage?: string;
+  /** عرض÷ارتفاع — لضبط ارتفاع الهيدر حسب مقاس البانر المرفوع */
+  headerImageAspectRatio?: number;
   headerBgColor?: string;
   headerTextColor?: string;
   logoImage?: string;
@@ -116,6 +118,7 @@ export type MenuSettings = {
   logoImage?: string;
   /** صورة بانر الهيدر (فوق العنوان) */
   headerImage?: string;
+  headerImageAspectRatio?: number;
   burnBarText?: string;
   burnBarTextEn?: string;
   showLanguageToggle?: boolean;

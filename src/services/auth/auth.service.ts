@@ -1,4 +1,4 @@
-import type { Session } from "@supabase/supabase-js";
+import type { Session, User } from "@supabase/supabase-js";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { setSession, clearSession, createMockSession } from "@/security/session";
 import type { AuthSession } from "@/types/domain";
@@ -21,6 +21,22 @@ import { usesSupabaseAuth } from "@/config/env";
 import { logger } from "@/lib/logger";
 import { ensureSubscriptionRecord } from "@/services/subscription/subscription-enforcement";
 
+const SIGNUP_TRIAL_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+async function repairSignupTrialIfNeeded(user: User): Promise<void> {
+  if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) return;
+
+  const createdAt = user.created_at ? Date.parse(user.created_at) : NaN;
+  if (!Number.isFinite(createdAt) || Date.now() - createdAt > SIGNUP_TRIAL_WINDOW_MS) {
+    return;
+  }
+
+  const { error } = await getSupabase().rpc("repair_signup_trial");
+  if (error) {
+    logger.warn("auth.repair_signup_trial_failed", { message: error.message, code: error.code });
+  }
+}
+
 async function hydrateVenueForUser(userId: string, venueName?: string): Promise<void> {
   if (shouldUseVenueDatabase()) {
     const venue = await pullVenueFromCloud(userId);
@@ -42,6 +58,7 @@ async function syncAccountWithVenue(userId: string): Promise<void> {
 
 async function afterSupabaseAuth(session: Session, venueName?: string): Promise<void> {
   await ensureUserProfile(session.user, venueName);
+  await repairSignupTrialIfNeeded(session.user);
   await ensureSubscriptionRecord();
   await ensureVenueRecordForOwner();
   await hydrateVenueForUser(

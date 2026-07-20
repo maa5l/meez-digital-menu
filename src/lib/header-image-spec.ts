@@ -1,27 +1,28 @@
 /**
- * مقاس بانر الهيدر الرسمي — مُحسَّن لعرض الآيباد أفقي.
- * العرض المنطقي ~1024px بارتفاع هيدر ~240px (object-cover، نسبة 3:1).
+ * بانر الهيدر — أي مقاس مرفوع مقبول؛ القيم أدناه للتوصية والضغط فقط.
  */
 export const HEADER_IMAGE_SPEC = {
   recommendedWidth: 2048,
   recommendedHeight: 682,
-  minWidth: 1024,
-  minHeight: 341,
-  maxWidth: 4096,
-  maxHeight: 1366,
+  /** حدود مرنة — لا تُرفض إلا الأبعاد الشاذة جداً */
+  minWidth: 1,
+  minHeight: 1,
+  maxWidth: 8192,
+  maxHeight: 8192,
+  /** أطول ضلع بعد الضغط (لتقليل حجم التخزين) */
+  maxOutputLongEdge: 2048,
   targetAspect: 3,
   jpegQuality: 0.92,
-  /** أبعاد العرض على شاشة الآيباد (للمرجع في لوحة التحكم) */
+  /** مرجع عرض الآيباد أفقي (3:1) */
   displayWidth: 1024,
   displayHeight: 240,
 } as const;
 
 export function formatHeaderImageSpecLabel(): string {
   const { recommendedWidth, recommendedHeight, targetAspect } = HEADER_IMAGE_SPEC;
-  return `${recommendedWidth}×${recommendedHeight} بكسل (نسبة ${targetAspect}:1)`;
+  return `${recommendedWidth}×${recommendedHeight} بكسل (موصى — نسبة ${targetAspect}:1)`;
 }
 
 export function formatHeaderImageDisplayLabel(): string {
-  const { displayWidth, displayHeight } = HEADER_IMAGE_SPEC;
-  return `${displayWidth}×${displayHeight} بكسل على الآيباد أفقي`;
+  return "أي مقاس — يُعرض بحسب نسبة الصورة (object-cover)";
 }

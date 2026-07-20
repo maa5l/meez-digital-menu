@@ -204,9 +204,14 @@ export function useThemeEditor() {
 
           try {
 
-            const dataUrl = await processHeaderImageFile(file);
+            const processed = await processHeaderImageFile(file);
 
-            update(patchProductsHeader(settings, { headerImage: dataUrl }));
+            update(
+              patchProductsHeader(settings, {
+                headerImage: processed.dataUrl,
+                headerImageAspectRatio: processed.width / processed.height,
+              }),
+            );
 
             toast.success("تم رفع صورة الهيدر", { id: loading });
 
@@ -270,9 +275,14 @@ export function useThemeEditor() {
 
           try {
 
-            const dataUrl = await processHeaderImageFile(file);
+            const processed = await processHeaderImageFile(file);
 
-            update(patchCropsHeader(settings, { headerImage: dataUrl }));
+            update(
+              patchCropsHeader(settings, {
+                headerImage: processed.dataUrl,
+                headerImageAspectRatio: processed.width / processed.height,
+              }),
+            );
 
             toast.success("تم رفع بانر هيدر المحاصيل", { id: loading });
 

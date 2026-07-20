@@ -32,6 +32,9 @@ const Auth = () => {
   const switchMode = (next: AuthMode) => {
     setMode(next);
     setFieldError("");
+    setEmail("");
+    setPassword("");
+    setVenueName("");
   };
 
   const onLogin = async (e: React.FormEvent) => {
@@ -91,24 +94,30 @@ const Auth = () => {
   };
 
   const loginForm = (
-    <form onSubmit={onLogin} className="space-y-5" noValidate>
+    <form key="login" onSubmit={onLogin} className="space-y-5" noValidate autoComplete="on">
       <div className="space-y-2">
-        <Label htmlFor="email">البريد الإلكتروني</Label>
+        <Label htmlFor="login-email">البريد الإلكتروني</Label>
         <Input
-          id="email"
+          id="login-email"
+          name="email"
           type="email"
+          inputMode="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
           required
           className="h-12 rounded-xl"
-          autoComplete="email"
+          autoComplete="username"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
         />
       </div>
       <div className="space-y-2">
         <Label htmlFor="login-password">كلمة المرور</Label>
         <Input
           id="login-password"
+          name="password"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -209,36 +218,30 @@ const Auth = () => {
           ) : null}
 
           {mode === "signup" ? (
-            <form onSubmit={onSignup} className="space-y-5" noValidate>
-              <div className="space-y-2">
-                <Label htmlFor="name">اسم المنشأة</Label>
-                <Input
-                  id="name"
-                  value={venueName}
-                  onChange={(e) => setVenueName(e.target.value)}
-                  placeholder="مثال: مقهى الواحة"
-                  required
-                  className="h-12 rounded-xl"
-                  autoComplete="organization"
-                />
-              </div>
+            <form key="signup" onSubmit={onSignup} className="space-y-5" noValidate autoComplete="on">
               <div className="space-y-2">
                 <Label htmlFor="signup-email">البريد الإلكتروني</Label>
                 <Input
                   id="signup-email"
+                  name="email"
                   type="email"
+                  inputMode="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
                   className="h-12 rounded-xl"
                   autoComplete="email"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">كلمة المرور</Label>
+                <Label htmlFor="signup-password">كلمة المرور</Label>
                 <Input
-                  id="password"
+                  id="signup-password"
+                  name="new-password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -247,6 +250,19 @@ const Auth = () => {
                   minLength={8}
                   className="h-12 rounded-xl"
                   autoComplete="new-password"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="venue-name">اسم المنشأة</Label>
+                <Input
+                  id="venue-name"
+                  name="organization"
+                  value={venueName}
+                  onChange={(e) => setVenueName(e.target.value)}
+                  placeholder="مثال: مقهى الواحة"
+                  required
+                  className="h-12 rounded-xl"
+                  autoComplete="organization"
                 />
               </div>
               {fieldError && <p className="text-destructive text-sm font-semibold">{fieldError}</p>}

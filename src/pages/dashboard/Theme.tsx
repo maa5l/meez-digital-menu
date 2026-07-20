@@ -428,10 +428,8 @@ function HeaderSection({
   const headerSpecs = useMemo(
     () => [
       { label: "المقاس الموصى به", value: formatHeaderImageSpecLabel() },
-      { label: "عرض الآيباد", value: formatHeaderImageDisplayLabel() },
-      { label: "الحد الأدنى", value: `${HEADER_IMAGE_SPEC.minWidth}×${HEADER_IMAGE_SPEC.minHeight}` },
-      { label: "الحد الأقصى", value: `${HEADER_IMAGE_SPEC.maxWidth}×${HEADER_IMAGE_SPEC.maxHeight}` },
-      { label: "نسبة العرض", value: `${HEADER_IMAGE_SPEC.targetAspect}:1` },
+      { label: "الرفع", value: formatHeaderImageDisplayLabel() },
+      { label: "الحد الأقصى للملف", value: `${HEADER_IMAGE_SPEC.maxWidth}×${HEADER_IMAGE_SPEC.maxHeight} بكسل` },
     ],
     [],
   );
@@ -441,11 +439,15 @@ function HeaderSection({
       <ThemeCard>
         <ImageUploadField
           label="بانر الهيدر"
-          description="يُعاد قياس الصورة تلقائياً للمقاس الرسمي"
+          description="يُقبل أي مقاس — تُحفظ نسبة الصورة كما هي"
           previewUrl={header.headerImage}
           specs={headerSpecs}
           onUpload={onHeaderImageUpload}
-          onClear={header.headerImage ? () => onPatch({ headerImage: undefined }) : undefined}
+          onClear={
+            header.headerImage
+              ? () => onPatch({ headerImage: undefined, headerImageAspectRatio: undefined })
+              : undefined
+          }
         />
       </ThemeCard>
 
