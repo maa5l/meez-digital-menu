@@ -690,13 +690,3 @@ const ProductImageUploadSlot = ({
     ) : null}
   </div>
 );
-    <Input
-      type={type}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="h-11 rounded-xl"
-      dir={ltr ? "ltr" : undefined}
-    />
-  </div>
-);
-

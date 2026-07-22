@@ -17,7 +17,7 @@ type Props = {
   featured?: boolean;
   className?: string;
   scrollable?: boolean;
-  /** carousel = بطاقة عرض أفقي | popup = نافذة منبثقة */
+  /** carousel = بطاقة عرض أفقي | feature = معاينة التفاصيل | popup = تراثي (غير مستخدم في قوالب التفاصيل) */
   variant?: "default" | "carousel" | "feature" | "popup";
   onClick?: () => void;
   style?: CSSProperties;
@@ -40,10 +40,10 @@ function CenteredField({
 }) {
   if (!value || value === "—") return null;
   return (
-    <div className="shrink-0 text-center">
+    <div className="mx-auto flex w-full shrink-0 flex-col items-center text-center">
       <div
         className={cn(
-          "font-bold opacity-70",
+          "w-full text-center font-bold opacity-70",
           large ? "text-base md:text-lg" : compact ? "text-[10px] md:text-xs" : "text-xs md:text-sm",
         )}
         style={{ color: fg }}
@@ -53,7 +53,7 @@ function CenteredField({
       <div
         dir={lang === "ar" ? "rtl" : "ltr"}
         className={cn(
-          "mt-1 font-display font-black leading-snug",
+          "mt-1 w-full text-center font-display font-black leading-snug",
           large
             ? "text-[28px] md:text-[34px] lg:text-[40px]"
             : compact
@@ -84,7 +84,9 @@ const CropCenteredCard = ({
   const isCarousel = variant === "carousel";
   const isPopup = variant === "popup";
   const isFeature = variant === "feature" || (scrollable && !isPopup);
-  const isCompact = isCarousel || isPopup;
+  /** المضغوط للكاروسيل فقط — بطاقة التفاصيل بنص كبير في الوسط */
+  const isCompact = isCarousel;
+  const useLargeType = isFeature || isPopup;
   const L = cropFieldLabels[lang];
   const profile = buildCropProfile(crop, lang);
   const surface = resolveCropSurface(crop, {
@@ -105,16 +107,20 @@ const CropCenteredCard = ({
         isCompact
           ? "gap-2 overflow-hidden px-4 py-4 md:gap-2.5 md:px-5 md:py-5"
           : "gap-5 px-6 py-8 md:gap-6 md:px-8 md:py-10",
-        isFeature && !isCompact && "min-h-0 flex-1 overflow-y-auto overscroll-y-contain",
+        (isFeature || isPopup) && "min-h-0 flex-1 overflow-y-auto overscroll-y-contain",
       )}
     >
       <div
         className={cn(
-          "flex w-full min-h-0 flex-col items-center justify-center",
-          isCompact ? "max-w-[94%] gap-2 md:gap-2.5" : "max-w-md gap-4 sm:max-w-lg sm:gap-5 md:gap-6",
+          "mx-auto flex w-full min-h-0 flex-col items-center justify-center text-center",
+          isCompact
+            ? "max-w-[94%] gap-2 md:gap-2.5"
+            : isPopup
+              ? "max-w-lg gap-5 sm:max-w-xl sm:gap-6 md:gap-7"
+              : "max-w-md gap-4 sm:max-w-lg sm:gap-5 md:gap-6",
         )}
       >
-        {featured && !pinFeaturedBadge && !isFeature ? (
+        {featured && !pinFeaturedBadge && !isFeature && !isPopup ? (
           <span
             className={cn(
               "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-white shadow-sm",
@@ -130,8 +136,8 @@ const CropCenteredCard = ({
         <h2
           dir={lang === "ar" ? "rtl" : "ltr"}
           className={cn(
-            "shrink-0 font-display font-black leading-tight drop-shadow-md",
-            isFeature && !isCompact
+            "shrink-0 w-full text-center font-display font-black leading-tight drop-shadow-md",
+            useLargeType
               ? "text-[36px] md:text-[44px] lg:text-[52px]"
               : isCompact
                 ? "text-lg md:text-xl ipad-lg:text-2xl"
@@ -144,7 +150,7 @@ const CropCenteredCard = ({
 
         <div
           className={cn(
-            "flex w-full min-h-0 flex-col items-center justify-center",
+            "flex w-full min-h-0 flex-col items-center justify-center text-center",
             isCompact ? "gap-1.5 md:gap-2" : "gap-4 sm:gap-5",
           )}
         >
@@ -154,7 +160,7 @@ const CropCenteredCard = ({
             lang={lang}
             fg={fg}
             compact={isCompact}
-            large={isFeature && !isCompact}
+            large={useLargeType}
           />
           <CenteredField
             label={L.process}
@@ -162,7 +168,7 @@ const CropCenteredCard = ({
             lang={lang}
             fg={fg}
             compact={isCompact}
-            large={isFeature && !isCompact}
+            large={useLargeType}
           />
           <CenteredField
             label={L.variety}
@@ -170,7 +176,7 @@ const CropCenteredCard = ({
             lang={lang}
             fg={fg}
             compact={isCompact}
-            large={isFeature && !isCompact}
+            large={useLargeType}
           />
           <CenteredField
             label={L.altitude}
@@ -178,7 +184,7 @@ const CropCenteredCard = ({
             lang={lang}
             fg={fg}
             compact={isCompact}
-            large={isFeature && !isCompact}
+            large={useLargeType}
           />
         </div>
 
@@ -186,8 +192,8 @@ const CropCenteredCard = ({
           <p
             dir={lang === "ar" ? "rtl" : "ltr"}
             className={cn(
-              "shrink-0 font-bold leading-relaxed opacity-90",
-              isFeature && !isCompact
+              "shrink-0 w-full text-center font-bold leading-relaxed opacity-90",
+              useLargeType
                 ? "max-w-xl text-[22px] md:text-[28px] lg:text-[32px] drop-shadow-md"
                 : isCompact
                   ? "line-clamp-2 max-w-full text-xs md:text-sm"

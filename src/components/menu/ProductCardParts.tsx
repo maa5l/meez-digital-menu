@@ -626,47 +626,59 @@ export const ProductGridCard = ({
   onClick?: () => void;
 }) => {
   const cardImage = getProductCardImage(product);
-  return (
-  <button
-    type="button"
-    onClick={onClick}
-    className={cn(
-      "group relative flex w-full flex-col overflow-hidden rounded-[1.5rem] border-2 border-black/[0.07] text-start transition-shadow hover:shadow-lg md:rounded-[1.75rem]",
-      menuChromeMotion,
-    )}
-    style={{ background: cardBg, aspectRatio: PRODUCT_CARD_ASPECT }}
-  >
-    <div
-      className="relative flex-none w-full"
-      style={{ paddingInline: PRODUCT_CARD_PAD_X, paddingTop: PRODUCT_CARD_PAD_TOP }}
-    >
+  const className = cn(
+    "group relative flex w-full flex-col overflow-hidden rounded-[1.5rem] border-2 border-black/[0.07] text-start",
+    menuChromeMotion,
+    onClick && "transition-shadow hover:shadow-lg",
+  );
+  const style = { background: cardBg, aspectRatio: PRODUCT_CARD_ASPECT };
+  const body = (
+    <>
       <div
-        className="relative w-full overflow-hidden rounded-[1.1rem] bg-white md:rounded-[1.15rem]"
-        style={{ aspectRatio: PRODUCT_IMAGE_ASPECT }}
+        className="relative flex-none w-full"
+        style={{ paddingInline: PRODUCT_CARD_PAD_X, paddingTop: PRODUCT_CARD_PAD_TOP }}
       >
-        <ProductImageBadge product={product} lang={lang} placement="inset" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          {cardImage ? (
-            <MenuProductImage
-              src={cardImage}
-              alt={product.name}
-              className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
-              placeholder={
-                <span className="px-2 text-center text-xs font-bold text-muted-foreground/40">
-                  {labels[lang].noImage}
-                </span>
-              }
-            />
-          ) : (
-            <span className="px-2 text-center text-xs font-bold text-muted-foreground/40">
-              {labels[lang].noImage}
-            </span>
-          )}
+        <div
+          className="relative w-full overflow-hidden rounded-[1.1rem] bg-white md:rounded-[1.15rem]"
+          style={{ aspectRatio: PRODUCT_IMAGE_ASPECT }}
+        >
+          <ProductImageBadge product={product} lang={lang} placement="inset" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            {cardImage ? (
+              <MenuProductImage
+                src={cardImage}
+                alt={product.name}
+                className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
+                placeholder={
+                  <span className="px-2 text-center text-xs font-bold text-muted-foreground/40">
+                    {labels[lang].noImage}
+                  </span>
+                }
+              />
+            ) : (
+              <span className="px-2 text-center text-xs font-bold text-muted-foreground/40">
+                {labels[lang].noImage}
+              </span>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-    <ProductCardFooter product={product} lang={lang} cardBg={cardBg} compact />
-  </button>
+      <ProductCardFooter product={product} lang={lang} cardBg={cardBg} compact />
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={className} style={style}>
+        {body}
+      </button>
+    );
+  }
+
+  return (
+    <article className={className} style={style}>
+      {body}
+    </article>
   );
 };
 
