@@ -10,7 +10,7 @@ type Props = {
   featured?: boolean;
   cardHeight?: number;
   cardWidth?: number;
-  onClick: () => void;
+  onClick?: () => void;
 };
 
 /** بطاقة محصول للعرض الأفقي — مقاسها يتبع ارتفاع المساحة المتاحة */

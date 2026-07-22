@@ -16,9 +16,12 @@ export function getTrustedMenuOrigins(): string[] {
   if (base) origins.add(base);
 
   if (__DEV__) {
+    origins.add("http://localhost:2020");
+    origins.add("http://127.0.0.1:2020");
     origins.add("http://localhost:8080");
     origins.add("http://127.0.0.1:8080");
     origins.add("http://192.168.1.82:8080");
+    origins.add("http://192.168.1.82:2020");
   }
 
   return [...origins];

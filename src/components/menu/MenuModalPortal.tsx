@@ -63,7 +63,7 @@ export function MenuModalPortal({ onClose, children, className, dir, labelledBy 
       <div
         className={cn(
           "relative z-10 w-full opacity-100",
-          "transition-[transform,opacity] duration-[460ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+          "transition-[transform,opacity] duration-460 ease-menu-spring motion-reduce:transition-none",
           visible ? "translate-y-0 scale-100" : "translate-y-3 scale-[0.97] opacity-0",
           className,
         )}

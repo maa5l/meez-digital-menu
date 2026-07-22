@@ -63,12 +63,15 @@ const ProductSchema = z
     price: coerceFiniteNumber(0),
     calories: coerceFiniteNumber(0),
     image: z.string().nullish().catch(undefined).transform((v) => v ?? undefined),
+    imageLandscape: z.string().nullish().catch(undefined).transform((v) => v ?? undefined),
+    imagePortrait: z.string().nullish().catch(undefined).transform((v) => v ?? undefined),
     allergens: z.string().optional().catch(undefined),
     allergensEn: z.string().optional().catch(undefined),
     badgeText: z.string().optional().catch(undefined),
     badgeTextEn: z.string().optional().catch(undefined),
     badgeColor: z.string().optional().catch(undefined),
     cropId: z.string().optional().catch(undefined),
+    sortOrder: z.number().finite().optional().catch(undefined),
   })
   .passthrough();
 
@@ -86,6 +89,7 @@ const CropSchema = z
     notes: coerceString(),
     notesEn: coerceString(),
     image: z.string().nullish().catch(undefined).transform((v) => v ?? undefined),
+    sortOrder: z.number().finite().optional().catch(undefined),
   })
   .passthrough();
 

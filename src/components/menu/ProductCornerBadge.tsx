@@ -26,18 +26,18 @@ const ProductCornerBadge = ({
       className={cn(
         "pointer-events-none absolute z-20 max-w-[calc(100%-1.5rem)]",
         placement === "inset"
-          ? "top-2 start-2 md:top-2.5 md:start-2.5"
-          : "-top-2 start-3 md:-top-2.5 md:start-4",
+          ? "top-2.5 start-2.5 md:top-3 md:start-3"
+          : "top-2.5 start-3 md:top-3 md:start-4",
         className,
       )}
       aria-hidden
     >
       <span
         className={cn(
-          "inline-block truncate rounded-lg font-black leading-tight shadow-md ring-1 ring-white/90",
+          "inline-block truncate rounded-xl font-black leading-tight shadow-lg ring-2 ring-white/95",
           size === "md"
-            ? "max-w-[10rem] px-3 py-1.5 text-[10px] md:text-[11px]"
-            : "max-w-[7.5rem] px-2.5 py-1 text-[9px] md:max-w-[8.5rem] md:px-3 md:text-[10px]",
+            ? "max-w-[14rem] px-4 py-2 text-sm md:max-w-[16rem] md:px-5 md:py-2.5 md:text-base"
+            : "max-w-[9rem] px-3 py-1.5 text-[11px] md:max-w-[11rem] md:px-3.5 md:text-xs",
         )}
         style={{ backgroundColor: color, color: fg }}
       >

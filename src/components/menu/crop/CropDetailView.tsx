@@ -4,6 +4,7 @@ import CropHeroImage from "@/components/menu/crop/CropHeroImage";
 import CropInfoCard from "@/components/menu/crop/CropInfoCard";
 import { buildCropProfile } from "@/lib/crop-profile";
 import { cropFieldLabels } from "@/lib/crop-i18n";
+import { getCropLandscapeImage, getCropPortraitImage } from "@/lib/crop-spec";
 import type { Crop } from "@/types/domain";
 import type { MenuLang } from "@/lib/product-i18n";
 import { cn } from "@/lib/utils";
@@ -91,7 +92,10 @@ const CropDetailView = ({
   const profile = buildCropProfile(crop, lang);
   const isCompact = variant === "compact";
   const isEmbedded = variant === "embedded";
-  const imageUrl = crop.image?.trim();
+  const landscapeUrl = getCropLandscapeImage(crop);
+  const portraitUrl = getCropPortraitImage(crop);
+  const hasLandscape = Boolean(landscapeUrl);
+  const hasPortrait = Boolean(portraitUrl);
 
   return (
     <div
@@ -99,30 +103,72 @@ const CropDetailView = ({
       dir={lang === "ar" ? "rtl" : "ltr"}
     >
       <div className={cn("space-y-3", isEmbedded && "md:space-y-4", !isCompact && "ipad-lg:grid ipad-lg:grid-cols-2 ipad-lg:gap-6 ipad-lg:space-y-0")}>
-        <div
-          className={cn(onHeroClick && "cursor-pointer touch-manipulation")}
-          onClick={onHeroClick}
-          onKeyDown={
-            onHeroClick
-              ? (e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onHeroClick();
-                  }
-                }
-              : undefined
-          }
-          role={onHeroClick ? "button" : undefined}
-          tabIndex={onHeroClick ? 0 : undefined}
-        >
-          <CropHeroImage
-            imageUrl={imageUrl}
-            alt={profile.localized.beanName}
-            lang={lang}
-            rounded={isCompact ? "xl" : "2xl"}
-            overlay={isCompact}
-            className={!isCompact && !isEmbedded ? "max-h-[min(38dvh,340px)] w-full" : undefined}
-          />
+        <div className={cn("space-y-3", onHeroClick && "cursor-pointer touch-manipulation")}>
+          {hasLandscape && (
+            <div
+              onClick={onHeroClick}
+              onKeyDown={
+                onHeroClick
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onHeroClick();
+                      }
+                    }
+                  : undefined
+              }
+              role={onHeroClick ? "button" : undefined}
+              tabIndex={onHeroClick ? 0 : undefined}
+            >
+              <CropHeroImage
+                imageUrl={landscapeUrl}
+                alt={profile.localized.beanName}
+                lang={lang}
+                rounded={isCompact ? "xl" : "2xl"}
+                overlay={isCompact}
+                orientation="landscape"
+                className={!isCompact && !isEmbedded ? "max-h-[min(38dvh,340px)] w-full" : "w-full"}
+              />
+            </div>
+          )}
+          {hasPortrait && (
+            <div
+              onClick={onHeroClick}
+              onKeyDown={
+                onHeroClick
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onHeroClick();
+                      }
+                    }
+                  : undefined
+              }
+              role={onHeroClick ? "button" : undefined}
+              tabIndex={onHeroClick ? 0 : undefined}
+            >
+              <CropHeroImage
+                imageUrl={portraitUrl}
+                alt={profile.localized.beanName}
+                lang={lang}
+                rounded={isCompact ? "xl" : "2xl"}
+                overlay={isCompact}
+                orientation="portrait"
+                className={!isCompact && !isEmbedded ? "max-h-[min(56dvh,520px)]" : undefined}
+              />
+            </div>
+          )}
+          {!hasLandscape && !hasPortrait && (
+            <CropHeroImage
+              imageUrl={undefined}
+              alt={profile.localized.beanName}
+              lang={lang}
+              rounded={isCompact ? "xl" : "2xl"}
+              overlay={isCompact}
+              orientation="landscape"
+              className={!isCompact && !isEmbedded ? "max-h-[min(38dvh,340px)] w-full" : "w-full"}
+            />
+          )}
         </div>
 
         <div className={cn("space-y-2", lang === "ar" ? "text-right" : "text-left", !isCompact && "ipad-lg:flex ipad-lg:flex-col ipad-lg:justify-center")}>

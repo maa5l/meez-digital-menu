@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Crop, MenuSettings } from "@/types/domain";
 import CropCarouselCard from "@/components/menu/crop/CropCarouselCard";
-import CropDetailModal from "@/components/menu/CropDetailModal";
 import { MenuCropsTopChrome } from "@/components/menu/MenuCropsTopChrome";
 import { useMenuLang } from "@/context/MenuLangContext";
 import { useMenuKioskSync } from "@/hooks/useMenuKioskSync";
@@ -11,15 +10,13 @@ import { menuContentEnter } from "@/lib/menu-header";
 import { cn } from "@/lib/utils";
 
 const CROP_CARD_ASPECT = 3 / 4;
-/** هامش عمودي حتى لا يخرج الكرت عن الإطار تحت الهيدر */
 const CROP_TRACK_VERTICAL_PAD = 12;
 
 /**
- * Crops Template — عرض أفقي بطاقات كتالوج قهوة متخصصة (تمرير يمين/يسار فقط).
+ * Crops Template — عرض أفقي بطاقات (بدون نافذة تفاصيل).
  */
 const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops: Crop[] }) => {
   const { lang, toggleLang } = useMenuLang();
-  const [modal, setModal] = useState<Crop | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [cardHeight, setCardHeight] = useState(0);
   const cropsHeader = getCropsHeaderCustomization(settings);
@@ -35,8 +32,7 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
       const h = el.clientHeight;
       if (h <= 0) return;
       const style = getComputedStyle(el);
-      const pad =
-        parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+      const pad = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
       setCardHeight(Math.floor(h - pad));
     };
 
@@ -64,12 +60,6 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
   const cardWidth = cardHeight > 0 ? Math.round(cardHeight * CROP_CARD_ASPECT) : undefined;
 
   useMenuKioskSync(true);
-
-  useEffect(() => {
-    if (!modal) return;
-    const fresh = crops.find((c) => c.id === modal.id);
-    if (fresh) setModal(fresh);
-  }, [crops, modal]);
 
   return (
     <div
@@ -111,24 +101,12 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
                   featured={c.id === settings.featuredCropId}
                   cardHeight={cardHeight}
                   cardWidth={cardWidth}
-                  onClick={() => setModal(c)}
                 />
               ))}
             </div>
           </div>
         </div>
       </MenuCropsTopChrome>
-
-      {modal && (
-        <CropDetailModal
-          crop={modal}
-          lang={lang}
-          accent={palette.accentColor}
-          fallbackTextColor={palette.textColor}
-          featured={modal.id === settings.featuredCropId}
-          onClose={() => setModal(null)}
-        />
-      )}
     </div>
   );
 };

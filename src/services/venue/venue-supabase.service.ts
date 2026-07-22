@@ -4,7 +4,7 @@ import { cachedFetch, invalidateCacheKey, invalidateCachePrefix } from "@/lib/re
 import type { VenueData } from "@/types/venue";
 import { logger } from "@/lib/logger";
 
-const RPC_TTL_MS = 30_000;
+const RPC_TTL_MS = 4_000;
 
 export function shouldUseVenueDatabase(): boolean {
   return isSupabaseConfigured() && !appEnv.useLocalMockAuth;

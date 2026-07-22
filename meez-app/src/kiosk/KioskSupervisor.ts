@@ -7,7 +7,8 @@ import { faultFromCode } from "@/kiosk/fault-copy";
 import type { FaultCode, KioskPhase, KioskSnapshot } from "@/kiosk/types";
 import { logger } from "@/lib/logger";
 import { invalidateCacheKey } from "@/lib/request-cache";
-import { resolveDeviceCodeFromUrl } from "@/services/device-code";
+import { resolveDeviceCodeFromUrl, generateDeviceCode } from "@/services/device-code";
+import { setDeviceCode } from "@/security/storage";
 import {
   peekDeviceRegistration,
   type RegistrationPeek,
@@ -323,11 +324,36 @@ export class KioskSupervisor {
     });
   }
 
-  /** Local unlink — keep device code, clear session, return to PairScreen */
-  unlinkLocal(): void {
-    const { code } = this.snapshot;
-    if (code) this.invalidatePeekCache(code);
-    this.forcePairing("local_unlink");
+  /** فصل الجهاز محلياً — توليد رمز جديد والعودة لشاشة التفعيل */
+  async unlinkLocal(): Promise<void> {
+    const { code: oldCode } = this.snapshot;
+    if (oldCode) this.invalidatePeekCache(oldCode);
+
+    const nextCode = generateDeviceCode();
+    await setDeviceCode(nextCode);
+    this.invalidatePeekCache(nextCode);
+
+    this.openingLock = false;
+    this.clearFaultRetry();
+
+    const peek: RegistrationPeek = {
+      status: "not_registered",
+      reason: "local_unlink",
+    };
+
+    logger.audit("kiosk.unlink_new_code", { oldCode, nextCode });
+    this.patch({
+      phase: "pairing",
+      code: nextCode,
+      menuUrl: null,
+      fault: null,
+      peek,
+      remountKey: this.snapshot.remountKey + 1,
+    });
+
+    if (isSupabaseConfigured()) {
+      void announceKioskPairingCode(nextCode);
+    }
   }
 
   retry(): void {

@@ -169,13 +169,13 @@ function ThemeSectionContent({
             <OverviewStat
               icon={<UtensilsCrossed className="h-5 w-5" />}
               label="منيو المنتجات"
-              value={settings.productTemplate === "featured" ? "مميّز + بطاقات" : "مميّز + تفاصيل"}
+              value={`${settings.productTemplate === "featured" ? "مميّز + بطاقات" : "مميّز + تفاصيل"} · ${(settings.productsOrderMode ?? "manual") === "random" ? "عشوائي" : "يدوي"}`}
               swatch={productsColors.accentColor}
             />
             <OverviewStat
               icon={<Coffee className="h-5 w-5" />}
               label="منيو المحاصيل"
-              value={settings.cropsTemplate === "molo" ? "بطاقات بالعرض" : "قائمة + تفاصيل"}
+              value={`${settings.cropsTemplate === "molo" ? "بطاقات بالعرض" : "قائمة + تفاصيل"} · ${(settings.cropsOrderMode ?? "manual") === "random" ? "عشوائي" : "يدوي"}`}
               swatch={cropsColors.accentColor}
             />
           </div>
@@ -202,10 +202,27 @@ function ThemeSectionContent({
               active={settings.productTemplate === "detail"}
               icon={<ListChecks className="h-7 w-7" />}
               title="مميّز + تفاصيل"
-              description="قائمة جانبية وبطاقة تفاصيل"
+              description="قائمة جانبية + صورة كاملة وتفاصيل تحتها"
               onClick={() => update({ ...settings, productTemplate: "detail" })}
             />
           </div>
+          <ThemeFieldGroup
+            label="ترتيب العرض"
+            hint="يدوي برقم الترتيب في صفحة المنتجات، أو عشوائي عند كل فتح للمنيو"
+          >
+            <div className="flex flex-wrap gap-2">
+              <ToggleChip
+                label="ترتيب يدوي (برقم)"
+                checked={(settings.productsOrderMode ?? "manual") === "manual"}
+                onChange={() => update({ ...settings, productsOrderMode: "manual" })}
+              />
+              <ToggleChip
+                label="عشوائي"
+                checked={settings.productsOrderMode === "random"}
+                onChange={() => update({ ...settings, productsOrderMode: "random" })}
+              />
+            </div>
+          </ThemeFieldGroup>
         </ThemeSectionPanel>
       );
 
@@ -274,6 +291,23 @@ function ThemeSectionContent({
               onClick={() => update({ ...settings, cropsTemplate: "pureshelf" })}
             />
           </div>
+          <ThemeFieldGroup
+            label="ترتيب العرض"
+            hint="يدوي برقم الترتيب في صفحة المحاصيل، أو عشوائي عند كل فتح للمنيو"
+          >
+            <div className="flex flex-wrap gap-2">
+              <ToggleChip
+                label="ترتيب يدوي (برقم)"
+                checked={(settings.cropsOrderMode ?? "manual") === "manual"}
+                onChange={() => update({ ...settings, cropsOrderMode: "manual" })}
+              />
+              <ToggleChip
+                label="عشوائي"
+                checked={settings.cropsOrderMode === "random"}
+                onChange={() => update({ ...settings, cropsOrderMode: "random" })}
+              />
+            </div>
+          </ThemeFieldGroup>
         </ThemeSectionPanel>
       );
 

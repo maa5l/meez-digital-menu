@@ -4,7 +4,12 @@ import { MenuModalPortal } from "@/components/menu/MenuModalPortal";
 import { ProductModalDetails } from "@/components/menu/ProductCardParts";
 import { hasProductBadge, productBadgeColor, productBadgeLabel } from "@/lib/product-badge";
 import { getMenuUi } from "@/lib/menu-i18n";
-import { PRODUCT_CARD, PRODUCT_IMAGE_ASPECT } from "@/lib/product-card-spec";
+import { PRODUCT_CARD } from "@/lib/product-card-spec";
+import {
+  getProductLandscapeImage,
+  getProductPortraitImage,
+  PRODUCT_HERO_ASPECT_PORTRAIT,
+} from "@/lib/product-spec";
 import { localizeProduct, type MenuLang } from "@/lib/product-i18n";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/types/domain";
@@ -20,6 +25,10 @@ const ProductDetailModal = ({ product, lang, onClose }: Props) => {
   const localized = localizeProduct(product, lang);
   const isAr = lang === "ar";
   const ui = getMenuUi(lang);
+  const modalImage = getProductPortraitImage(product) || getProductLandscapeImage(product);
+  const modalAspect = getProductPortraitImage(product)
+    ? PRODUCT_HERO_ASPECT_PORTRAIT
+    : `${PRODUCT_CARD.imageWidth}/${PRODUCT_CARD.imageHeight}`;
 
   return (
     <MenuModalPortal
@@ -47,7 +56,7 @@ const ProductDetailModal = ({ product, lang, onClose }: Props) => {
             "md:max-h-[min(88dvh,640px)] md:flex-row",
           )}
         >
-        {product.image ? (
+        {modalImage ? (
           <div
             className={cn(
               "relative flex shrink-0 flex-col items-center justify-center",
@@ -57,8 +66,8 @@ const ProductDetailModal = ({ product, lang, onClose }: Props) => {
             <div
               className="relative mx-auto w-full max-w-[250px] overflow-hidden rounded-[1.25rem] border-2 border-black/[0.06] bg-neutral-50"
               style={{
-                aspectRatio: PRODUCT_IMAGE_ASPECT,
-                maxHeight: PRODUCT_CARD.imageHeight,
+                aspectRatio: modalAspect,
+                maxHeight: getProductPortraitImage(product) ? 320 : PRODUCT_CARD.imageHeight,
               }}
             >
               {hasProductBadge(product, lang) && (
@@ -71,11 +80,9 @@ const ProductDetailModal = ({ product, lang, onClose }: Props) => {
                 />
               )}
               <img
-                src={product.image}
+                src={modalImage}
                 alt={localized.name}
                 className="block h-full w-full object-contain object-center"
-                width={PRODUCT_CARD.imageWidth}
-                height={PRODUCT_CARD.imageHeight}
                 decoding="async"
               />
             </div>

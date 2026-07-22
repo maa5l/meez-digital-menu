@@ -19,6 +19,8 @@ type Props = {
   /** @deprecated استخدم chromeTrailing */
   headerTrailing?: React.ReactNode;
   chromeTrailing?: React.ReactNode;
+  /** زر أسفل يسار الهيدر (مثل الترجمة) */
+  chromeBottomLeft?: React.ReactNode;
 };
 
 /** هيدر منيو موحّد — يُستخدم لمنتجات المحاصيل والمنتجات */
@@ -32,6 +34,7 @@ const MenuVenueHeader = ({
   visible = true,
   headerTrailing,
   chromeTrailing,
+  chromeBottomLeft,
 }: Props) => {
   const layout = useMenuLayoutMetrics();
   const headerBg = customization.headerBgColor ?? `${palette.textColor}18`;
@@ -126,6 +129,12 @@ const MenuVenueHeader = ({
           </div>
         )}
       </div>
+
+      {chromeBottomLeft ? (
+        <div className="pointer-events-auto absolute bottom-2 left-3 z-20 md:bottom-3 md:left-4">
+          {chromeBottomLeft}
+        </div>
+      ) : null}
     </header>
   );
 };

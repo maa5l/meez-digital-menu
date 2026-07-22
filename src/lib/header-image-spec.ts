@@ -13,9 +13,9 @@ export const HEADER_IMAGE_SPEC = {
   maxOutputLongEdge: 2048,
   targetAspect: 3,
   jpegQuality: 0.92,
-  /** مرجع عرض الآيباد أفقي (3:1) */
+  /** مرجع عرض الآيباد أفقي (~3:1) — ارتفاع مقاس فعلياً */
   displayWidth: 1024,
-  displayHeight: 240,
+  displayHeight: 345,
 } as const;
 
 export function formatHeaderImageSpecLabel(): string {

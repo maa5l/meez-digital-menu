@@ -2,6 +2,7 @@ import { useImageAutoRetry } from "@/hooks/useImageAutoRetry";
 import { Sparkles } from "lucide-react";
 import { buildCropProfile } from "@/lib/crop-profile";
 import { cropFieldLabels } from "@/lib/crop-i18n";
+import { getCropCardBackgroundImage } from "@/lib/crop-spec";
 import { resolveCropSurface } from "@/lib/crop-surface";
 import type { Crop } from "@/types/domain";
 import type { MenuLang } from "@/lib/product-i18n";
@@ -28,18 +29,23 @@ function CenteredField({
   lang,
   fg,
   compact,
+  large,
 }: {
   label: string;
   value: string;
   lang: MenuLang;
   fg: string;
   compact?: boolean;
+  large?: boolean;
 }) {
   if (!value || value === "—") return null;
   return (
     <div className="shrink-0 text-center">
       <div
-        className={cn("font-bold opacity-65", compact ? "text-[10px] md:text-xs" : "text-xs md:text-sm")}
+        className={cn(
+          "font-bold opacity-70",
+          large ? "text-base md:text-lg" : compact ? "text-[10px] md:text-xs" : "text-xs md:text-sm",
+        )}
         style={{ color: fg }}
       >
         {label}
@@ -47,8 +53,12 @@ function CenteredField({
       <div
         dir={lang === "ar" ? "rtl" : "ltr"}
         className={cn(
-          "mt-0.5 font-display font-black leading-snug",
-          compact ? "text-base md:text-lg" : "text-lg md:text-xl lg:text-2xl",
+          "mt-1 font-display font-black leading-snug",
+          large
+            ? "text-[28px] md:text-[34px] lg:text-[40px]"
+            : compact
+              ? "text-base md:text-lg"
+              : "text-lg md:text-xl lg:text-2xl",
         )}
         style={{ color: fg }}
       >
@@ -81,7 +91,7 @@ const CropCenteredCard = ({
     textColor: fallbackTextColor,
     cardColor: `${fallbackTextColor}15`,
   });
-  const imageUrl = crop.image?.trim();
+  const imageUrl = getCropCardBackgroundImage(crop);
   const { displaySrc, failed: imageFailed, handleError, reloadKey } = useImageAutoRetry(imageUrl);
 
   const showImage = Boolean(displaySrc) && !imageFailed;
@@ -101,10 +111,10 @@ const CropCenteredCard = ({
       <div
         className={cn(
           "flex w-full min-h-0 flex-col items-center justify-center",
-          isCompact ? "max-w-[94%] gap-2 md:gap-2.5" : "max-w-xs gap-4 sm:max-w-sm sm:gap-5",
+          isCompact ? "max-w-[94%] gap-2 md:gap-2.5" : "max-w-md gap-4 sm:max-w-lg sm:gap-5 md:gap-6",
         )}
       >
-        {featured && !pinFeaturedBadge && (
+        {featured && !pinFeaturedBadge && !isFeature ? (
           <span
             className={cn(
               "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold text-white shadow-sm",
@@ -115,15 +125,17 @@ const CropCenteredCard = ({
             <Sparkles className={cn("h-3.5 w-3.5", isCompact && "h-3 w-3")} />
             {L.featured}
           </span>
-        )}
+        ) : null}
 
         <h2
           dir={lang === "ar" ? "rtl" : "ltr"}
           className={cn(
-            "shrink-0 font-display font-black leading-tight",
-            isCompact
-              ? "text-lg md:text-xl ipad-lg:text-2xl"
-              : "text-2xl md:text-3xl lg:text-4xl",
+            "shrink-0 font-display font-black leading-tight drop-shadow-md",
+            isFeature && !isCompact
+              ? "text-[36px] md:text-[44px] lg:text-[52px]"
+              : isCompact
+                ? "text-lg md:text-xl ipad-lg:text-2xl"
+                : "text-2xl md:text-3xl lg:text-4xl",
           )}
           style={{ color: fg }}
         >
@@ -136,10 +148,38 @@ const CropCenteredCard = ({
             isCompact ? "gap-1.5 md:gap-2" : "gap-4 sm:gap-5",
           )}
         >
-          <CenteredField label={L.country} value={profile.localized.country} lang={lang} fg={fg} compact={isCompact} />
-          <CenteredField label={L.process} value={profile.localized.process} lang={lang} fg={fg} compact={isCompact} />
-          <CenteredField label={L.variety} value={profile.localized.variety} lang={lang} fg={fg} compact={isCompact} />
-          <CenteredField label={L.altitude} value={profile.localized.altitude} lang={lang} fg={fg} compact={isCompact} />
+          <CenteredField
+            label={L.country}
+            value={profile.localized.country}
+            lang={lang}
+            fg={fg}
+            compact={isCompact}
+            large={isFeature && !isCompact}
+          />
+          <CenteredField
+            label={L.process}
+            value={profile.localized.process}
+            lang={lang}
+            fg={fg}
+            compact={isCompact}
+            large={isFeature && !isCompact}
+          />
+          <CenteredField
+            label={L.variety}
+            value={profile.localized.variety}
+            lang={lang}
+            fg={fg}
+            compact={isCompact}
+            large={isFeature && !isCompact}
+          />
+          <CenteredField
+            label={L.altitude}
+            value={profile.localized.altitude}
+            lang={lang}
+            fg={fg}
+            compact={isCompact}
+            large={isFeature && !isCompact}
+          />
         </div>
 
         {profile.localized.notes && (
@@ -147,9 +187,11 @@ const CropCenteredCard = ({
             dir={lang === "ar" ? "rtl" : "ltr"}
             className={cn(
               "shrink-0 font-bold leading-relaxed opacity-90",
-              isCompact
-                ? "line-clamp-2 max-w-full text-xs md:text-sm"
-                : "max-w-sm text-base md:text-lg lg:text-xl",
+              isFeature && !isCompact
+                ? "max-w-xl text-[22px] md:text-[28px] lg:text-[32px] drop-shadow-md"
+                : isCompact
+                  ? "line-clamp-2 max-w-full text-xs md:text-sm"
+                  : "max-w-sm text-base md:text-lg lg:text-xl",
             )}
             style={{ color: fg }}
           >
@@ -206,17 +248,16 @@ const CropCenteredCard = ({
         </>
       )}
 
-      {pinFeaturedBadge && (
+      {pinFeaturedBadge ? (
         <span
           className={cn(
-            "absolute top-3 z-20 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold text-white shadow-md ring-1 ring-white/25 backdrop-blur-[2px] start-3 md:px-3 md:py-1 md:text-xs",
+            "absolute top-3 z-20 inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold text-white shadow-md ring-1 ring-white/25 backdrop-blur-[2px] start-3 md:px-3 md:py-1 md:text-xs",
           )}
           style={{ background: accentColor }}
         >
-          <Sparkles className="h-3 w-3 md:h-3.5 md:w-3.5" aria-hidden />
           {L.featured}
         </span>
-      )}
+      ) : null}
 
       {isCarousel && onClick && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/60 via-black/30 to-transparent px-3 pb-3 pt-10">

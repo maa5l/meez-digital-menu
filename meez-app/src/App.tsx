@@ -1,6 +1,7 @@
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { MenuWebView } from "@/components/MenuWebView";
 import { AppShell } from "@/components/AppShell";
+import { Logo } from "@/components/Brand";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FaultScreen } from "@/components/FaultScreen";
 import { PairScreen } from "@/components/PairScreen";
@@ -26,7 +27,7 @@ function KioskRoot() {
           if (fault.code === "STORAGE") void supervisor.restart();
           else supervisor.retry();
         }}
-        onUnlink={() => supervisor.unlinkLocal()}
+        onUnlink={() => void supervisor.unlinkLocal()}
       />
     );
   } else if (bootError) {
@@ -34,13 +35,15 @@ function KioskRoot() {
       <FaultScreen
         fault={faultFromCode("STORAGE", bootError)}
         onRetry={() => void supervisor.restart()}
-        onUnlink={() => supervisor.unlinkLocal()}
+        onUnlink={() => void supervisor.unlinkLocal()}
       />
     );
   } else if (phase === "boot" || !code) {
     content = (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#c4a35a" />
+        <Logo size={96} />
+        <Text style={styles.bootBrand}>Meez</Text>
+        <ActivityIndicator size="small" color="#c4a35a" />
       </View>
     );
   } else if (!isSupabaseConfigured()) {
@@ -76,7 +79,7 @@ function KioskRoot() {
 
 const App = () => {
   return (
-    <ErrorBoundary onReset={() => kioskSupervisor.unlinkLocal()}>
+    <ErrorBoundary onReset={() => void kioskSupervisor.unlinkLocal()}>
       <KioskProvider>
         <KioskRoot />
       </KioskProvider>
@@ -91,6 +94,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
+    gap: 14,
+  },
+  bootBrand: {
+    color: "#f8f1e4",
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: 1.5,
   },
   box: {
     maxWidth: 420,

@@ -1,4 +1,4 @@
-export const APP_NAME = "ميز";
+export const APP_NAME = "Meez";
 export const APP_NAME_EN = "Meez";
 
 export const ROUTES = {

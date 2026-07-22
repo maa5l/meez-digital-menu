@@ -57,7 +57,7 @@ export function getMenuViewportTier(viewportWidth: number): MenuViewportTier {
   return "compact";
 }
 
-/** ارتفاع الهيدر المتناسب مع عرض الشاشة (بانر 1024×240 على الآيباد أفقي) */
+/** ارتفاع الهيدر المتناسب مع عرض الشاشة (بانر 1024×345 على الآيباد أفقي) */
 export function getBannerHeaderHeight(viewportWidth: number): number {
   return Math.round(viewportWidth * HEADER_DISPLAY_RATIO);
 }

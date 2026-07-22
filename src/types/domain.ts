@@ -34,7 +34,12 @@ export type Product = {
   descriptionEn?: string;
   price: number;
   calories: number;
+  /** @deprecated — يُرحَّل إلى imageLandscape */
   image?: string;
+  /** صورة عرضية — بطاقات المنيو والمعاينة الكاملة */
+  imageLandscape?: string;
+  /** صورة عمودية — تفاصيل المنتج */
+  imagePortrait?: string;
   allergens?: string;
   allergensEn?: string;
   /** شارة زاوية — نص ولون يحددهما العميل */
@@ -44,6 +49,8 @@ export type Product = {
   /** ربط بمحصول من قائمة المحاصيل */
   cropId?: string;
   cropInfo?: CropInfo;
+  /** رقم الترتيب اليدوي (أصغر = أولاً) — يُستخدم عند productsOrderMode = manual */
+  sortOrder?: number;
 };
 
 export type Device = {
@@ -58,6 +65,8 @@ export type Device = {
 
 export type ProductTemplate = "featured" | "detail";
 export type CropsTemplate = "molo" | "pureshelf";
+/** ترتيب العرض في المنيو: يدوي برقم أو عشوائي */
+export type CatalogOrderMode = "manual" | "random";
 
 /** ألوان منيو — منتجات أو محاصيل */
 export type MenuPalette = {
@@ -90,6 +99,10 @@ export type MenuHeaderCustomization = {
 export type MenuSettings = {
   productTemplate: ProductTemplate;
   cropsTemplate: CropsTemplate;
+  /** ترتيب منتجات المنيو: يدوي (sortOrder) أو عشوائي */
+  productsOrderMode?: CatalogOrderMode;
+  /** ترتيب محاصيل المنيو: يدوي (sortOrder) أو عشوائي */
+  cropsOrderMode?: CatalogOrderMode;
   /** ألوان منيو المنتجات */
   productsColors?: MenuPalette;
   /** ألوان منيو المحاصيل */
@@ -146,6 +159,10 @@ export type Crop = {
   notes: string;
   notesEn: string;
   image?: string;
+  /** صورة عرضية منفصلة (تفاصيل / بانر) */
+  imageLandscape?: string;
+  /** صورة عمودية منفصلة (تفاصيل) */
+  imagePortrait?: string;
   cardColor?: string;
   textColor?: string;
   bgType?: "color" | "gradient" | "image";
@@ -171,4 +188,6 @@ export type Crop = {
   sweetness?: string;
   sweetnessEn?: string;
   brewing?: CropBrewingInfo;
+  /** رقم الترتيب اليدوي (أصغر = أولاً) — يُستخدم عند cropsOrderMode = manual */
+  sortOrder?: number;
 };

@@ -20,14 +20,15 @@ export function PairScreen({ code, peek = null, openingMenu = false }: Props) {
   const isError = peek?.status === "error";
 
   useEffect(() => {
-    const t = setTimeout(() => setShowCode(true), 900);
+    const t = setTimeout(() => setShowCode(true), 2200);
     return () => clearTimeout(t);
   }, []);
 
   if (!showCode) {
     return (
       <View style={styles.root}>
-        <Logo size={96} />
+        <Logo size={120} />
+        <Text style={styles.introBrand}>Meez</Text>
       </View>
     );
   }
@@ -73,6 +74,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
+    gap: 16,
+  },
+  introBrand: {
+    color: "#f8f1e4",
+    fontSize: 32,
+    fontWeight: "800",
+    letterSpacing: 2,
   },
   card: {
     width: "100%",

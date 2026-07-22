@@ -10,7 +10,9 @@ import {
   PRODUCT_CARD_PAD_X,
   PRODUCT_IMAGE_ASPECT,
 } from "@/lib/product-card-spec";
+import { cropDisplayLine } from "@/lib/crop-info";
 import { menuChromeMotion } from "@/lib/menu-header";
+import { getProductCardImage, getProductLandscapeImage } from "@/lib/product-spec";
 import type { Product } from "@/types/domain";
 import { Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -55,9 +57,7 @@ const labels = {
 } as const;
 
 function cropSummary(product: Product): string | null {
-  const c = product.cropInfo;
-  if (!c?.beanName?.trim()) return null;
-  return [c.beanName, c.country, c.process].filter(Boolean).join(" · ");
+  return cropDisplayLine(product.cropInfo);
 }
 
 const cropModalFields = [
@@ -120,7 +120,7 @@ const InfoRow = ({
       <div
         dir={rtl ? "rtl" : undefined}
         className={cn(
-          "text-[#1a1a1a] leading-snug",
+          "menu-text text-[#1a1a1a] leading-snug",
           size === "modalCompact"
             ? bold
               ? "text-base font-black"
@@ -179,12 +179,12 @@ function ProductCardFooterCompact({
   const localized = localizeProduct(product, lang);
   const isEn = lang === "en";
 
-  const labelCls = "text-[7px] font-bold leading-normal text-[#1a1a1a]/50";
+  const labelCls = "menu-text text-[7px] font-bold leading-normal text-[#1a1a1a]/50";
   const nameValueCls =
-    "block w-full truncate py-px text-[10px] font-bold leading-[1.5] text-[#1a1a1a]";
+    "menu-text block w-full truncate py-px text-[10px] font-bold leading-[1.5] text-[#1a1a1a]";
   const primaryCls =
-    "text-[10px] font-black leading-[1.45] text-[#1a1a1a] truncate py-px";
-  const secondaryCls = "text-[9px] font-bold leading-normal text-[#1a1a1a]";
+    "menu-text text-[10px] font-black leading-[1.45] text-[#1a1a1a] truncate py-px";
+  const secondaryCls = "menu-text text-[9px] font-bold leading-normal text-[#1a1a1a]";
 
   const cellCls = (side: "right" | "left") =>
     cn(
@@ -482,15 +482,15 @@ export const ProductModalDetails = ({
   const isEn = lang === "en";
 
   const labelCls =
-    "text-xs font-bold leading-normal text-[#1a1a1a]/55 md:text-sm";
+    "menu-text text-xs font-bold leading-normal text-[#1a1a1a]/55 md:text-sm";
   const nameCls =
-    "font-display text-base font-black leading-tight text-[#1a1a1a] md:text-lg";
+    "menu-text font-display text-base font-black leading-tight text-[#1a1a1a] md:text-lg";
   const valueCls =
-    "text-lg font-black leading-tight text-[#1a1a1a] md:text-xl";
+    "menu-text text-lg font-black leading-tight text-[#1a1a1a] md:text-xl";
   const secondaryCls =
-    "text-base font-bold leading-normal text-[#1a1a1a] md:text-lg";
+    "menu-text text-base font-bold leading-normal text-[#1a1a1a] md:text-lg";
   const bodyCls =
-    "text-base leading-relaxed text-[#1a1a1a]/85 md:text-[16px] md:leading-relaxed";
+    "menu-text text-base leading-relaxed text-[#1a1a1a]/85 md:text-[16px] md:leading-relaxed";
   const sectionMt = dense
     ? "mt-3.5 border-t border-black/10 pt-3.5 md:mt-4 md:pt-4"
     : "mt-4 border-t border-black/10 pt-4 md:mt-5 md:pt-5";
@@ -624,7 +624,9 @@ export const ProductGridCard = ({
   lang: Lang;
   cardBg: string;
   onClick?: () => void;
-}) => (
+}) => {
+  const cardImage = getProductCardImage(product);
+  return (
   <button
     type="button"
     onClick={onClick}
@@ -644,9 +646,9 @@ export const ProductGridCard = ({
       >
         <ProductImageBadge product={product} lang={lang} placement="inset" />
         <div className="absolute inset-0 flex items-center justify-center">
-          {product.image ? (
+          {cardImage ? (
             <MenuProductImage
-              src={product.image}
+              src={cardImage}
               alt={product.name}
               className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
               placeholder={
@@ -665,7 +667,8 @@ export const ProductGridCard = ({
     </div>
     <ProductCardFooter product={product} lang={lang} cardBg={cardBg} compact />
   </button>
-);
+  );
+};
 
 export const ProductListCard = ({
   product,
@@ -686,22 +689,23 @@ export const ProductListCard = ({
   const isEn = lang === "en";
   const badgeLabel = productBadgeLabel(product, lang);
   const badgeColor = productBadgeColor(product);
+  const thumbImage = getProductLandscapeImage(product) || getProductCardImage(product);
 
   const infoBlock = (
     <div className="flex min-h-[80px] min-w-0 flex-1 flex-col justify-center py-0.5">
       <div className="grid w-full grid-cols-2 grid-rows-2 gap-x-2 gap-y-2" dir="ltr">
-        <h3 className="col-start-1 row-start-1 line-clamp-2 self-start text-left font-black text-sm leading-tight text-[#1a1a1a]">
+        <h3 className="menu-text col-start-1 row-start-1 line-clamp-2 self-start text-left font-black text-sm leading-tight text-[#1a1a1a]">
           {localized.name}
         </h3>
         <div className="col-start-2 row-start-1 flex justify-end self-start">
           <PriceWithRiyal
             price={product.price}
-            className="font-black text-sm text-[#1a1a1a]"
+            className="menu-text font-black text-sm text-[#1a1a1a]"
             riyalClassName="h-3.5 w-3.5"
           />
         </div>
         <div className="col-start-1 row-start-2 flex items-end justify-start self-end">
-          <span className="inline-flex items-center gap-1 font-bold text-sm text-[#1a1a1a]/85">
+          <span className="menu-text inline-flex items-center gap-1 font-bold text-sm text-[#1a1a1a]/85">
             <Flame className="h-3.5 w-3.5 shrink-0 text-orange-500" />
             {product.calories}
           </span>
@@ -721,9 +725,9 @@ export const ProductListCard = ({
 
   const imageBlock = (
     <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl">
-      {product.image ? (
+      {thumbImage ? (
         <MenuProductImage
-          src={product.image}
+          src={thumbImage}
           alt={localized.name}
           className="absolute inset-0 h-full w-full object-cover object-center"
           placeholder={
@@ -788,6 +792,7 @@ export const ProductImagePanel = ({
   className?: string;
 }) => {
   const localized = localizeProduct(product, lang);
+  const panelImage = getProductLandscapeImage(product) || getProductCardImage(product);
 
   return (
     <button
@@ -801,9 +806,9 @@ export const ProductImagePanel = ({
       aria-label={`${localized.name} — ${hint}`}
     >
       <ProductImageBadge product={product} lang={lang} size="md" placement="inset" />
-      {product.image ? (
+      {panelImage ? (
         <MenuProductImage
-          src={product.image}
+          src={panelImage}
           alt={localized.name}
           className="absolute inset-0 h-full w-full object-cover object-center"
           placeholder={
@@ -845,6 +850,7 @@ export const ProductDetailCard = ({
 }) => {
   const localized = localizeProduct(product, lang);
   const isPanel = variant === "panel";
+  const heroImage = getProductLandscapeImage(product) || getProductCardImage(product);
 
   if (isPanel) {
     return (
@@ -858,9 +864,9 @@ export const ProductDetailCard = ({
       >
         <div className="relative min-h-0 flex-1 overflow-hidden">
           <ProductImageBadge product={product} lang={lang} size="md" placement="inset" />
-          {product.image ? (
+          {heroImage ? (
             <MenuProductImage
-              src={product.image}
+              src={heroImage}
               alt={localized.name}
               className="absolute inset-0 h-full w-full object-cover object-center"
               placeholder={
@@ -897,9 +903,9 @@ export const ProductDetailCard = ({
           style={{ aspectRatio: PRODUCT_IMAGE_ASPECT }}
         >
           <ProductImageBadge product={product} lang={lang} size="md" placement="inset" />
-          {product.image ? (
+          {heroImage ? (
             <MenuProductImage
-              src={product.image}
+              src={heroImage}
               alt={localized.name}
               className="absolute inset-0 h-full w-full object-cover object-center"
               placeholder={

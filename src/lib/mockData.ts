@@ -25,6 +25,8 @@ import { logger } from "@/lib/logger";
 export const defaultMenuSettings: MenuSettings = migrateMenuSettings({
   productTemplate: "featured",
   cropsTemplate: "molo",
+  productsOrderMode: "manual",
+  cropsOrderMode: "manual",
   productsColors: { ...defaultProductsPalette },
   cropsColors: { ...defaultCropsPalette },
   showBurnBar: true,

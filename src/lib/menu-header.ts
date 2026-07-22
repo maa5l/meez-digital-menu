@@ -123,11 +123,11 @@ export function getMenuSubheaderTop(
 }
 
 export const headerHideTransition =
-  "transition-[transform,opacity,padding-top,top] duration-[420ms] ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[transform,padding-top]";
+  "transition-[transform,opacity,padding-top,top] duration-420 ease-menu will-change-[transform,padding-top]";
 
 /** حركة خفيفة لعناصر الهيدر عند تبديل اللغة أو الظهور */
 export const menuChromeMotion =
-  "transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none";
+  "transition-all duration-300 ease-menu motion-reduce:transition-none";
 
 /** دخول محتوى المنيو (منتجات، تصنيفات، …) */
 export const menuContentEnter =

@@ -1,4 +1,5 @@
 import type { Crop } from "@/types/domain";
+import { getCropCardBackgroundImage } from "@/lib/crop-spec";
 
 export type CropSurface = {
   background: string;
@@ -21,7 +22,7 @@ export function resolveCropSurface(
     background = crop.cardColor;
   }
 
-  const imageUrl = crop.image?.trim();
+  const imageUrl = getCropCardBackgroundImage(crop);
   const hasImageBg = crop.bgType === "image" && Boolean(imageUrl);
 
   return {

@@ -17,8 +17,14 @@ import {
 import { Plus, Search, Pencil, Trash2, ImageIcon, Sprout } from "lucide-react";
 import AllergenSelector from "@/components/dashboard/AllergenSelector";
 import { formatAllergensString, parseAllergensIds } from "@/constants/allergens";
-import { processProductImageFile, PRODUCT_IMAGE_SPEC } from "@/lib/product-image";
+import {
+  processProductLandscapeImageFile,
+  processProductPortraitImageFile,
+  PRODUCT_LANDSCAPE_IMAGE_SPEC,
+  PRODUCT_PORTRAIT_IMAGE_SPEC,
+} from "@/lib/product-image";
 import { PRODUCT_IMAGE_ASPECT } from "@/lib/product-card-spec";
+import { getProductLandscapeImage } from "@/lib/product-spec";
 import {
   BADGE_COLOR_PRESETS,
   BADGE_TEXT_MAX,
@@ -29,15 +35,7 @@ import {
 import { toast } from "sonner";
 import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
 import { cropSelectLabel, cropToCropInfo } from "@/lib/crop-info";
-
-const emptyCrop = {
-  beanName: "",
-  country: "",
-  process: "",
-  variety: "",
-  altitude: "",
-  notes: "",
-};
+import { nextSortOrder, sortCatalogManual } from "@/lib/catalog-order";
 
 const Products = () => {
   const [venue, updateVenue] = useVenueData();
@@ -56,15 +54,16 @@ const Products = () => {
   const [descriptionEn, setDescriptionEn] = useState("");
   const [price, setPrice] = useState("");
   const [calories, setCalories] = useState("");
-  const [image, setImage] = useState("");
+  const [imageLandscape, setImageLandscape] = useState("");
+  const [imagePortrait, setImagePortrait] = useState("");
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
   const [hasCrop, setHasCrop] = useState(false);
   const [linkedCropId, setLinkedCropId] = useState("");
-  const [crop, setCrop] = useState(emptyCrop);
   const [hasBadge, setHasBadge] = useState(false);
   const [badgeText, setBadgeText] = useState("");
   const [badgeTextEn, setBadgeTextEn] = useState("");
   const [badgeColor, setBadgeColor] = useState("#dc2626");
+  const [sortOrder, setSortOrder] = useState("");
 
   const isEditing = editingId !== null;
 
@@ -75,15 +74,16 @@ const Products = () => {
     setDescriptionEn("");
     setPrice("");
     setCalories("");
-    setImage("");
+    setImageLandscape("");
+    setImagePortrait("");
     setSelectedAllergens([]);
     setHasCrop(false);
     setLinkedCropId("");
-    setCrop(emptyCrop);
     setHasBadge(false);
     setBadgeText("");
     setBadgeTextEn("");
     setBadgeColor("#dc2626");
+    setSortOrder("");
     setCategoryId(categories[0]?.id ?? "");
   };
 
@@ -95,31 +95,36 @@ const Products = () => {
     setDescriptionEn(p.descriptionEn ?? "");
     setPrice(String(p.price));
     setCalories(String(p.calories));
-    setImage(p.image ?? "");
+    const landscape = p.imageLandscape?.trim() || p.image?.trim() || "";
+    setImageLandscape(landscape);
+    setImagePortrait(p.imagePortrait?.trim() || "");
     setSelectedAllergens(
       parseAllergensIds(p.allergens).length > 0
         ? parseAllergensIds(p.allergens)
         : parseAllergensIds(p.allergensEn),
     );
-    if (p.cropInfo) {
+    if (p.cropId && crops.some((c) => c.id === p.cropId)) {
       setHasCrop(true);
-      setCrop({ ...emptyCrop, ...p.cropInfo });
-      setLinkedCropId(p.cropId && crops.some((c) => c.id === p.cropId) ? p.cropId : "");
+      setLinkedCropId(p.cropId);
+    } else if (p.cropInfo) {
+      setHasCrop(true);
+      setLinkedCropId("");
     } else {
       setHasCrop(false);
       setLinkedCropId("");
-      setCrop(emptyCrop);
     }
     const hasBadgeData = Boolean(p.badgeText?.trim() && p.badgeColor?.trim());
     setHasBadge(hasBadgeData);
     setBadgeText(p.badgeText ?? "");
     setBadgeTextEn(p.badgeTextEn ?? "");
     setBadgeColor(normalizeBadgeColor(p.badgeColor));
+    setSortOrder(p.sortOrder != null ? String(p.sortOrder) : "");
   };
 
   const openCreate = () => {
     setEditingId(null);
     reset();
+    setSortOrder(String(nextSortOrder(list)));
     setOpen(true);
   };
 
@@ -137,31 +142,59 @@ const Products = () => {
     }
   };
 
-  const buildProduct = (id: string): Product => ({
-    id,
-    categoryId: categoryId || categories[0]?.id || "",
-    name: name.trim(),
-    description: description.trim(),
-    price: Number(price) || 0,
-    calories: Number(calories) || 0,
-    image: image || undefined,
-    nameEn: nameEn.trim() || undefined,
-    descriptionEn: descriptionEn.trim() || undefined,
-    allergens: formatAllergensString(selectedAllergens, "ar"),
-    allergensEn: formatAllergensString(selectedAllergens, "en"),
-    cropInfo: hasCrop ? { ...crop } : undefined,
-    cropId: hasCrop && linkedCropId ? linkedCropId : undefined,
-    ...(hasBadge && badgeText.trim()
-      ? {
-          badgeText: badgeText.trim().slice(0, BADGE_TEXT_MAX),
-          badgeTextEn: badgeTextEn.trim().slice(0, BADGE_TEXT_MAX) || undefined,
-          badgeColor: normalizeBadgeColor(badgeColor),
-        }
-      : {}),
-  });
+  const buildProduct = (id: string): Product => {
+    const parsedOrder = Number(sortOrder);
+    const landscape = imageLandscape.trim();
+    const portrait = imagePortrait.trim();
+    const selectedCrop = hasCrop ? crops.find((c) => c.id === linkedCropId) : undefined;
+
+    return {
+      id,
+      categoryId: categoryId || categories[0]?.id || "",
+      name: name.trim(),
+      description: description.trim(),
+      price: Number(price) || 0,
+      calories: Number(calories) || 0,
+      imageLandscape: landscape,
+      imagePortrait: portrait,
+      image: landscape,
+      nameEn: nameEn.trim() || undefined,
+      descriptionEn: descriptionEn.trim() || undefined,
+      allergens: formatAllergensString(selectedAllergens, "ar"),
+      allergensEn: formatAllergensString(selectedAllergens, "en"),
+      cropInfo: selectedCrop ? cropToCropInfo(selectedCrop) : undefined,
+      cropId: selectedCrop?.id,
+      sortOrder: Number.isFinite(parsedOrder) && sortOrder.trim() !== "" ? parsedOrder : undefined,
+      ...(hasBadge && badgeText.trim()
+        ? {
+            badgeText: badgeText.trim().slice(0, BADGE_TEXT_MAX),
+            badgeTextEn: badgeTextEn.trim().slice(0, BADGE_TEXT_MAX) || undefined,
+            badgeColor: normalizeBadgeColor(badgeColor),
+          }
+        : {}),
+    };
+  };
 
   const save = () => {
     if (!name.trim() || categories.length === 0) return;
+    if (!imageLandscape.trim()) {
+      toast.error("صورة المنتج العرضية مطلوبة");
+      return;
+    }
+    if (!imagePortrait.trim()) {
+      toast.error("صورة المنتج العمودية مطلوبة");
+      return;
+    }
+    if (hasCrop) {
+      if (crops.length === 0) {
+        toast.error("أضف محاصيل من صفحة المحاصيل أولاً");
+        return;
+      }
+      if (!linkedCropId) {
+        toast.error("اختر محصولاً من القائمة");
+        return;
+      }
+    }
 
     if (isEditing && editingId) {
       const updated = buildProduct(editingId);
@@ -181,11 +214,13 @@ const Products = () => {
     setOpen(false);
   };
 
-  const filtered = list.filter((p) => {
-    const matchCat = filter === "all" || p.categoryId === filter;
-    const matchQ = !q || p.name.includes(q);
-    return matchCat && matchQ;
-  });
+  const filtered = sortCatalogManual(
+    list.filter((p) => {
+      const matchCat = filter === "all" || p.categoryId === filter;
+      const matchQ = !q || p.name.includes(q);
+      return matchCat && matchQ;
+    }),
+  );
 
   const remove = (id: string) =>
     updateVenue((v) => ({ ...v, products: v.products.filter((p) => p.id !== id) }));
@@ -195,6 +230,19 @@ const Products = () => {
       <div className="grid grid-cols-2 gap-4 py-2">
         <FieldP label="اسم المنتج (عربي)" value={name} onChange={setName} />
         <FieldP label="Product Name (English)" value={nameEn} onChange={setNameEn} ltr />
+        <div className="space-y-2">
+          <Label className="text-xs">رقم الترتيب</Label>
+          <Input
+            type="number"
+            min={1}
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            placeholder="1 = أولاً"
+            className="h-11 rounded-xl"
+            dir="ltr"
+          />
+          <p className="text-[11px] text-muted-foreground">الأصغر يظهر أولاً عند تفعيل الترتيب اليدوي في الثيم</p>
+        </div>
         <div className="space-y-2 col-span-2">
           <Label className="text-xs">الوصف (عربي)</Label>
           <Textarea
@@ -228,41 +276,33 @@ const Products = () => {
         </div>
         <FieldP label="السعر" value={price} onChange={setPrice} type="number" />
         <FieldP label="السعرات" value={calories} onChange={setCalories} type="number" />
-        <div className="col-span-2 space-y-2">
-          <Label className="text-xs">صورة المنتج (اختياري)</Label>
-          <p className="text-[10px] leading-relaxed text-muted-foreground">
-            المقاس المفضل:{" "}
-            <span className="font-bold text-foreground/80">
-              {PRODUCT_IMAGE_SPEC.recommendedWidth}×{PRODUCT_IMAGE_SPEC.recommendedHeight}
-            </span>{" "}
-            بكسل (250×270) — تُعاد المعالجة تلقائياً لملء إطار البطاقة. الحد الأدنى{" "}
-            {PRODUCT_IMAGE_SPEC.minWidth}×{PRODUCT_IMAGE_SPEC.minHeight} بكسل.
-          </p>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={async (e) => {
-              const f = e.target.files?.[0];
-              if (!f) return;
-              const loading = toast.loading("جاري معالجة صورة المنتج…");
-              try {
-                const dataUrl = await processProductImageFile(f);
-                setImage(dataUrl);
-                toast.success("تم رفع صورة المنتج", { id: loading });
-              } catch (err) {
-                toast.error(err instanceof Error ? err.message : "تعذّر رفع الصورة", { id: loading });
-              }
-              e.target.value = "";
-            }}
-            className="text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-secondary file:font-bold file:text-foreground hover:file:bg-secondary/70"
-          />
-          {image && (
-            <img
-              src={image}
-              alt=""
-              className="h-20 w-20 rounded-lg object-cover border border-border"
+        <div className="col-span-2 space-y-3 rounded-2xl border border-border bg-secondary/40 p-4">
+          <div>
+            <Label className="text-xs font-bold">صور المنتج</Label>
+            <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+              الصورتان مطلوبتان — عرضية للمنيو والبطاقات، وعمودية لتفاصيل المنتج.
+            </p>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <ProductImageUploadSlot
+              label="صورة عرضية *"
+              hint={`${PRODUCT_LANDSCAPE_IMAGE_SPEC.recommendedWidth}×${PRODUCT_LANDSCAPE_IMAGE_SPEC.recommendedHeight} بكسل (16:9) — بطاقات المنيو والمعاينة`}
+              previewClassName="h-24 w-full rounded-lg object-cover"
+              value={imageLandscape}
+              onUpload={processProductLandscapeImageFile}
+              onChange={setImageLandscape}
+              onClear={() => setImageLandscape("")}
             />
-          )}
+            <ProductImageUploadSlot
+              label="صورة عمودية *"
+              hint={`${PRODUCT_PORTRAIT_IMAGE_SPEC.recommendedWidth}×${PRODUCT_PORTRAIT_IMAGE_SPEC.recommendedHeight} بكسل (3:4) — تفاصيل المنتج`}
+              previewClassName="mx-auto h-36 w-28 rounded-lg object-cover"
+              value={imagePortrait}
+              onUpload={processProductPortraitImageFile}
+              onChange={setImagePortrait}
+              onClear={() => setImagePortrait("")}
+            />
+          </div>
         </div>
 
         <div className="col-span-2 border border-border rounded-2xl p-4 bg-secondary/40 space-y-3">
@@ -358,66 +398,44 @@ const Products = () => {
             <input
               type="checkbox"
               checked={hasCrop}
-              onChange={(e) => setHasCrop(e.target.checked)}
-              className="w-4 h-4 accent-accent"
+              onChange={(e) => {
+                const checked = e.target.checked;
+                setHasCrop(checked);
+                if (!checked) setLinkedCropId("");
+              }}
+              disabled={crops.length === 0}
+              className="w-4 h-4 accent-accent disabled:opacity-40"
             />
             <Sprout className="w-4 h-4 text-accent-foreground" />
-            <span className="font-bold text-sm">إضافة معلومات محاصيل (للبن المختص)</span>
+            <span className="font-bold text-sm">ربط بمحصول من المنصة</span>
           </label>
-          {hasCrop && (
-            <div className="space-y-3">
-              {crops.length > 0 ? (
-                <div className="space-y-2">
-                  <Label className="text-xs">ربط بمحصول من الحساب</Label>
-                  <select
-                    value={linkedCropId}
-                    onChange={(e) => {
-                      const id = e.target.value;
-                      setLinkedCropId(id);
-                      const selected = crops.find((c) => c.id === id);
-                      if (selected) setCrop(cropToCropInfo(selected));
-                    }}
-                    className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
-                  >
-                    <option value="">— اختر محصول —</option>
-                    {crops.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {cropSelectLabel(c)}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    اختر محصولاً مضافاً مسبقاً لملء الحقول تلقائياً، أو عدّلها يدوياً أدناه.
-                  </p>
-                </div>
-              ) : (
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  لا توجد محاصيل في الحساب بعد. أضف محصولاً من صفحة «المحاصيل» أو أدخل المعلومات يدوياً.
-                </p>
-              )}
-              <div className="grid grid-cols-2 gap-3">
-                {(
-                  [
-                    ["beanName", "اسم المحصول"],
-                    ["country", "البلد"],
-                    ["process", "المعالجة"],
-                    ["variety", "السلالة"],
-                    ["altitude", "الارتفاع"],
-                    ["notes", "الإيحاءات"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <FieldP
-                    key={key}
-                    label={label}
-                    value={crop[key]}
-                    onChange={(v) => {
-                      setLinkedCropId("");
-                      setCrop({ ...crop, [key]: v });
-                    }}
-                  />
+          {crops.length === 0 ? (
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              لا توجد محاصيل بعد. أضف محاصيل من صفحة «المحاصيل» ثم اخترها هنا.
+            </p>
+          ) : hasCrop ? (
+            <div className="space-y-2">
+              <Label className="text-xs">اختر المحصول *</Label>
+              <select
+                value={linkedCropId}
+                onChange={(e) => setLinkedCropId(e.target.value)}
+                className="h-11 w-full rounded-xl border border-input bg-background px-3 text-sm"
+              >
+                <option value="">— اختر محصول —</option>
+                {crops.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {cropSelectLabel(c)}
+                  </option>
                 ))}
-              </div>
+              </select>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                يُعرض اسم المحصول بالعربية في المنيو حتى عند اختيار الإنجليزية.
+              </p>
             </div>
+          ) : (
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              فعّل الخيار لربط المنتج بمحصول مضاف مسبقاً في المنصة.
+            </p>
           )}
         </div>
       </div>
@@ -509,15 +527,16 @@ const Products = () => {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((p) => {
             const cat = categories.find((c) => c.id === p.categoryId);
+            const previewImage = getProductLandscapeImage(p);
             return (
               <div
                 key={p.id}
                 className="group bg-card rounded-2xl border border-border overflow-hidden hover:shadow-warm hover:border-accent/40 transition-all"
               >
                 <div className="bg-secondary relative overflow-hidden" style={{ aspectRatio: PRODUCT_IMAGE_ASPECT }}>
-                  {p.image ? (
+                  {previewImage ? (
                     <img
-                      src={p.image}
+                      src={previewImage}
                       alt={p.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
@@ -538,7 +557,14 @@ const Products = () => {
                 </div>
                 <div className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <h3 className="font-display font-bold text-primary leading-tight">{p.name}</h3>
+                    <h3 className="font-display font-bold text-primary leading-tight">
+                      {p.sortOrder != null && (
+                        <span className="me-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-secondary px-1 text-[10px] font-black text-muted-foreground">
+                          #{p.sortOrder}
+                        </span>
+                      )}
+                      {p.name}
+                    </h3>
                     <span className="font-display font-black text-accent shrink-0">
                       {p.price} <Riyal />
                     </span>
@@ -606,6 +632,64 @@ const FieldP = ({
 }) => (
   <div className="space-y-2">
     <Label className="text-xs">{label}</Label>
+    <Input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`h-11 rounded-xl ${ltr ? "text-left" : ""}`}
+      dir={ltr ? "ltr" : undefined}
+    />
+  </div>
+);
+
+const ProductImageUploadSlot = ({
+  label,
+  hint,
+  value,
+  previewClassName,
+  onUpload,
+  onChange,
+  onClear,
+}: {
+  label: string;
+  hint: string;
+  value?: string;
+  previewClassName: string;
+  onUpload: (file: File) => Promise<string>;
+  onChange: (dataUrl: string) => void;
+  onClear: () => void;
+}) => (
+  <div className="space-y-2 rounded-xl border border-border bg-card/60 p-3">
+    <Label className="text-xs font-bold">{label}</Label>
+    <p className="text-[11px] text-muted-foreground leading-relaxed">{hint}</p>
+    <input
+      type="file"
+      accept="image/*"
+      onChange={async (e) => {
+        const f = e.target.files?.[0];
+        if (!f) return;
+        const loading = toast.loading("جاري معالجة الصورة…");
+        try {
+          const dataUrl = await onUpload(f);
+          onChange(dataUrl);
+          toast.success("تم رفع الصورة", { id: loading });
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "تعذّر رفع الصورة", { id: loading });
+        }
+        e.target.value = "";
+      }}
+      className="text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-secondary file:font-bold file:text-foreground"
+    />
+    {value ? (
+      <div className="space-y-2">
+        <img src={value} alt="" className={previewClassName} />
+        <Button type="button" variant="ghost" size="sm" className="h-8 text-xs" onClick={onClear}>
+          إزالة الصورة
+        </Button>
+      </div>
+    ) : null}
+  </div>
+);
     <Input
       type={type}
       value={value}

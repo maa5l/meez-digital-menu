@@ -7,6 +7,7 @@ import {
   type WebViewProps,
 } from "react-native-webview";
 import { APP_BACKGROUND } from "@/components/AppShell";
+import { Logo } from "@/components/Brand";
 import { logger } from "@/lib/logger";
 import { classifyUserFacingError } from "@/lib/user-facing-errors";
 import { isBlockedMenuUrl } from "@/lib/blocked-menu-hosts";
@@ -388,12 +389,11 @@ export function MenuWebView({
       />
       {isLoading && !loadError && (
         <View style={styles.loadingOverlay} pointerEvents="none">
-          <ActivityIndicator size="large" color="#c4a35a" />
+          <Logo size={112} />
+          <Text style={styles.loadingBrand}>Meez</Text>
+          <ActivityIndicator size="small" color="#c4a35a" />
           <Text style={styles.loadingText}>
-            {awaitingReady ? "جاري تجهيز المنيو…" : "جاري تحميل المنيو…"}
-          </Text>
-          <Text style={styles.loadingUrl} numberOfLines={2}>
-            {menuUrl}
+            {awaitingReady ? "Preparing menu…" : "Loading menu…"}
           </Text>
         </View>
       )}
@@ -416,15 +416,21 @@ const styles = StyleSheet.create({
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: APP_BACKGROUND,
+    backgroundColor: "#1a1510",
     alignItems: "center",
     justifyContent: "center",
-    gap: 16,
+    gap: 14,
     paddingHorizontal: 24,
   },
+  loadingBrand: {
+    color: "#f8f1e4",
+    fontSize: 28,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+  },
   loadingText: {
-    color: "rgba(248,241,228,0.85)",
-    fontSize: 15,
+    color: "rgba(248,241,228,0.7)",
+    fontSize: 14,
   },
   loadingUrl: {
     color: "rgba(196,163,90,0.85)",

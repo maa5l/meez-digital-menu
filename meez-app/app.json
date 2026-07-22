@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "ميز",
+    "name": "Meez",
     "slug": "d",
     "owner": "asd2335ras54",
     "version": "1.0.0",
@@ -11,8 +11,8 @@
     "backgroundColor": "#1a1510",
     "newArchEnabled": false,
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "cover",
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#1a1510"
     },
     "ios": {
@@ -25,12 +25,11 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#1a1510"
       },
       "package": "com.meez.kiosk",
-      "versionCode": 2,
+      "versionCode": 3,
       "softwareKeyboardLayoutMode": "pan",
       "backgroundColor": "#1a1510",
       "usesCleartextTraffic": true
@@ -54,8 +53,8 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#1a1510",
-          "image": "./assets/splash-icon.png",
-          "resizeMode": "cover"
+          "image": "./assets/icon.png",
+          "resizeMode": "contain"
         }
       ],
       "expo-asset",

@@ -55,6 +55,7 @@ export function useMenuVenue(
   const [syncNotice, setSyncNotice] = useState<UserFacingError | null>(null);
   const [syncError, setSyncError] = useState<UserFacingError | null>(null);
   const mountedRef = useRef(true);
+  const catalogResolvedRef = useRef(false);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const syncNoticeTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -89,6 +90,7 @@ export function useMenuVenue(
         if (mountedRef.current) {
           setVenue(createEmptyVenueData());
           setIsCatalogResolved(false);
+          catalogResolvedRef.current = false;
           setIsSyncing(false);
           setSyncNotice(null);
           setSyncError(null);
@@ -97,7 +99,7 @@ export function useMenuVenue(
       }
 
       setIsSyncing(true);
-      setSyncError(null);
+      if (!catalogResolvedRef.current) setSyncError(null);
 
       try {
         if (isPreview) {
@@ -123,7 +125,8 @@ export function useMenuVenue(
           if (!navigator.onLine) {
             const offline = classifyUserFacingError(new Error("offline"), { online: false });
             if (mountedRef.current) {
-              setSyncError(offline);
+              // لا تُظهر بانر خطأ أثناء عرض منيو محمّل — أعد المحاولة بصمت
+              if (!catalogResolvedRef.current) setSyncError(offline);
               scheduleAutoRetry(() => void reloadFull(true));
             }
             if (mountedRef.current) setVenue(loadVenueForDevice(deviceCode));
@@ -150,7 +153,8 @@ export function useMenuVenue(
           logLabel: classified.logLabel,
         });
         if (mountedRef.current) {
-          setSyncError(classified);
+          // بعد تحميل المنيو: فشل المزامنة لا يُظهر شاشة/بانر خطأ كل بضع ثوانٍ
+          if (!catalogResolvedRef.current) setSyncError(classified);
           if (classified.autoRetry) scheduleAutoRetry(() => void reloadFull(true));
         }
       } finally {
@@ -158,7 +162,10 @@ export function useMenuVenue(
           setIsSyncing(false);
           if (!force) setSyncNotice(null);
         }
-        if (mountedRef.current && ready) setIsCatalogResolved(true);
+        if (mountedRef.current && ready) {
+          setIsCatalogResolved(true);
+          catalogResolvedRef.current = true;
+        }
       }
     },
     [deviceCode, isPreview, ready, load, scheduleAutoRetry, flashSyncNotice],
@@ -174,7 +181,7 @@ export function useMenuVenue(
   );
 
   const reloadThrottled = useMemo(
-    () => throttle(() => void reloadFull(false), isMenuKioskContext() ? 8_000 : 30_000),
+    () => throttle(() => void reloadFull(false), isMenuKioskContext() ? 5_000 : 30_000),
     [reloadFull],
   );
 

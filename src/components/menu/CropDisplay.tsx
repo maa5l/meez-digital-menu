@@ -2,7 +2,7 @@ import { localizeCrop } from "@/lib/crop-i18n";
 import type { Crop } from "@/types/domain";
 import type { MenuLang } from "@/lib/product-i18n";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { ChevronRight, Sparkles } from "lucide-react";
 
 /** عنصر القائمة الجانبية — بطاقة محصول مدمجة */
 export const CropListItemLabel = ({
@@ -24,19 +24,14 @@ export const CropListItemLabel = ({
     .join(" · ");
 
   return (
-    <div
-      className={cn(
-        "flex w-full items-center gap-3 text-start",
-        lang === "ar" ? "flex-row-reverse" : "flex-row",
-      )}
-    >
+    <div className="flex w-full items-center gap-3 text-start flex-row">
+      <ChevronRight className={cn("h-4 w-4 shrink-0", active ? "text-white/70" : "text-[#1a1a1a]/30")} />
       <div className="min-w-0 flex-1">
         <div
           dir={lang === "ar" ? "rtl" : "ltr"}
           className={cn(
-            "truncate font-display font-black leading-tight",
+            "truncate font-display font-black leading-tight text-[20px]",
             active ? "text-white" : "text-[#1a1a1a]",
-            "text-sm md:text-base",
           )}
         >
           {localized.beanName}
@@ -44,7 +39,7 @@ export const CropListItemLabel = ({
         {subtitle && (
           <div
             className={cn(
-              "mt-0.5 truncate text-xs font-semibold",
+              "mt-0.5 truncate text-[18px] font-semibold",
               active ? "text-white/75" : "text-[#1a1a1a]/50",
             )}
           >
@@ -52,20 +47,13 @@ export const CropListItemLabel = ({
           </div>
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-1.5">
-        {featured && (
-          <Sparkles
-            className={cn("h-3.5 w-3.5", active ? "text-white/90" : "opacity-70")}
-            style={!active && accentColor ? { color: accentColor } : undefined}
-            aria-hidden
-          />
-        )}
-        {lang === "ar" ? (
-          <ChevronLeft className={cn("h-4 w-4", active ? "text-white/70" : "text-[#1a1a1a]/30")} />
-        ) : (
-          <ChevronRight className={cn("h-4 w-4", active ? "text-white/70" : "text-[#1a1a1a]/30")} />
-        )}
-      </div>
+      {featured && (
+        <Sparkles
+          className={cn("h-3.5 w-3.5 shrink-0", active ? "text-white/90" : "opacity-70")}
+          style={!active && accentColor ? { color: accentColor } : undefined}
+          aria-hidden
+        />
+      )}
     </div>
   );
 };

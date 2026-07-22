@@ -9,6 +9,7 @@ import { MenuErrorBoundary } from "@/components/menu/MenuErrorBoundary";
 import { MenuSyncBanner } from "@/components/menu/MenuSyncBanner";
 import { KioskSubscriptionBlocked } from "@/components/subscription/KioskSubscriptionBlocked";
 import { useMenuVenue, type MenuVenueResult } from "@/hooks/useMenuVenue";
+import { useOrderedCatalog } from "@/hooks/useOrderedCatalog";
 import { getDeviceMenuType, getDeviceMenuTypeAsync } from "@/lib/venue-store";
 import {
   getPendingDeviceCode,
@@ -76,12 +77,21 @@ const MenuDisplay = () => {
     let cancelled = false;
 
     const verify = async (silent = false) => {
-      if (!(silent && kioskMode)) {
+      if (!silent) {
         setGate((g) => ({ ...g, registrationStatus: "checking" }));
       }
       const result = await evaluateKioskGate(code);
       if (cancelled) return;
-      setGate(result);
+      setGate((prev) => {
+        // أخطاء RPC عابرة لا تُفرغ جلسة المنيو النشطة ولا تُظهر شاشة خطأ
+        if (
+          result.reason === "check_failed" &&
+          (prev.allowed || prev.registrationStatus === "registered")
+        ) {
+          return prev;
+        }
+        return result;
+      });
     };
 
     void verify(false);
@@ -92,7 +102,8 @@ const MenuDisplay = () => {
     const pollId =
       pollMs > 0
         ? window.setInterval(() => {
-            if (!document.hidden && !cancelled) void verify();
+            // صامت دائماً — لا شاشة «جاري التحقق» كل دقيقة
+            if (!document.hidden && !cancelled) void verify(true);
           }, pollMs)
         : undefined;
 
@@ -217,6 +228,9 @@ const MenuDisplayShell = ({
   const { lang } = useMenuLang();
   const ui = getMenuUi(lang);
 
+  const orderedProducts = useOrderedCatalog(venue.products, settings.productsOrderMode);
+  const orderedCrops = useOrderedCatalog(venue.crops, settings.cropsOrderMode);
+
   const catalogEmpty = type === "crops" ? cropsEmpty : productsEmpty;
 
   // Shell handshake: only after catalog resolved + first paint
@@ -239,7 +253,7 @@ const MenuDisplayShell = ({
 
   return (
     <div
-      className="relative h-screen overflow-hidden flex flex-col"
+      className="menu-display-root relative h-screen overflow-hidden flex flex-col"
       dir={lang === "ar" ? "rtl" : "ltr"}
       style={palettePageStyle(pagePalette)}
     >
@@ -257,9 +271,9 @@ const MenuDisplayShell = ({
           cropsEmpty ? (
             <MenuEmptyState settings={settings} type="crops" />
           ) : cropsTpl === "molo" ? (
-            <CropsTemplateMolo settings={settings} crops={venue.crops} />
+            <CropsTemplateMolo settings={settings} crops={orderedCrops} />
           ) : (
-            <CropsTemplatePureShelf settings={settings} crops={venue.crops} />
+            <CropsTemplatePureShelf settings={settings} crops={orderedCrops} />
           )
         ) : productsEmpty ? (
           <MenuEmptyState settings={settings} type="products" />
@@ -267,13 +281,13 @@ const MenuDisplayShell = ({
           <TemplateProductsDetail
             settings={settings}
             categories={venue.categories}
-            products={venue.products}
+            products={orderedProducts}
           />
         ) : (
           <TemplateProductsFeatured
             settings={settings}
             categories={venue.categories}
-            products={venue.products}
+            products={orderedProducts}
           />
         )}
       </div>

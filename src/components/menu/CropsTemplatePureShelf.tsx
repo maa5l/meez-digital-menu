@@ -1,26 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Crop, MenuSettings } from "@/types/domain";
-import CropDetailModal from "@/components/menu/CropDetailModal";
-import CropHeroImage from "@/components/menu/crop/CropHeroImage";
+import CropCenteredCard from "@/components/menu/crop/CropCenteredCard";
 import { CropListItemLabel } from "@/components/menu/CropDisplay";
 import { MenuCropsTopChrome } from "@/components/menu/MenuCropsTopChrome";
 import { useMenuLang } from "@/context/MenuLangContext";
 import { useMenuKioskSync } from "@/hooks/useMenuKioskSync";
-import { buildCropProfile } from "@/lib/crop-profile";
 import { getCropsHeaderCustomization, isCropsLangToggleEnabled } from "@/lib/menu-header-settings";
 import { getCropsPalette, palettePageStyle } from "@/lib/menu-palette";
 import { menuContentEnter } from "@/lib/menu-header";
 import { cn } from "@/lib/utils";
 
+/** تمرير تلقائي بين المحاصيل — لهذه الشاشة فقط */
+const CROP_AUTO_ADVANCE_MS = 10_000;
+
 /**
- * Crops Template — قائمة جانبية + معاينة مختصرة؛ التفاصيل الكاملة في نافذة منبثقة.
+ * Crops Template — قائمة جانبية + معاينة بصورة كاملة (بدون نافذة تفاصيل).
  */
 const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; crops: Crop[] }) => {
   const { lang, toggleLang } = useMenuLang();
-  const [modal, setModal] = useState<Crop | null>(null);
   const cropsHeader = getCropsHeaderCustomization(settings);
   const showLang = isCropsLangToggleEnabled(settings);
   const hideHeader = cropsHeader.hideHeader === true;
+  const listRef = useRef<HTMLDivElement>(null);
 
   const initial = crops.find((c) => c.id === settings.featuredCropId) || crops[0]!;
   const [active, setActive] = useState<Crop>(initial);
@@ -36,13 +37,27 @@ const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; c
     setActive((prev) => (crops.some((c) => c.id === prev.id) ? prev : next));
   }, [crops, settings.featuredCropId]);
 
+  // تمرير تلقائي كل 10 ثوانٍ
   useEffect(() => {
-    if (!modal) return;
-    const fresh = crops.find((c) => c.id === modal.id);
-    if (fresh) setModal(fresh);
-  }, [crops, modal]);
+    if (crops.length < 2) return;
 
-  const profile = buildCropProfile(active, lang);
+    const id = window.setInterval(() => {
+      setActive((prev) => {
+        const idx = crops.findIndex((c) => c.id === prev.id);
+        const next = crops[(idx + 1) % crops.length];
+        return next ?? prev;
+      });
+    }, CROP_AUTO_ADVANCE_MS);
+
+    return () => window.clearInterval(id);
+  }, [crops]);
+
+  useEffect(() => {
+    const root = listRef.current;
+    if (!root) return;
+    const el = root.querySelector<HTMLElement>(`[data-crop-id="${active.id}"]`);
+    el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [active.id]);
 
   return (
     <div
@@ -67,7 +82,10 @@ const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; c
             menuContentEnter,
           )}
         >
-          <aside className="order-2 flex min-h-0 flex-col gap-2 overflow-y-auto overscroll-y-contain md:order-1">
+          <aside
+            ref={listRef}
+            className="order-2 flex min-h-0 flex-col gap-2 overflow-y-auto overscroll-y-contain md:order-1"
+          >
             {crops.map((c) => {
               const isActive = c.id === active.id;
               const isFeatured = c.id === settings.featuredCropId;
@@ -75,10 +93,8 @@ const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; c
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => {
-                    setActive(c);
-                    setModal(c);
-                  }}
+                  data-crop-id={c.id}
+                  onClick={() => setActive(c)}
                   className={cn(
                     "w-full rounded-2xl px-4 py-3.5 text-start transition-all touch-manipulation",
                     "ring-1 ring-black/[0.04]",
@@ -103,44 +119,20 @@ const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; c
           </aside>
 
           <div className="order-1 min-h-0 overflow-hidden md:order-2">
-            <button
-              type="button"
-              onClick={() => setModal(active)}
-              className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-[1.75rem] bg-white/70 text-start shadow-lg ring-1 ring-black/[0.05] touch-manipulation transition-transform active:scale-[0.995]"
-            >
-              <CropHeroImage
-                imageUrl={active.image}
-                alt={profile.localized.beanName}
-                lang={lang}
-                className="max-h-[58%] shrink-0 rounded-none"
-              />
-              <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 px-5 py-4 text-center">
-                <h2
-                  className="font-display text-2xl font-black leading-tight md:text-3xl"
-                  style={{ color: palette.textColor }}
-                  dir={lang === "ar" ? "rtl" : "ltr"}
-                >
-                  {profile.localized.beanName}
-                </h2>
-                <p className="text-sm font-semibold opacity-60" style={{ color: palette.textColor }}>
-                  {lang === "ar" ? "اضغط لعرض التفاصيل" : "Tap for details"}
-                </p>
-              </div>
-            </button>
+            <CropCenteredCard
+              key={active.id}
+              crop={active}
+              lang={lang}
+              accentColor={palette.accentColor}
+              fallbackTextColor={palette.textColor}
+              featured={active.id === settings.featuredCropId}
+              variant="feature"
+              scrollable
+              className="h-full min-h-0 w-full shadow-lg"
+            />
           </div>
         </div>
       </MenuCropsTopChrome>
-
-      {modal && (
-        <CropDetailModal
-          crop={modal}
-          lang={lang}
-          accent={palette.accentColor}
-          fallbackTextColor={palette.textColor}
-          featured={modal.id === settings.featuredCropId}
-          onClose={() => setModal(null)}
-        />
-      )}
     </div>
   );
 };

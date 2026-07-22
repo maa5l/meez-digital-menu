@@ -29,6 +29,8 @@ const menuHeaderCustomizationSchema = z.object({
 export const menuSettingsSchema = z.object({
   productTemplate: z.enum(["featured", "detail"]),
   cropsTemplate: z.enum(["molo", "pureshelf"]),
+  productsOrderMode: z.enum(["manual", "random"]).optional(),
+  cropsOrderMode: z.enum(["manual", "random"]).optional(),
   productsColors: menuPaletteSchema.optional(),
   cropsColors: menuPaletteSchema.optional(),
   cropsHeader: menuHeaderCustomizationSchema.optional(),

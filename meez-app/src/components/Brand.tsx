@@ -11,7 +11,7 @@ export function Logo({ size = 56 }: { size?: number }) {
         source={LOGO}
         style={{ width, height: size }}
         resizeMode="contain"
-        accessibilityLabel="ميز"
+        accessibilityLabel="Meez"
       />
     </View>
   );

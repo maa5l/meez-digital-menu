@@ -39,14 +39,13 @@ const MenuCropsHeader = ({
       defaultTitleEn="Crop of the Month"
       embedded={embedded}
       visible={visible}
-      chromeTrailing={
+      chromeBottomLeft={
         showLang && onLangToggle ? (
           <MenuLangToggle
             lang={lang}
             onToggle={onLangToggle}
-            textColor={langColor}
-            variant="tab"
-            className="px-2.5 py-1 text-[11px] md:px-3 md:py-1.5 md:text-xs"
+            textColor={bannerSrc ? "#ffffff" : langColor}
+            className="border-white/40 bg-black/40 px-3 py-1.5 text-xs backdrop-blur-sm md:px-4 md:text-sm"
           />
         ) : undefined
       }

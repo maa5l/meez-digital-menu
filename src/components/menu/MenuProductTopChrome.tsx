@@ -142,7 +142,7 @@ export function MenuProductSubheaderBar({
 
   return (
     <div
-      className="bg-transparent px-4 py-1.5 md:px-8 md:py-2"
+      className="bg-transparent px-4 py-1 md:px-8 md:py-1"
       style={{ minHeight: layout.subheaderHeight }}
       dir="ltr"
     >
