@@ -9,8 +9,8 @@ const IPAD_LANDSCAPE = { width: 1024, height: 768 } as const;
 const IPAD_PORTRAIT = { width: 768, height: 1024 } as const;
 
 const DISPLAY_WIDTH = {
-  landscape: 360,
-  portrait: 280,
+  landscape: 320,
+  portrait: 250,
 } as const;
 
 type Props = {

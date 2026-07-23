@@ -55,7 +55,7 @@ type Props = {
 };
 
 /**
- * بطاقة منتج — صورة كاملة بدون نص + تفاصيل تحت الصورة.
+ * بطاقة منتج — صورة كاملة بدون نص + تفاصيل مضغوطة تحت الصورة.
  */
 const ProductCenteredCard = ({
   product,
@@ -67,11 +67,10 @@ const ProductCenteredCard = ({
   const localized = localizeProduct(product, lang);
   const isEn = lang === "en";
   const cropLine = cropSummary(product);
-  const hasCrop = Boolean(cropLine);
   const heroImage = getProductLandscapeImage(product) || getProductPortraitImage(product);
 
-  const labelCls = "text-[11px] font-bold leading-none opacity-55 md:text-xs";
-  const valueCls = "mt-1 text-base font-black leading-snug text-[#1a1a1a] md:text-lg";
+  const labelCls = "text-[10px] font-bold leading-none opacity-55 md:text-[11px]";
+  const valueCls = "mt-0.5 text-sm font-black leading-snug text-[#1a1a1a] md:text-base";
 
   return (
     <article
@@ -85,8 +84,8 @@ const ProductCenteredCard = ({
       }}
       aria-label={localized.name}
     >
-      {/* صورة كاملة — بدون أي نص */}
-      <div className="relative min-h-0 flex-1 overflow-hidden">
+      {/* صورة — تأخذ المساحة المتبقية */}
+      <div className="relative min-h-0 flex-1 overflow-hidden bg-[#1a1a1a]/6">
         {heroImage ? (
           <MenuProductImage
             src={heroImage}
@@ -101,50 +100,41 @@ const ProductCenteredCard = ({
         )}
       </div>
 
-      {/* قسم التفاصيل تحت الصورة */}
+      {/* قسم التفاصيل — مضغوط حسب المحتوى */}
       <div
-        className={cn(
-          "shrink-0 border-t border-black/[0.06]",
-          hasCrop
-            ? "min-h-[min(52%,320px)] max-h-[min(58%,420px)]"
-            : "max-h-[min(44%,260px)] overflow-y-auto overscroll-y-contain",
-        )}
+        className="shrink-0 border-t border-black/[0.06]"
         style={{ background: cardBg, color: "#1a1a1a" }}
       >
-        <div className="px-4 pb-4 pt-3 md:px-5 md:pb-5 md:pt-4">
-          <div className="grid grid-cols-2 grid-rows-2 gap-x-4 gap-y-3 md:gap-x-5 md:gap-y-3.5" dir="ltr">
-            {/* يسار فوق — السعر */}
+        <div className="px-3.5 py-2.5 md:px-4 md:py-3">
+          <div className="grid grid-cols-2 grid-rows-2 gap-x-3 gap-y-2 md:gap-x-4 md:gap-y-2.5" dir="ltr">
             <div className="col-start-1 row-start-1 min-w-0 text-left">
               <div className={labelCls}>{t.price}</div>
               <div className={valueCls}>
-                <PriceWithRiyal price={product.price} riyalClassName="h-4 w-4 md:h-5 md:w-5" />
+                <PriceWithRiyal price={product.price} riyalClassName="h-3.5 w-3.5 md:h-4 md:w-4" />
               </div>
             </div>
 
-            {/* يمين فوق — الاسم */}
             <div className="col-start-2 row-start-1 min-w-0 text-right">
               <div className={labelCls}>{t.name}</div>
-              <div className={valueCls} dir={lang === "ar" ? "rtl" : "ltr"}>
+              <div className={cn(valueCls, "line-clamp-2")} dir={lang === "ar" ? "rtl" : "ltr"}>
                 {localized.name}
               </div>
             </div>
 
-            {/* يسار تحت — الحساسية */}
             <div className="col-start-1 row-start-2 min-w-0 text-left">
               <div className={labelCls}>{t.allergens}</div>
-              <div className="mt-1">
+              <div className="mt-0.5">
                 <AllergenIcons
                   allergens={product.allergens}
                   allergensEn={product.allergensEn}
                   lang={lang}
-                  size="md"
+                  size="sm"
                   className="justify-start"
-                  emptyPlaceholder={<span className="opacity-40">—</span>}
+                  emptyPlaceholder={<span className="text-sm opacity-40">—</span>}
                 />
               </div>
             </div>
 
-            {/* يمين تحت — السعرات */}
             <div className="col-start-2 row-start-2 min-w-0 text-right">
               <div className={labelCls}>{t.calories}</div>
               <div className={valueCls}>{product.calories}</div>
@@ -152,12 +142,12 @@ const ProductCenteredCard = ({
           </div>
 
           {localized.description?.trim() && (
-            <div className="mt-3 border-t border-black/10 pt-3 md:mt-3.5 md:pt-3.5">
+            <div className="mt-2 border-t border-black/10 pt-2">
               <div className={cn(labelCls, isEn ? "text-left" : "text-right")}>{t.description}</div>
               <p
                 dir={isEn ? "ltr" : "rtl"}
                 className={cn(
-                  "mt-1 text-sm font-semibold leading-relaxed text-[#1a1a1a]/85 md:text-base",
+                  "mt-0.5 line-clamp-2 text-xs font-semibold leading-snug text-[#1a1a1a]/85 md:text-sm",
                   isEn ? "text-left" : "text-right",
                 )}
               >
@@ -167,11 +157,11 @@ const ProductCenteredCard = ({
           )}
 
           {cropLine && (
-            <div className="mt-3 border-t border-black/10 pt-3 text-right md:mt-3.5 md:pt-3.5">
+            <div className="mt-2 border-t border-black/10 pt-2 text-right">
               <div className={labelCls}>{t.crop}</div>
               <p
                 dir="rtl"
-                className="mt-1 text-sm font-semibold leading-relaxed opacity-85 md:text-base"
+                className="mt-0.5 line-clamp-1 text-xs font-semibold leading-snug opacity-85 md:text-sm"
               >
                 {cropLine}
               </p>

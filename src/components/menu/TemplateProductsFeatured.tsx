@@ -3,6 +3,7 @@ import type { Category, Product, MenuSettings } from "@/types/domain";
 import CategoryTabs from "@/components/menu/CategoryTabs";
 import { MenuProductSubheaderBar, MenuProductTopChrome } from "@/components/menu/MenuProductTopChrome";
 import { ProductGridCard } from "@/components/menu/ProductCardParts";
+import ProductDetailModal from "@/components/menu/ProductDetailModal";
 import { useMenuLang } from "@/context/MenuLangContext";
 import { useProductTemplateScroll } from "@/hooks/useProductTemplateScroll";
 import { getProductsHeaderCustomization, isProductsLangToggleEnabled } from "@/lib/menu-header-settings";
@@ -18,10 +19,11 @@ type Props = {
   products: Product[];
 };
 
-/** شبكة بطاقات — بدون نافذة تفاصيل منبثقة */
+/** شبكة بطاقات — الضغط يفتح نافذة التفاصيل */
 const TemplateProductsFeatured = ({ settings, categories, products }: Props) => {
   const { lang, toggleLang } = useMenuLang();
   const [activeCat, setActiveCat] = useState(() => categories[0]?.id ?? "");
+  const [modal, setModal] = useState<Product | null>(null);
   const productsHeader = getProductsHeaderCustomization(settings);
   const hideHeader = productsHeader.hideHeader === true;
   const showLang = isProductsLangToggleEnabled(settings);
@@ -100,12 +102,17 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
                 product={p}
                 lang={lang}
                 cardBg={cardBg}
+                onClick={() => setModal(p)}
               />
             ))}
           </div>
           )}
         </div>
       </MenuProductTopChrome>
+
+      {modal && (
+        <ProductDetailModal product={modal} lang={lang} onClose={() => setModal(null)} />
+      )}
     </div>
   );
 };

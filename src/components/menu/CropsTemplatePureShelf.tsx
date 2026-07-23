@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 const CROP_AUTO_ADVANCE_MS = 10_000;
 
 /**
- * Crops Template — قائمة جانبية + معاينة بصورة كاملة (بدون نافذة تفاصيل).
+ * Crops Template — قائمة جانبية + معاينة بصورة كاملة (بدون نافذة تفاصيل منبثقة).
  */
 const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; crops: Crop[] }) => {
   const { lang, toggleLang } = useMenuLang();
@@ -118,7 +118,7 @@ const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; c
             })}
           </aside>
 
-          <div className="order-1 min-h-0 overflow-hidden md:order-2">
+          <div className="order-1 min-h-0 overflow-hidden rounded-[1.75rem] md:order-2">
             <CropCenteredCard
               key={active.id}
               crop={active}

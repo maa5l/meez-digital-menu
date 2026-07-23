@@ -17,7 +17,7 @@ type Props = {
   featured?: boolean;
   className?: string;
   scrollable?: boolean;
-  /** carousel = بطاقة عرض أفقي | feature = معاينة التفاصيل | popup = تراثي (غير مستخدم في قوالب التفاصيل) */
+  /** carousel = بطاقة عرض أفقي | feature = معاينة التفاصيل | popup = نافذة منبثقة */
   variant?: "default" | "carousel" | "feature" | "popup";
   onClick?: () => void;
   style?: CSSProperties;
@@ -40,11 +40,20 @@ function CenteredField({
 }) {
   if (!value || value === "—") return null;
   return (
-    <div className="mx-auto flex w-full shrink-0 flex-col items-center text-center">
+    <div
+      className={cn(
+        "flex min-w-0 flex-col text-center",
+        large ? "gap-1 px-1" : "mx-auto w-full shrink-0 items-center",
+      )}
+    >
       <div
         className={cn(
-          "w-full text-center font-bold opacity-70",
-          large ? "text-base md:text-lg" : compact ? "text-[10px] md:text-xs" : "text-xs md:text-sm",
+          "w-full font-bold tracking-wide opacity-75",
+          large
+            ? "text-[11px] uppercase md:text-xs"
+            : compact
+              ? "text-[10px] md:text-xs"
+              : "text-xs md:text-sm",
         )}
         style={{ color: fg }}
       >
@@ -53,12 +62,12 @@ function CenteredField({
       <div
         dir={lang === "ar" ? "rtl" : "ltr"}
         className={cn(
-          "mt-1 w-full text-center font-display font-black leading-snug",
+          "w-full font-display font-black leading-snug drop-shadow-md",
           large
-            ? "text-[28px] md:text-[34px] lg:text-[40px]"
+            ? "text-[22px] md:text-[26px] lg:text-[30px]"
             : compact
-              ? "text-base md:text-lg"
-              : "text-lg md:text-xl lg:text-2xl",
+              ? "mt-1 text-base md:text-lg"
+              : "mt-1 text-lg md:text-xl lg:text-2xl",
         )}
         style={{ color: fg }}
       >
@@ -84,7 +93,6 @@ const CropCenteredCard = ({
   const isCarousel = variant === "carousel";
   const isPopup = variant === "popup";
   const isFeature = variant === "feature" || (scrollable && !isPopup);
-  /** المضغوط للكاروسيل فقط — بطاقة التفاصيل بنص كبير في الوسط */
   const isCompact = isCarousel;
   const useLargeType = isFeature || isPopup;
   const L = cropFieldLabels[lang];
@@ -100,24 +108,33 @@ const CropCenteredCard = ({
   const fg = showImage ? "#ffffff" : surface.foreground;
   const pinFeaturedBadge = Boolean(featured && (isCarousel || isPopup));
 
+  const fields = [
+    { label: L.country, value: profile.localized.country },
+    { label: L.process, value: profile.localized.process },
+    { label: L.variety, value: profile.localized.variety },
+    { label: L.altitude, value: profile.localized.altitude },
+  ].filter((f) => f.value && f.value !== "—");
+
   const content = (
     <div
       className={cn(
-        "relative z-10 flex h-full w-full min-h-0 flex-col items-center justify-center text-center",
+        "relative z-10 flex h-full w-full min-h-0 flex-col text-center",
         isCompact
-          ? "gap-2 overflow-hidden px-4 py-4 md:gap-2.5 md:px-5 md:py-5"
-          : "gap-5 px-6 py-8 md:gap-6 md:px-8 md:py-10",
+          ? "items-center justify-center gap-2 overflow-hidden px-4 py-4 md:gap-2.5 md:px-5 md:py-5"
+          : useLargeType
+            ? "items-stretch justify-center gap-4 px-5 py-5 md:gap-5 md:px-7 md:py-6 lg:gap-6 lg:px-8"
+            : "items-center justify-center gap-5 px-6 py-8 md:gap-6 md:px-8 md:py-10",
         (isFeature || isPopup) && "min-h-0 flex-1 overflow-y-auto overscroll-y-contain",
       )}
     >
       <div
         className={cn(
-          "mx-auto flex w-full min-h-0 flex-col items-center justify-center text-center",
+          "mx-auto flex w-full min-h-0 flex-col text-center",
           isCompact
-            ? "max-w-[94%] gap-2 md:gap-2.5"
-            : isPopup
-              ? "max-w-lg gap-5 sm:max-w-xl sm:gap-6 md:gap-7"
-              : "max-w-md gap-4 sm:max-w-lg sm:gap-5 md:gap-6",
+            ? "max-w-[94%] items-center justify-center gap-2 md:gap-2.5"
+            : useLargeType
+              ? "max-w-2xl items-stretch justify-center gap-4 md:gap-5"
+              : "max-w-md items-center justify-center gap-4 sm:max-w-lg sm:gap-5 md:gap-6",
         )}
       >
         {featured && !pinFeaturedBadge && !isFeature && !isPopup ? (
@@ -138,7 +155,7 @@ const CropCenteredCard = ({
           className={cn(
             "shrink-0 w-full text-center font-display font-black leading-tight drop-shadow-md",
             useLargeType
-              ? "text-[36px] md:text-[44px] lg:text-[52px]"
+              ? "text-[28px] md:text-[34px] lg:text-[40px]"
               : isCompact
                 ? "text-lg md:text-xl ipad-lg:text-2xl"
                 : "text-2xl md:text-3xl lg:text-4xl",
@@ -148,53 +165,39 @@ const CropCenteredCard = ({
           {profile.localized.beanName}
         </h2>
 
-        <div
-          className={cn(
-            "flex w-full min-h-0 flex-col items-center justify-center text-center",
-            isCompact ? "gap-1.5 md:gap-2" : "gap-4 sm:gap-5",
-          )}
-        >
-          <CenteredField
-            label={L.country}
-            value={profile.localized.country}
-            lang={lang}
-            fg={fg}
-            compact={isCompact}
-            large={useLargeType}
-          />
-          <CenteredField
-            label={L.process}
-            value={profile.localized.process}
-            lang={lang}
-            fg={fg}
-            compact={isCompact}
-            large={useLargeType}
-          />
-          <CenteredField
-            label={L.variety}
-            value={profile.localized.variety}
-            lang={lang}
-            fg={fg}
-            compact={isCompact}
-            large={useLargeType}
-          />
-          <CenteredField
-            label={L.altitude}
-            value={profile.localized.altitude}
-            lang={lang}
-            fg={fg}
-            compact={isCompact}
-            large={useLargeType}
-          />
-        </div>
+        {fields.length > 0 && (
+          <div
+            className={cn(
+              "w-full min-h-0",
+              useLargeType
+                ? "grid grid-cols-2 gap-x-4 gap-y-4 md:gap-x-6 md:gap-y-5"
+                : cn(
+                    "flex flex-col items-center justify-center",
+                    isCompact ? "gap-1.5 md:gap-2" : "gap-4 sm:gap-5",
+                  ),
+            )}
+          >
+            {fields.map((f) => (
+              <CenteredField
+                key={f.label}
+                label={f.label}
+                value={f.value}
+                lang={lang}
+                fg={fg}
+                compact={isCompact}
+                large={useLargeType}
+              />
+            ))}
+          </div>
+        )}
 
         {profile.localized.notes && (
           <p
             dir={lang === "ar" ? "rtl" : "ltr"}
             className={cn(
-              "shrink-0 w-full text-center font-bold leading-relaxed opacity-90",
+              "shrink-0 w-full text-center font-bold leading-relaxed opacity-95 drop-shadow-md",
               useLargeType
-                ? "max-w-xl text-[22px] md:text-[28px] lg:text-[32px] drop-shadow-md"
+                ? "mx-auto max-w-xl text-[16px] md:text-[18px] lg:text-[20px]"
                 : isCompact
                   ? "line-clamp-2 max-w-full text-xs md:text-sm"
                   : "max-w-sm text-base md:text-lg lg:text-xl",
@@ -250,7 +253,7 @@ const CropCenteredCard = ({
             decoding="async"
             onError={handleError}
           />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-black/30 to-black/55" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/55 via-black/40 to-black/65" />
         </>
       )}
 

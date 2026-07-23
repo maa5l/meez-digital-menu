@@ -187,17 +187,24 @@ export function TemplateOptionCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "group flex w-full flex-col rounded-2xl border-2 p-5 text-right transition-all touch-manipulation",
+        "group flex w-full items-start gap-3 rounded-2xl border-2 p-4 text-right transition-all touch-manipulation sm:gap-4 sm:p-5",
         "hover:border-accent/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         active ? "border-accent bg-accent/10 shadow-gold" : "border-border bg-card",
       )}
       aria-pressed={active}
     >
-      <div className={cn("mb-3 transition-colors", active ? "text-accent-foreground" : "text-muted-foreground group-hover:text-primary")}>
+      <div
+        className={cn(
+          "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-colors",
+          active ? "bg-accent/20 text-accent-foreground" : "bg-secondary text-muted-foreground group-hover:text-primary",
+        )}
+      >
         {icon}
       </div>
-      <div className="font-display font-bold text-primary">{title}</div>
-      <div className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</div>
+      <div className="min-w-0 flex-1 space-y-1">
+        <div className="font-display text-base font-bold leading-snug text-primary">{title}</div>
+        <div className="text-xs leading-relaxed text-muted-foreground">{description}</div>
+      </div>
     </button>
   );
 }

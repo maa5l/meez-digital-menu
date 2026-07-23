@@ -12,6 +12,7 @@ import type { VenueData } from "@/types/venue";
 import { appEnv } from "@/config/env";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { debounce, throttle } from "@/lib/throttle";
+import { logger } from "@/lib/logger";
 import {
   getCurrentUserId,
   loadCurrentVenueData,
@@ -123,8 +124,16 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
     void syncDeviceActivationsToCloud(ownerId, venue.devices);
   }, []);
 
+  const skipSelfReloadRef = useRef(false);
+
   useEffect(() => {
-    const onUpdate = () => reloadLocal();
+    const onUpdate = () => {
+      if (skipSelfReloadRef.current) {
+        skipSelfReloadRef.current = false;
+        return;
+      }
+      reloadLocal();
+    };
     const onStorage = (e: StorageEvent) => {
       if (e.key === THEME_PREVIEW_DRAFT_KEY) return;
       onUpdate();
@@ -142,7 +151,22 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
       setData((prev) => {
         const next = typeof patch === "function" ? patch(prev) : { ...prev, ...patch };
         if (next === prev) return prev;
-        saveCurrentVenueData(next);
+        try {
+          saveCurrentVenueData(next);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          logger.error("venue.local_save_failed", { message });
+          // أعد الحالة السابقة إن فشل التخزين (غالباً امتلاء المساحة بسبب الصور)
+          window.setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent("meez:venue-save-failed", {
+                detail: { reason: message },
+              }),
+            );
+          }, 0);
+          return prev;
+        }
+        skipSelfReloadRef.current = true;
         window.dispatchEvent(new Event(VENUE_UPDATED));
         return next;
       });

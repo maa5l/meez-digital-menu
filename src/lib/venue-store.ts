@@ -145,7 +145,10 @@ function saveVenueDataLocal(userId: string, data: VenueData): VenueData {
     ...data,
     updatedAt: new Date().toISOString(),
   };
-  setLocalJson(venueKey(userId), payload);
+  const ok = setLocalJson(venueKey(userId), payload);
+  if (!ok) {
+    throw new Error("storage_quota_exceeded");
+  }
   rememberOwnerUserId(userId);
   syncAllDeviceVenueSnapshots(userId, payload);
   return payload;
@@ -219,6 +222,25 @@ export async function pullVenueFromCloud(userId: string): Promise<VenueData> {
     }
 
     const remoteNorm = normalizeVenue(remote);
+
+    // لا تستبدل محلياً أحدث إن فشل/تأخر الحفظ السحابي
+    if (
+      !isVenueEffectivelyEmpty(local) &&
+      local.updatedAt &&
+      remoteNorm.updatedAt &&
+      local.updatedAt > remoteNorm.updatedAt
+    ) {
+      try {
+        await saveVenueToDatabase(userId, local);
+      } catch (err) {
+        logger.error("venue.push_newer_local_failed", {
+          userId,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
+      return local;
+    }
+
     saveVenueDataLocal(userId, remoteNorm);
     rememberRemoteUpdatedAt(cacheKey, remoteUpdatedAt);
     return remoteNorm;

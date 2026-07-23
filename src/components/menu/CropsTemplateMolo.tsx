@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Crop, MenuSettings } from "@/types/domain";
 import CropCarouselCard from "@/components/menu/crop/CropCarouselCard";
+import CropDetailModal from "@/components/menu/CropDetailModal";
 import { MenuCropsTopChrome } from "@/components/menu/MenuCropsTopChrome";
 import { useMenuLang } from "@/context/MenuLangContext";
 import { useMenuKioskSync } from "@/hooks/useMenuKioskSync";
@@ -13,10 +14,11 @@ const CROP_CARD_ASPECT = 3 / 4;
 const CROP_TRACK_VERTICAL_PAD = 12;
 
 /**
- * Crops Template — عرض أفقي بطاقات (بدون نافذة تفاصيل).
+ * Crops Template — عرض أفقي بطاقات؛ الضغط يفتح نافذة التفاصيل.
  */
 const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops: Crop[] }) => {
   const { lang, toggleLang } = useMenuLang();
+  const [modal, setModal] = useState<Crop | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [cardHeight, setCardHeight] = useState(0);
   const cropsHeader = getCropsHeaderCustomization(settings);
@@ -61,6 +63,12 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
 
   useMenuKioskSync(true);
 
+  useEffect(() => {
+    if (!modal) return;
+    const fresh = crops.find((c) => c.id === modal.id);
+    if (fresh) setModal(fresh);
+  }, [crops, modal]);
+
   return (
     <div
       className={cn("relative flex h-full min-h-0 flex-col overflow-hidden", menuContentEnter)}
@@ -101,12 +109,24 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
                   featured={c.id === settings.featuredCropId}
                   cardHeight={cardHeight}
                   cardWidth={cardWidth}
+                  onClick={() => setModal(c)}
                 />
               ))}
             </div>
           </div>
         </div>
       </MenuCropsTopChrome>
+
+      {modal && (
+        <CropDetailModal
+          crop={modal}
+          lang={lang}
+          accent={palette.accentColor}
+          fallbackTextColor={palette.textColor}
+          featured={modal.id === settings.featuredCropId}
+          onClose={() => setModal(null)}
+        />
+      )}
     </div>
   );
 };

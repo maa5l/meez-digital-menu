@@ -187,7 +187,7 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
                 })}
               </aside>
 
-              <div className="order-1 min-h-0 overflow-hidden md:order-2">
+              <div className="order-1 min-h-0 overflow-hidden rounded-[1.75rem] md:order-2">
                 {selected ? (
                   <ProductCenteredCard
                     key={selected.id}

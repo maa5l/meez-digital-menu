@@ -102,11 +102,11 @@ const Theme = () => {
         {/* تنقّل أفقي — جوال وآيباد */}
         <ThemeEditorNavMobile active={section} onSelect={setSection} className="sticky top-[4.75rem] z-20 -mx-4 mb-4 bg-background/95 px-4 py-2 backdrop-blur-sm lg:hidden sm:-mx-6 sm:px-6 md:-mx-10 md:px-10" />
 
-        <div className="flex min-h-0 flex-col gap-5 lg:flex-row lg:items-start">
+        <div className="flex min-h-0 flex-col gap-5 lg:flex-row lg:items-start lg:gap-6">
           {/* شريط جانبي — سطح مكتب / آيباد أفقي كبير */}
           <ThemeEditorNav active={section} onSelect={setSection} className="hidden lg:flex" />
 
-          <div className="min-w-0 flex-1 space-y-5">
+          <div className="min-w-0 flex-1 space-y-5 lg:min-w-[18rem]">
             <ThemeSectionContent
               section={section}
               editor={editor}
@@ -116,12 +116,13 @@ const Theme = () => {
               cropsPreviewUrl={cropsPreviewUrl}
               previewOrientation={previewOrientation}
               onPreviewOrientationChange={setPreviewOrientation}
+              onSelectSection={setSection}
             />
           </div>
 
           {showSidePreview && (
-            <div className="hidden w-full shrink-0 lg:block lg:w-auto">
-              <div className="sticky top-[5.5rem] flex justify-center">
+            <aside className="hidden shrink-0 lg:block">
+              <div className="sticky top-[5.5rem] flex w-[min(100%,380px)] justify-center xl:w-[400px]">
                 <ThemePreviewFrame
                   activeSection={section}
                   productsPreviewUrl={productsPreviewUrl}
@@ -130,7 +131,7 @@ const Theme = () => {
                   onOrientationChange={setPreviewOrientation}
                 />
               </div>
-            </div>
+            </aside>
           )}
         </div>
       </DashboardLayout>
@@ -149,6 +150,7 @@ function ThemeSectionContent({
   cropsPreviewUrl,
   previewOrientation,
   onPreviewOrientationChange,
+  onSelectSection,
 }: {
   section: ThemeSectionId;
   editor: Editor;
@@ -158,30 +160,35 @@ function ThemeSectionContent({
   cropsPreviewUrl: string;
   previewOrientation: PreviewOrientation;
   onPreviewOrientationChange: (o: PreviewOrientation) => void;
+  onSelectSection: (id: ThemeSectionId) => void;
 }) {
   const { settings, update, products, crops, productsColors, cropsColors } = editor;
 
   switch (section) {
     case "overview":
       return (
-        <ThemeSectionPanel title="نظرة عامة" description="ملخص سريع لإعدادات المنيو الحالية">
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
+        <ThemeSectionPanel title="نظرة عامة" description="ملخص سريع لإعدادات المنيو الحالية — اضغط البطاقة للانتقال للتعديل">
+          <div className="flex flex-col gap-3">
             <OverviewStat
               icon={<UtensilsCrossed className="h-5 w-5" />}
               label="منيو المنتجات"
-              value={`${settings.productTemplate === "featured" ? "مميّز + بطاقات" : "مميّز + تفاصيل"} · ${(settings.productsOrderMode ?? "manual") === "random" ? "عشوائي" : "يدوي"}`}
+              template={settings.productTemplate === "featured" ? "مميّز + بطاقات" : "مميّز + تفاصيل"}
+              order={(settings.productsOrderMode ?? "manual") === "random" ? "ترتيب عشوائي" : "ترتيب يدوي"}
               swatch={productsColors.accentColor}
+              onClick={() => onSelectSection("products-template")}
             />
             <OverviewStat
               icon={<Coffee className="h-5 w-5" />}
               label="منيو المحاصيل"
-              value={`${settings.cropsTemplate === "molo" ? "بطاقات بالعرض" : "قائمة + تفاصيل"} · ${(settings.cropsOrderMode ?? "manual") === "random" ? "عشوائي" : "يدوي"}`}
+              template={settings.cropsTemplate === "molo" ? "بطاقات بالعرض" : "قائمة + تفاصيل"}
+              order={(settings.cropsOrderMode ?? "manual") === "random" ? "ترتيب عشوائي" : "ترتيب يدوي"}
               swatch={cropsColors.accentColor}
+              onClick={() => onSelectSection("crops-template")}
             />
           </div>
           <ThemeCard className="border-dashed bg-secondary/30">
             <p className="text-sm leading-relaxed text-muted-foreground">
-              اختر قسماً من الشريط أعلاه لتعديل إعداد واحد. التغييرات تظهر في المعاينة مباشرة قبل الحفظ.
+              اختر قسماً من القائمة الجانبية لتعديل إعداد واحد. التغييرات تظهر في المعاينة مباشرة قبل الحفظ.
             </p>
           </ThemeCard>
         </ThemeSectionPanel>
@@ -190,7 +197,7 @@ function ThemeSectionContent({
     case "products-template":
       return (
         <ThemeSectionPanel title="قالب المنتجات" description="اختر طريقة عرض قائمة المنتجات على الشاشة">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
             <TemplateOptionCard
               active={settings.productTemplate === "featured"}
               icon={<Star className="h-7 w-7" />}
@@ -275,7 +282,7 @@ function ThemeSectionContent({
     case "crops-template":
       return (
         <ThemeSectionPanel title="قالب المحاصيل" description="شكل عرض كتالوج القهوة">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
             <TemplateOptionCard
               active={settings.cropsTemplate === "molo"}
               icon={<GalleryHorizontal className="h-7 w-7" />}
@@ -409,34 +416,47 @@ function ThemeSectionContent({
 function OverviewStat({
   icon,
   label,
-  value,
+  template,
+  order,
   swatch,
+  onClick,
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string;
+  template: string;
+  order: string;
   swatch?: string;
+  onClick: () => void;
 }) {
   return (
-    <ThemeCard className="flex h-full flex-col gap-4" padding="compact">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
-          {icon}
-        </div>
-        {swatch && (
-          <span
-            className="h-8 w-8 shrink-0 rounded-full border-2 border-border/70 shadow-sm"
-            style={{ background: swatch }}
-            title="لون الثيم"
-            aria-hidden
-          />
-        )}
+    <button
+      type="button"
+      onClick={onClick}
+      className="group flex w-full items-center gap-3 rounded-2xl border border-border/80 bg-card p-4 text-right shadow-sm transition-all touch-manipulation hover:border-accent/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent transition-colors group-hover:bg-accent/25">
+        {icon}
       </div>
-      <div className="space-y-1">
+      <div className="min-w-0 flex-1 space-y-2">
         <p className="text-xs font-semibold text-muted-foreground">{label}</p>
-        <p className="font-display text-base font-bold leading-snug text-primary sm:text-lg">{value}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex max-w-full rounded-full bg-secondary px-2.5 py-1 text-xs font-bold text-primary">
+            {template}
+          </span>
+          <span className="inline-flex rounded-full border border-border/70 bg-background px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">
+            {order}
+          </span>
+        </div>
       </div>
-    </ThemeCard>
+      {swatch && (
+        <span
+          className="h-8 w-8 shrink-0 rounded-full border-2 border-border/70 shadow-sm"
+          style={{ background: swatch }}
+          title="لون الثيم"
+          aria-hidden
+        />
+      )}
+    </button>
   );
 }
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,10 @@ import { Plus, Coffee, Trash2, ExternalLink, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
 import { nextSortOrder, sortCatalogManual } from "@/lib/catalog-order";
+import {
+  processCropLandscapeImageFile,
+  processCropPortraitImageFile,
+} from "@/lib/crop-image";
 
 const empty: Omit<Crop, "id"> = {
   beanName: "",
@@ -64,6 +68,14 @@ const Crops = () => {
   const [form, setForm] = useState(empty);
 
   const isEditing = editingId !== null;
+
+  useEffect(() => {
+    const onFail = () => {
+      toast.error("تعذّر الحفظ — مساحة التخزين ممتلئة. صغّر صور المحاصيل أو أزل صوراً غير ضرورية.");
+    };
+    window.addEventListener("meez:venue-save-failed", onFail);
+    return () => window.removeEventListener("meez:venue-save-failed", onFail);
+  }, []);
 
   const reset = () => {
     setEditingId(null);
@@ -284,6 +296,7 @@ const Crops = () => {
                       hint="بانر أفقي — خلفية البطاقة وتفاصيل العرض"
                       previewClassName="h-24 w-full rounded-lg object-cover"
                       value={form.imageLandscape || form.image}
+                      onUpload={processCropLandscapeImageFile}
                       onChange={(dataUrl) =>
                         setForm({
                           ...form,
@@ -304,6 +317,7 @@ const Crops = () => {
                       hint="صورة طويلة منفصلة تظهر في تفاصيل المحصول"
                       previewClassName="mx-auto h-36 w-28 rounded-lg object-cover"
                       value={form.imagePortrait}
+                      onUpload={processCropPortraitImageFile}
                       onChange={(dataUrl) => setForm({ ...form, imagePortrait: dataUrl })}
                       onClear={() => setForm({ ...form, imagePortrait: "" })}
                     />
@@ -394,6 +408,7 @@ const ImageUploadSlot = ({
   hint,
   value,
   previewClassName,
+  onUpload,
   onChange,
   onClear,
 }: {
@@ -401,6 +416,7 @@ const ImageUploadSlot = ({
   hint: string;
   value?: string;
   previewClassName: string;
+  onUpload: (file: File) => Promise<string>;
   onChange: (dataUrl: string) => void;
   onClear: () => void;
 }) => (
@@ -410,12 +426,17 @@ const ImageUploadSlot = ({
     <input
       type="file"
       accept="image/*"
-      onChange={(e) => {
+      onChange={async (e) => {
         const f = e.target.files?.[0];
         if (!f) return;
-        const r = new FileReader();
-        r.onload = () => onChange(String(r.result));
-        r.readAsDataURL(f);
+        const loading = toast.loading("جاري معالجة الصورة…");
+        try {
+          const dataUrl = await onUpload(f);
+          onChange(dataUrl);
+          toast.success("تم رفع الصورة", { id: loading });
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "تعذّر رفع الصورة", { id: loading });
+        }
         e.target.value = "";
       }}
       className="text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-secondary file:font-bold file:text-foreground"

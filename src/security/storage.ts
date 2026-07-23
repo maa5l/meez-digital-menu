@@ -17,12 +17,14 @@ export function getLocalJson<T>(key: string, fallback: T): T {
   }
 }
 
-export function setLocalJson(key: string, value: unknown): void {
-  if (typeof window === "undefined") return;
+export function setLocalJson(key: string, value: unknown): boolean {
+  if (typeof window === "undefined") return false;
   try {
     localStorage.setItem(key, JSON.stringify(value));
+    return true;
   } catch (error) {
     logger.warn("storage.write_failed", { key, error: String(error) });
+    return false;
   }
 }
 
