@@ -1,8 +1,10 @@
+import { SUBSCRIPTION } from "@/config/subscription";
+
 const steps = [
   {
     n: "1",
     title: "أنشئ حسابك",
-    desc: "سجّل في دقيقة واحدة وابدأ تجربتك المجانية لمدة 14 يومًا بدون أي بطاقة ائتمان.",
+    desc: `سجّل في دقيقة واحدة وابدأ تجربتك المجانية لمدة ${SUBSCRIPTION.trialDays} أيام بدون أي بطاقة ائتمان.`,
   },
   {
     n: "2",

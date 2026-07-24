@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Riyal } from "@/components/Brand";
+import { SUBSCRIPTION } from "@/config/subscription";
 
 const perks = [
   "عدد غير محدود من المنتجات والتصنيفات",
@@ -62,7 +63,7 @@ const Pricing = () => {
 
               <Link to="/auth">
                 <Button variant="hero" size="xl" className="w-full">
-                  ابدأ تجربتك المجانية 14 يوم
+                  ابدأ تجربتك المجانية {SUBSCRIPTION.trialDays} أيام
                 </Button>
               </Link>
               <p className="text-center text-sm text-primary-foreground/60 mt-4">

@@ -65,11 +65,19 @@ const AdminCustomerDetail = () => {
     if (!id || !canMutate) return;
     setActing(true);
     try {
+      // تاريخ اليوم من حقل date → نهاية ذلك اليوم UTC حتى لا يُحسب منتهياً مبكراً
+      const endsAtIso = subscriptionEnd
+        ? new Date(`${subscriptionEnd}T23:59:59.999Z`).toISOString()
+        : undefined;
+
+      if ((action === "activate" || action === "extend") && !endsAtIso) {
+        toast.error("حدد تاريخ انتهاء الاشتراك أولاً");
+        return;
+      }
+
       const ok = await adminUpdateSubscription(id, action, {
         deviceLimit: Number(deviceLimit) || 1,
-        subscriptionEndsAt: subscriptionEnd
-          ? new Date(subscriptionEnd).toISOString()
-          : undefined,
+        subscriptionEndsAt: endsAtIso,
         notes: notes || undefined,
         internalNotes: internalNotes || undefined,
       });
@@ -112,6 +120,14 @@ const AdminCustomerDetail = () => {
             <CardTitle>معلومات العميل</CardTitle>
           </CardHeader>
           <CardContent className="grid sm:grid-cols-2 gap-4 text-sm">
+            <div>
+              <div className="text-muted-foreground">حالة الاشتراك</div>
+              <div className="font-bold text-primary">{customer.subscriptionStatus}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground">تفعيل يدوي</div>
+              <div className="font-medium">{customer.manualActivation ? "نعم" : "لا"}</div>
+            </div>
             <div>
               <div className="text-muted-foreground">الاسم</div>
               <div className="font-medium">{customer.fullName || "—"}</div>
@@ -196,6 +212,9 @@ const AdminCustomerDetail = () => {
                   value={subscriptionEnd}
                   onChange={(e) => setSubscriptionEnd(e.target.value)}
                 />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  مطلوب للتفعيل أو التمديد — يضبط الحالة إلى active تلقائياً
+                </p>
               </div>
               <div>
                 <Label htmlFor="notes">ملاحظات للعميل</Label>

@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { SUBSCRIPTION } from "@/config/subscription";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -12,7 +13,9 @@ const Hero = () => {
         <div className="max-w-4xl mx-auto text-center animate-fade-in-up flex flex-col items-center gap-8 md:gap-10">
           <div className="inline-flex items-center gap-2 rounded-full bg-accent/15 border border-accent/30 px-4 py-1.5">
             <Sparkles className="w-4 h-4 text-accent" />
-            <span className="text-sm font-semibold text-primary">جديد · جرّب 14 يوم مجانًا</span>
+            <span className="text-sm font-semibold text-primary">
+              جديد · جرّب {SUBSCRIPTION.trialDays} أيام مجانًا
+            </span>
           </div>
 
           <h1 className="font-display font-black text-5xl md:text-6xl lg:text-7xl text-primary flex flex-col items-center gap-4 md:gap-6">

@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { SUBSCRIPTION } from "@/config/subscription";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -15,7 +16,7 @@ const CTA = () => {
               جاهز ترفع <span className="text-gradient-gold">تجربة ضيوفك</span>؟
             </h2>
             <p className="text-lg md:text-xl text-primary-foreground/80 mb-10 leading-relaxed">
-              ابدأ تجربتك المجانية اليوم — 14 يومًا كاملة بدون أي قيود وبدون بطاقة ائتمان.
+              ابدأ تجربتك المجانية اليوم — {SUBSCRIPTION.trialDays} أيام كاملة بدون أي قيود وبدون بطاقة ائتمان.
             </p>
             <Link to="/auth">
               <Button variant="hero" size="xl" className="group">

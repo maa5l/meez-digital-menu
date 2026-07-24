@@ -176,8 +176,10 @@ export async function signUp(
   email: string,
   password: string,
   venueName?: string,
+  phone?: string,
 ): Promise<{ needsEmailConfirmation: boolean }> {
   const normalizedEmail = email.trim().toLowerCase();
+  const normalizedPhone = phone?.trim() || "";
 
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
     const session = createMockSession(normalizedEmail);
@@ -191,7 +193,10 @@ export async function signUp(
     email: normalizedEmail,
     password,
     options: {
-      data: { venue_name: venueName ?? "" },
+      data: {
+        venue_name: venueName ?? "",
+        phone: normalizedPhone,
+      },
     },
   });
 

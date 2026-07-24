@@ -133,6 +133,7 @@ export async function ensureUserProfile(user: User, venueName?: string): Promise
     email,
     full_name: fullName || null,
     venue_name: venue || null,
+    phone: phone || null,
     role: "owner" as const,
   };
 

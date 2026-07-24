@@ -13,6 +13,7 @@ import { appEnv } from "@/config/env";
 import { checkRateLimit } from "@/security/rate-limit";
 import { RateLimitError, getErrorMessage } from "@/lib/errors";
 import { ROUTES } from "@/config/app";
+import { SUBSCRIPTION } from "@/config/subscription";
 import { toast } from "sonner";
 
 type AuthMode = "login" | "signup";
@@ -22,6 +23,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [venueName, setVenueName] = useState("");
+  const [phone, setPhone] = useState("");
   const [fieldError, setFieldError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -35,6 +37,7 @@ const Auth = () => {
     setEmail("");
     setPassword("");
     setVenueName("");
+    setPhone("");
   };
 
   const onLogin = async (e: React.FormEvent) => {
@@ -75,7 +78,7 @@ const Auth = () => {
       return;
     }
 
-    const parsed = signupSchema.safeParse({ email, password, venueName });
+    const parsed = signupSchema.safeParse({ email, password, phone, venueName });
     if (!parsed.success) {
       setFieldError(parsed.error.errors[0]?.message ?? "بيانات غير صالحة");
       return;
@@ -83,7 +86,12 @@ const Auth = () => {
 
     setLoading(true);
     try {
-      await signUp(parsed.data.email, parsed.data.password, parsed.data.venueName);
+      await signUp(
+        parsed.data.email,
+        parsed.data.password,
+        parsed.data.venueName,
+        parsed.data.phone,
+      );
       toast.success("تم إنشاء الحساب — مرحباً بك");
       navigate(await resolvePostAuthRoute(redirectTo), { replace: true });
     } catch (error) {
@@ -155,7 +163,7 @@ const Auth = () => {
         <div className="relative">
           <div className="inline-flex items-center gap-2 rounded-full bg-accent/20 border border-accent/30 px-4 py-1.5 mb-6">
             <Sparkles className="w-4 h-4 text-accent" />
-            <span className="text-sm font-bold">تجربة مجانية 14 يوم</span>
+            <span className="text-sm font-bold">تجربة مجانية {SUBSCRIPTION.trialDays} أيام</span>
           </div>
           <h2 className="font-display font-black text-4xl xl:text-5xl leading-tight mb-4">
             ارتقِ بتجربة ضيوفك إلى <span className="text-gradient-gold">مستوى جديد</span>
@@ -201,7 +209,7 @@ const Auth = () => {
             {mode === "signup" ? "ابدأ تجربتك المجانية" : "أهلًا بعودتك"}
           </h1>
           <p className="text-muted-foreground mb-8">
-            {mode === "signup" ? "14 يوم بدون بطاقة ائتمان" : "أدخل بريدك وكلمة المرور"}
+            {mode === "signup" ? `${SUBSCRIPTION.trialDays} أيام بدون بطاقة ائتمان` : "أدخل بريدك وكلمة المرور"}
           </p>
 
           {!isSupabaseConfigured() ? (
@@ -253,6 +261,22 @@ const Auth = () => {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="signup-phone">رقم الجوال</Label>
+                <Input
+                  id="signup-phone"
+                  name="tel"
+                  type="tel"
+                  inputMode="tel"
+                  dir="ltr"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="05xxxxxxxx"
+                  required
+                  className="h-12 rounded-xl text-left"
+                  autoComplete="tel"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="venue-name">اسم المنشأة</Label>
                 <Input
                   id="venue-name"
@@ -291,12 +315,6 @@ const Auth = () => {
               سياسة الخصوصية
             </Link>
           </p>
-
-          <div className="mt-6 text-center">
-            <Link to={ROUTES.display} className="text-sm text-muted-foreground hover:text-accent">
-              هل لديك جهاز تابلت؟ افتح شاشة الرمز ←
-            </Link>
-          </div>
         </div>
       </div>
     </div>

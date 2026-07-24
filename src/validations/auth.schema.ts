@@ -31,6 +31,17 @@ export const signupSchema = z.object({
     .string()
     .min(8, "كلمة المرور 8 أحرف على الأقل")
     .max(128, "كلمة المرور طويلة جداً"),
+  phone: z
+    .string()
+    .trim()
+    .min(1, "رقم الجوال مطلوب")
+    .max(20, "رقم الجوال طويل جداً")
+    .refine((value) => {
+      const digits = value.replace(/\D/g, "");
+      // سعودي: 05xxxxxxxx أو +9665xxxxxxxx — مع قبول أرقام دولية معقولة
+      if (/^(?:\+?966|0)?5\d{8}$/.test(value.replace(/[\s-]/g, ""))) return true;
+      return digits.length >= 9 && digits.length <= 15;
+    }, "أدخل رقم جوال صالح"),
   venueName: z.string().trim().min(2, "اسم المنشأة مطلوب").max(120),
 });
 
