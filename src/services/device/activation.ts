@@ -84,7 +84,16 @@ export async function checkDeviceRegistrationOnKiosk(
 
   if (shouldUseVenueDatabase()) {
     const check = await checkKioskAccess(normalized);
-    return check.registered && check.allowed ? "registered" : "not_registered";
+    // أخطاء عابرة: لا تُعلن فصلاً (كانت تسبب تدوير الرمز بعد أول مزامنة)
+    if (
+      check.reason === "check_failed" ||
+      check.reason === "rate_limited" ||
+      check.reason === "invalid_response"
+    ) {
+      return "checking";
+    }
+    // التسجيل يكفي — !allowed (اشتراك) لا يُعامل كفصل
+    return check.registered ? "registered" : "not_registered";
   }
 
   return isDeviceActivated(normalized) ? "registered" : "not_registered";

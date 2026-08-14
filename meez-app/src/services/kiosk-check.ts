@@ -132,15 +132,21 @@ export async function peekDeviceRegistration(
 
         const registered = Boolean(row.registered);
         const allowed = Boolean(row.allowed);
-        if (registered && allowed) {
-          const peek = { status: "registered" as RegistrationStatus };
+        const reason = typeof row.reason === "string" ? row.reason : null;
+
+        // مسجّل = يبقى registered حتى لو الاشتراك موقوف — لا نُعامل !allowed كفصل
+        if (registered) {
+          const peek = {
+            status: "registered" as RegistrationStatus,
+            reason: allowed ? null : reason,
+          };
           rememberGood(normalized, peek);
           return peek;
         }
 
         const peek = {
           status: "not_registered" as RegistrationStatus,
-          reason: typeof row.reason === "string" ? row.reason : null,
+          reason,
         };
         rememberGood(normalized, peek);
         return peek;

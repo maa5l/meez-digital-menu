@@ -41,9 +41,8 @@ export function invalidateOwnerVenueCache(ownerId: string): void {
 
 export function invalidateDeviceVenueCache(code: string): void {
   const norm = normalizeCode(code);
+  // لا تمسح kiosk:state/access — مسحها أثناء مزامنة المنيو يسبب فصلًا خاطئًا
   invalidateCachePrefix(`venue:device:${norm}:`);
-  invalidateCacheKey(`kiosk:access:${norm}`);
-  invalidateCacheKey(`kiosk:state:${norm}`);
 }
 
 export async function fetchVenueUpdatedAtForOwner(
@@ -208,11 +207,12 @@ export async function fetchVenueUpdatedAtForDevice(
   force = false,
 ): Promise<string | null> {
   const state = await fetchKioskState(code, force);
+  // أعد فحص البوابة فقط عند فصل صريح — لا عند اشتراك/أخطاء عابرة
   if (
     shouldUseVenueDatabase() &&
     !state.rateLimited &&
     state.reason !== "rate_limited" &&
-    (!state.registered || !state.allowed)
+    (state.reason === "device_inactive" || state.reason === "device_not_registered")
   ) {
     dispatchKioskGateRefresh({ code, reason: state.reason });
   }

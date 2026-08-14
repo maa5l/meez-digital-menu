@@ -22,6 +22,11 @@ const MIN_FORCE_TICK_GAP_MS = 15_000;
 const ANNOUNCE_MS = 10 * 60 * 1000;
 const FAULT_AUTO_RETRY_MS = 8_000;
 
+/** فصل حقيقي من لوحة التحكم فقط — لا تدوير الرمز عند أخطاء عابرة أو اشتراك */
+function isServerDeactivateReason(reason: string | null | undefined): boolean {
+  return reason === "device_inactive" || reason === "device_not_registered";
+}
+
 type Listener = () => void;
 
 function initialSnapshot(): KioskSnapshot {
@@ -238,6 +243,15 @@ export class KioskSupervisor {
         void announceKioskPairingCode(code);
         return;
       }
+      // أثناء عرض المنيو: لا تفصل إلا عند إلغاء التفعيل الصريح من السيرفر
+      if (!isServerDeactivateReason(peek.reason)) {
+        logger.warn("kiosk.peek_not_registered_ignored", {
+          code,
+          phase,
+          reason: peek.reason,
+        });
+        return;
+      }
       logger.audit("kiosk.deactivate_wins", { code, phase, reason: peek.reason });
       void this.forcePairing(peek.reason ?? "device_inactive");
       return;
@@ -273,8 +287,16 @@ export class KioskSupervisor {
       } else {
         this.patch({ peek });
         if (peek.status !== "registered") {
-          if (peek.status === "not_registered") {
+          if (peek.status === "not_registered" && isServerDeactivateReason(peek.reason)) {
             void this.forcePairing(peek.reason ?? "device_inactive");
+            return;
+          }
+          if (peek.status === "not_registered") {
+            logger.warn("kiosk.open_menu_not_registered_ignored", {
+              code,
+              reason: peek.reason,
+            });
+            this.reportFault("NETWORK", peek.message ?? peek.reason ?? undefined);
             return;
           }
           this.reportFault("NETWORK", peek.message);

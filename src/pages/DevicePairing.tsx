@@ -63,6 +63,7 @@ const DevicePairing = () => {
     enabled: Boolean(code) && !isPreview,
     onRegistered: () => navigate(menuHref, { replace: true }),
     onDeactivated: () => {
+      // يُستدعى فقط بعد wasRegistered → not_registered من الـ hook
       const next = rotatePendingDeviceCode();
       setCode(next);
     },

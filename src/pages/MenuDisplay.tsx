@@ -98,11 +98,15 @@ const MenuDisplay = () => {
 
   useEffect(() => {
     if (isPreview || kioskMode || !code) return;
-    if (wasAllowedRef.current && !gate.registered) {
+    // تدوير الرمز فقط عند فصل صريح من لوحة التحكم
+    if (
+      wasAllowedRef.current &&
+      (gate.reason === "device_inactive" || gate.reason === "device_not_registered")
+    ) {
       rotatePendingDeviceCode();
       wasAllowedRef.current = false;
     }
-  }, [gate.registered, isPreview, kioskMode, code]);
+  }, [gate.reason, gate.registered, isPreview, kioskMode, code]);
 
   useEffect(() => {
     if (isPreview || !code) return;
@@ -125,6 +129,22 @@ const MenuDisplay = () => {
         if (
           result.reason === "check_failed" &&
           (prev.allowed || prev.registrationStatus === "registered")
+        ) {
+          return prev;
+        }
+        if (
+          result.reason === "invalid_response" &&
+          (prev.allowed || prev.registrationStatus === "registered")
+        ) {
+          return prev;
+        }
+        // لا تسقط الجلسة على فشل عابر أثناء كون الجهاز مفعّلًا
+        if (
+          prev.allowed &&
+          prev.registered &&
+          !result.registered &&
+          result.reason !== "device_inactive" &&
+          result.reason !== "device_not_registered"
         ) {
           return prev;
         }
