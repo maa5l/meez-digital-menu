@@ -212,12 +212,9 @@ export async function checkKioskAccess(
   return cachedFetch(
     `kiosk:access:${normalized}`,
     async () => {
-      const [{ data, error }, kioskState] = await Promise.all([
-        getSupabase().rpc("check_kiosk_access", {
-          p_device_code: normalized,
-        }),
-        fetchKioskState(normalized, force),
-      ]);
+      const { data, error } = await getSupabase().rpc("check_kiosk_access", {
+        p_device_code: normalized,
+      });
 
       if (error) {
         logger.error("subscription.kiosk_check_failed", { message: error.message });
@@ -235,18 +232,15 @@ export async function checkKioskAccess(
         reason: typeof row.reason === "string" ? row.reason : undefined,
         access: parseAccess(row.access) ?? undefined,
         owner_id: typeof row.owner_id === "string" ? row.owner_id : undefined,
-        menu_type:
-          normalizeMenuCatalogType(
-            typeof row.menu_type === "string" ? row.menu_type : kioskState.menu_type,
-          ) ?? kioskState.menu_type,
+        menu_type: normalizeMenuCatalogType(
+          typeof row.menu_type === "string" ? row.menu_type : null,
+        ),
         venue_updated_at:
-          typeof row.venue_updated_at === "string"
-            ? row.venue_updated_at
-            : kioskState.venue_updated_at,
+          typeof row.venue_updated_at === "string" ? row.venue_updated_at : undefined,
         subscription_status:
           typeof row.subscription_status === "string"
             ? (row.subscription_status as SubscriptionStatus)
-            : (kioskState.subscription_status as SubscriptionStatus | null | undefined),
+            : undefined,
         retry_after_seconds:
           typeof row.retry_after_seconds === "number" ? row.retry_after_seconds : undefined,
       };

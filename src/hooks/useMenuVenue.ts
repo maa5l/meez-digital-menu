@@ -122,13 +122,16 @@ export function useMenuVenue(
         }
 
         if (deviceCode && shouldUseVenueDatabase()) {
+          // اعرض الكاش المحلي فورًا حتى لا يومض «المنيو فارغ» أثناء المزامنة
+          const cached = loadVenueForDevice(deviceCode);
+          if (mountedRef.current) setVenue(cached);
+
           if (!navigator.onLine) {
             const offline = classifyUserFacingError(new Error("offline"), { online: false });
             if (mountedRef.current) {
               if (!catalogResolvedRef.current) setSyncError(offline);
               scheduleAutoRetry(() => void reloadFull(true));
             }
-            if (mountedRef.current) setVenue(loadVenueForDevice(deviceCode));
             return;
           }
 

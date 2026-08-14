@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import TemplateProductsFeatured from "@/components/menu/TemplateProductsFeatured";
 import TemplateProductsDetail from "@/components/menu/TemplateProductsDetail";
 import CropsTemplateMolo from "@/components/menu/CropsTemplateMolo";
 import CropsTemplatePureShelf from "@/components/menu/CropsTemplatePureShelf";
 import MenuEmptyState from "@/components/menu/MenuEmptyState";
+import MenuLoadingSplash from "@/components/menu/MenuLoadingSplash";
 import { MenuErrorBoundary } from "@/components/menu/MenuErrorBoundary";
 import { MenuSyncBanner } from "@/components/menu/MenuSyncBanner";
 import { KioskSubscriptionBlocked } from "@/components/subscription/KioskSubscriptionBlocked";
@@ -14,8 +15,10 @@ import { getDeviceMenuType, getDeviceMenuTypeAsync, setDeviceMenuType as persist
 import { normalizeMenuCatalogType, resolveMenuDisplayType } from "@/lib/menu-display-type";
 import {
   getPendingDeviceCode,
+  rotatePendingDeviceCode,
   setPendingDeviceCode,
 } from "@/services/device/activation";
+import { MENU_KIOSK_GATE_REFRESH_EVENT } from "@/lib/menu-kiosk";
 import {
   evaluateKioskGate,
   KIOSK_SUBSCRIPTION_POLL_MS,
@@ -85,6 +88,22 @@ const MenuDisplay = () => {
     persistDeviceMenuType(code, fromGate);
   }, [code, gate.menu_type, isPreview]);
 
+  const wasAllowedRef = useRef(false);
+
+  useEffect(() => {
+    if (gate.allowed && gate.registered) {
+      wasAllowedRef.current = true;
+    }
+  }, [gate.allowed, gate.registered]);
+
+  useEffect(() => {
+    if (isPreview || kioskMode || !code) return;
+    if (wasAllowedRef.current && !gate.registered) {
+      rotatePendingDeviceCode();
+      wasAllowedRef.current = false;
+    }
+  }, [gate.registered, isPreview, kioskMode, code]);
+
   useEffect(() => {
     if (isPreview || !code) return;
 
@@ -131,10 +150,16 @@ const MenuDisplay = () => {
     };
     document.addEventListener("visibilitychange", onVisible);
 
+    const onGateRefresh = () => {
+      if (!cancelled) void verify(true);
+    };
+    window.addEventListener(MENU_KIOSK_GATE_REFRESH_EVENT, onGateRefresh);
+
     return () => {
       cancelled = true;
       if (pollId != null) window.clearInterval(pollId);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener(MENU_KIOSK_GATE_REFRESH_EVENT, onGateRefresh);
     };
   }, [code, isPreview, kioskMode]);
 
@@ -251,6 +276,9 @@ const MenuDisplayShell = ({
   const orderedCrops = useOrderedCatalog(venue.crops, settings.cropsOrderMode);
 
   const catalogEmpty = type === "crops" ? cropsEmpty : productsEmpty;
+  /** أثناء الاتصال: لا تُظهر الفراغ أبدًا — سبلاش أو الكاش المحلي إن وُجد */
+  const showLoadingSplash = !venue.isCatalogResolved && catalogEmpty;
+  const showEmptyState = venue.isCatalogResolved && catalogEmpty;
 
   // Shell handshake: only after catalog resolved + first paint
   useEffect(() => {
@@ -286,15 +314,17 @@ const MenuDisplayShell = ({
         </div>
       )}
       <div className="min-h-0 flex-1 overflow-hidden">
-        {type === "crops" ? (
-          cropsEmpty ? (
+        {showLoadingSplash ? (
+          <MenuLoadingSplash />
+        ) : type === "crops" ? (
+          showEmptyState ? (
             <MenuEmptyState settings={settings} type="crops" />
           ) : cropsTpl === "molo" ? (
             <CropsTemplateMolo settings={settings} crops={orderedCrops} />
           ) : (
             <CropsTemplatePureShelf settings={settings} crops={orderedCrops} />
           )
-        ) : productsEmpty ? (
+        ) : showEmptyState ? (
           <MenuEmptyState settings={settings} type="products" />
         ) : settings.productTemplate === "detail" ? (
           <TemplateProductsDetail

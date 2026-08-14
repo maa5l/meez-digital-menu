@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Logo } from "@/components/Brand";
 import { IpadTrialScreen } from "@/components/device/IpadTrialScreen";
@@ -7,8 +7,11 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import {
   getOrCreatePendingDeviceCode,
   getPendingDeviceCode,
+  rotatePendingDeviceCode,
   setPendingDeviceCode,
 } from "@/services/device/activation";
+import { announceKioskPairingCode } from "@/services/device/kiosk-pairing-announce";
+import { shouldUseVenueDatabase } from "@/services/venue/venue-supabase.service";
 import { normalizeDeviceCodeParam } from "@/lib/device-pairing";
 import { ROUTES } from "@/config/app";
 import { getPublicSiteHref, getPublicSiteLabel } from "@/config/ipad-trial";
@@ -59,7 +62,20 @@ const DevicePairing = () => {
   useDeviceRegistrationWatch(code, {
     enabled: Boolean(code) && !isPreview,
     onRegistered: () => navigate(menuHref, { replace: true }),
+    onDeactivated: () => {
+      const next = rotatePendingDeviceCode();
+      setCode(next);
+    },
   });
+
+  useEffect(() => {
+    if (!code || isPreview || !shouldUseVenueDatabase()) return;
+    void announceKioskPairingCode(code);
+    const announceId = window.setInterval(() => {
+      void announceKioskPairingCode(code);
+    }, 30_000);
+    return () => window.clearInterval(announceId);
+  }, [code, isPreview]);
 
   if (error && !code) {
     return (

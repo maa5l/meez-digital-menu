@@ -40,11 +40,12 @@ export function getOrCreatePendingDeviceCode(): string {
   return setPendingDeviceCode(generateDeviceCode());
 }
 
-/** رمز جديد للربط من لوحة التحكم (لا يعتمد على تخزين الآيباد) */
-export function createPairingCode(): string {
-  const code = generateDeviceCode();
-  logger.audit("device.pairing_code_created", { code });
-  return code;
+/** رمز جديد بعد فصل الجهاز من لوحة التحكم — للويب/الآيباد */
+export function rotatePendingDeviceCode(): string {
+  const next = generateDeviceCode();
+  setPendingDeviceCode(next);
+  logger.audit("device.code_rotated", { code: next });
+  return next;
 }
 
 export function resolveDeviceCode(codeParam?: string | null): string {

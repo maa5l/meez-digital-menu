@@ -235,10 +235,11 @@ export class KioskSupervisor {
 
     if (peek.status === "not_registered") {
       if (phase === "pairing" || phase === "boot") {
+        void announceKioskPairingCode(code);
         return;
       }
       logger.audit("kiosk.deactivate_wins", { code, phase, reason: peek.reason });
-      this.forcePairing(peek.reason ?? "device_inactive");
+      void this.forcePairing(peek.reason ?? "device_inactive");
       return;
     }
 
@@ -273,7 +274,7 @@ export class KioskSupervisor {
         this.patch({ peek });
         if (peek.status !== "registered") {
           if (peek.status === "not_registered") {
-            this.forcePairing(peek.reason ?? "device_inactive");
+            void this.forcePairing(peek.reason ?? "device_inactive");
             return;
           }
           this.reportFault("NETWORK", peek.message);
@@ -339,28 +340,7 @@ export class KioskSupervisor {
     this.reportFault("LOAD_BLANK");
   }
 
-  forcePairing(reason: string): void {
-    const { code } = this.snapshot;
-    this.openingLock = false;
-    if (code) this.invalidatePeekCache(code);
-
-    const peek: RegistrationPeek = {
-      status: "not_registered",
-      reason,
-    };
-
-    logger.audit("kiosk.force_pairing", { code, reason });
-    this.clearFaultRetry();
-    this.patch({
-      phase: "pairing",
-      menuUrl: null,
-      fault: null,
-      peek,
-      remountKey: this.snapshot.remountKey + 1,
-    });
-  }
-
-  async unlinkLocal(): Promise<void> {
+  private async rotateToNewPairingCode(reason: string): Promise<void> {
     const { code: oldCode } = this.snapshot;
     if (oldCode) this.invalidatePeekCache(oldCode);
 
@@ -373,10 +353,10 @@ export class KioskSupervisor {
 
     const peek: RegistrationPeek = {
       status: "not_registered",
-      reason: "local_unlink",
+      reason,
     };
 
-    logger.audit("kiosk.unlink_new_code", { oldCode, nextCode });
+    logger.audit("kiosk.rotate_pairing_code", { oldCode, nextCode, reason });
     this.patch({
       phase: "pairing",
       code: nextCode,
@@ -389,6 +369,14 @@ export class KioskSupervisor {
     if (isSupabaseConfigured()) {
       void announceKioskPairingCode(nextCode);
     }
+  }
+
+  async forcePairing(reason: string): Promise<void> {
+    await this.rotateToNewPairingCode(reason);
+  }
+
+  async unlinkLocal(): Promise<void> {
+    await this.rotateToNewPairingCode("local_unlink");
   }
 
   retry(): void {

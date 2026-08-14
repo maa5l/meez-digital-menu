@@ -3,12 +3,13 @@ export const PRODUCT_CARD = {
   width: 280,
   height: 370,
   imageWidth: 250,
-  imageHeight: 250,
+  /** صورة أقصر قليلاً لإتاحة مساحة للتذييل بدون قصّ الأسماء/الأسعار */
+  imageHeight: 235,
   padX: 15,
-  padTop: 15,
-  padBottom: 10,
+  padTop: 12,
+  padBottom: 12,
   /** ارتفاع منطقة النص = القالب − الهامش − الصورة */
-  footerHeight: 370 - 15 - 250 - 10,
+  footerHeight: 370 - 12 - 235 - 12,
 } as const;
 
 export const PRODUCT_CARD_FOOTER_HEIGHT = `${(PRODUCT_CARD.footerHeight / PRODUCT_CARD.height) * 100}%`;

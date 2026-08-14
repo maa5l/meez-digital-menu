@@ -70,12 +70,22 @@ export async function peekDeviceRegistration(
 
   if (hasExceededRetryAttempts(key)) {
     logger.warn("kiosk.peek_max_retries", { code: normalized });
+    const cached = lastKnownGood.get(key);
+    if (cached) {
+      return {
+        ...cached,
+        rateLimited: true,
+        reason: "rate_limited",
+        message: "تعذّر تحديث حالة الجهاز بعد عدة محاولات. سيُعاد المحاولة لاحقًا.",
+        retry_after_seconds: 120,
+      };
+    }
     return {
-      status: "error",
-      reason: "rate_limited",
-      message: "تعذّر تحديث حالة الجهاز بعد عدة محاولات. سيُعاد المحاولة لاحقًا.",
-      retry_after_seconds: 120,
+      status: "checking",
       rateLimited: true,
+      reason: "rate_limited",
+      message: "جاري التحقق من حالة الجهاز…",
+      retry_after_seconds: 120,
     };
   }
 

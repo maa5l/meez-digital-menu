@@ -1,6 +1,7 @@
 import { appEnv } from "@/config/env";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { cachedFetch, invalidateCacheKey, invalidateCachePrefix } from "@/lib/request-cache";
+import { dispatchKioskGateRefresh } from "@/lib/menu-kiosk";
 import type { VenueData } from "@/types/venue";
 import { logger } from "@/lib/logger";
 import {
@@ -22,7 +23,7 @@ export type KioskState = {
   rateLimited?: boolean;
 };
 
-const RPC_TTL_MS = 8_000;
+const RPC_TTL_MS = 18_000;
 const lastKnownKioskState = new Map<string, KioskState>();
 
 export function shouldUseVenueDatabase(): boolean {
@@ -207,6 +208,14 @@ export async function fetchVenueUpdatedAtForDevice(
   force = false,
 ): Promise<string | null> {
   const state = await fetchKioskState(code, force);
+  if (
+    shouldUseVenueDatabase() &&
+    !state.rateLimited &&
+    state.reason !== "rate_limited" &&
+    (!state.registered || !state.allowed)
+  ) {
+    dispatchKioskGateRefresh({ code, reason: state.reason });
+  }
   return state.venue_updated_at ?? null;
 }
 

@@ -10,14 +10,18 @@ const REGISTRATION_POLL_MS = 30_000;
 type Options = {
   enabled?: boolean;
   onRegistered?: () => void;
+  onDeactivated?: () => void;
 };
 
 /** polling + فحص عند الفتح/العودة (RPC-only — لا Realtime) */
 export function useDeviceRegistrationWatch(code: string | null, options?: Options) {
   const enabled = options?.enabled !== false;
   const onRegisteredRef = useRef(options?.onRegistered);
+  const onDeactivatedRef = useRef(options?.onDeactivated);
   onRegisteredRef.current = options?.onRegistered;
+  onDeactivatedRef.current = options?.onDeactivated;
   const registeredRef = useRef(false);
+  const wasRegisteredRef = useRef(false);
 
   useEffect(() => {
     if (!code || !enabled) return;
@@ -25,17 +29,25 @@ export function useDeviceRegistrationWatch(code: string | null, options?: Option
     let cancelled = false;
 
     const check = async () => {
-      if (cancelled || registeredRef.current) return;
+      if (cancelled) return;
 
       const next = shouldUseVenueDatabase()
         ? await checkDeviceRegistrationOnKiosk(code)
         : (await isDeviceActivatedOnKiosk(code)) ? "registered" : "not_registered";
 
-      if (cancelled || registeredRef.current) return;
+      if (cancelled) return;
 
       if (next === "registered") {
         registeredRef.current = true;
+        wasRegisteredRef.current = true;
         onRegisteredRef.current?.();
+        return;
+      }
+
+      if (wasRegisteredRef.current && next === "not_registered") {
+        wasRegisteredRef.current = false;
+        registeredRef.current = false;
+        onDeactivatedRef.current?.();
       }
     };
 
@@ -47,7 +59,7 @@ export function useDeviceRegistrationWatch(code: string | null, options?: Option
         : undefined;
 
     const onVisible = () => {
-      if (document.hidden || cancelled || registeredRef.current) return;
+      if (document.hidden || cancelled) return;
       void check();
     };
 

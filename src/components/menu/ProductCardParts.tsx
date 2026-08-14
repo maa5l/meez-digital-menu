@@ -5,7 +5,6 @@ import { hasProductBadge, productBadgeColor, productBadgeLabel } from "@/lib/pro
 import {
   PRODUCT_CARD,
   PRODUCT_CARD_ASPECT,
-  PRODUCT_CARD_PAD_BOTTOM,
   PRODUCT_CARD_PAD_X,
   PRODUCT_CARD_PAD_TOP,
   PRODUCT_IMAGE_ASPECT,
@@ -80,9 +79,12 @@ function PriceWithRiyal({
   riyalClassName?: string;
 }) {
   return (
-    <span dir="ltr" className={cn("inline-flex max-w-full items-center gap-0.5", className)}>
-      <Riyal className={riyalClassName} />
-      <span className="truncate">{price}</span>
+    <span
+      dir="ltr"
+      className={cn("inline-flex max-w-full items-center gap-0.5 leading-none", className)}
+    >
+      <Riyal className={cn("block shrink-0", riyalClassName)} />
+      <span className="truncate leading-none">{price}</span>
     </span>
   );
 }
@@ -164,7 +166,7 @@ const compactLabels = {
   en: { allergens: "Allergens" },
 } as const;
 
-/** تذييل مضغوط — مُحسَّن لقالب 280×370 */
+/** تذييل مضغوط — بدون `.menu-text` حتى لا يُفرض 18px ويُقصّ النص */
 function ProductCardFooterCompact({
   product,
   lang,
@@ -179,16 +181,15 @@ function ProductCardFooterCompact({
   const localized = localizeProduct(product, lang);
   const isEn = lang === "en";
 
-  const labelCls = "menu-text text-[7px] font-bold leading-normal text-[#1a1a1a]/50";
+  const labelCls = "text-[8px] font-bold leading-none tracking-wide text-[#1a1a1a]/50";
   const nameValueCls =
-    "menu-text block w-full truncate py-px text-[10px] font-bold leading-[1.5] text-[#1a1a1a]";
-  const primaryCls =
-    "menu-text text-[10px] font-black leading-[1.45] text-[#1a1a1a] truncate py-px";
-  const secondaryCls = "menu-text text-[9px] font-bold leading-normal text-[#1a1a1a]";
+    "block w-full min-w-0 text-[11px] font-bold leading-snug text-[#1a1a1a] line-clamp-2 break-words";
+  const primaryCls = "min-h-[1.15rem] text-[11px] font-black leading-none text-[#1a1a1a]";
+  const secondaryCls = "text-[10px] font-bold leading-snug text-[#1a1a1a]";
 
   const cellCls = (side: "right" | "left") =>
     cn(
-      "flex min-h-0 w-full flex-col justify-center gap-1",
+      "flex min-h-0 w-full min-w-0 flex-col justify-center gap-1 overflow-visible",
       side === "right" ? "items-end text-right" : "items-start text-left",
     );
 
@@ -207,10 +208,15 @@ function ProductCardFooterCompact({
       <div
         className={cn(
           primaryCls,
-          side === "right" ? "flex justify-end" : "flex justify-start",
+          "flex items-center",
+          side === "right" ? "justify-end" : "justify-start",
         )}
       >
-        <PriceWithRiyal price={product.price} riyalClassName="h-2.5 w-2.5 shrink-0 opacity-90" />
+        <PriceWithRiyal
+          price={product.price}
+          className="leading-none"
+          riyalClassName="h-3 w-3 shrink-0 opacity-90"
+        />
       </div>
     </>
   );
@@ -218,20 +224,25 @@ function ProductCardFooterCompact({
   const caloriesCell = (
     <>
       <div className={labelCls}>{t.calories}</div>
-      <div className={secondaryCls}>{product.calories}</div>
+      <div className={cn(secondaryCls, "min-h-[1.15rem] flex items-center")}>{product.calories}</div>
     </>
   );
 
   const allergensCell = (side: "right" | "left") => (
     <>
       <div className={cn(labelCls, "w-full truncate")}>{tc.allergens}</div>
-      <div className={cn("flex h-4 w-full shrink-0 items-center", side === "right" ? "justify-end" : "justify-start")}>
+      <div
+        className={cn(
+          "flex min-h-[1.15rem] w-full shrink-0 items-center",
+          side === "right" ? "justify-end" : "justify-start",
+        )}
+      >
         <AllergenIcons
           allergens={product.allergens}
           allergensEn={product.allergensEn}
           lang={lang}
           size="xs"
-          className={cn("scale-[0.85]", side === "right" ? "origin-right" : "origin-left")}
+          className={cn("scale-[0.9]", side === "right" ? "origin-right" : "origin-left")}
           emptyPlaceholder={<span className={cn(secondaryCls, "opacity-40")}>—</span>}
         />
       </div>
@@ -244,11 +255,11 @@ function ProductCardFooterCompact({
       style={{ background: cardBg }}
     >
       <div
-        className="grid h-full min-h-0 grid-cols-2 grid-rows-2 gap-x-2.5 gap-y-2"
+        className="grid h-full min-h-0 grid-cols-2 grid-rows-2 gap-x-3 gap-y-2.5"
         style={{
           paddingInline: PRODUCT_CARD_PAD_X,
-          paddingTop: "3%",
-          paddingBottom: PRODUCT_CARD_PAD_BOTTOM,
+          paddingTop: 8,
+          paddingBottom: 8,
         }}
         dir="ltr"
       >
@@ -664,7 +675,7 @@ export const ProductGridCard = ({
       </div>
       <div
         className={cn(
-          "flex min-h-0 w-full flex-col overflow-hidden",
+          "flex min-h-0 w-full flex-col justify-center overflow-hidden",
           "border-x-2 border-b-2 border-black/[0.07]",
         )}
         style={{ background: cardBg }}
