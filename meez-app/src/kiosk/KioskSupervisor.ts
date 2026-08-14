@@ -7,6 +7,7 @@ import { faultFromCode } from "@/kiosk/fault-copy";
 import type { FaultCode, KioskPhase, KioskSnapshot } from "@/kiosk/types";
 import { logger } from "@/lib/logger";
 import { invalidateCacheKey } from "@/lib/request-cache";
+import { computeScheduledRetryMs } from "@/lib/rate-limit-coordinator";
 import { resolveDeviceCodeFromUrl, generateDeviceCode } from "@/services/device-code";
 import { setDeviceCode } from "@/security/storage";
 import {
@@ -16,8 +17,8 @@ import {
 import { announceKioskPairingCode } from "@/services/kiosk-pairing";
 import { AppState, type AppStateStatus, type NativeEventSubscription } from "react-native";
 
-const POLL_MS = 12_000;
-const MIN_BACKOFF_MS = 15_000;
+const POLL_MS = 30_000;
+const MIN_FORCE_TICK_GAP_MS = 15_000;
 const ANNOUNCE_MS = 10 * 60 * 1000;
 const FAULT_AUTO_RETRY_MS = 8_000;
 
@@ -37,18 +38,19 @@ function initialSnapshot(): KioskSnapshot {
 
 /**
  * Singleton session supervisor — polling runs independently of UI phase.
- * Deactivation (not_registered) always wins over menu/fault/opening.
+ * Rate limits affect only get_kiosk_state — never freeze the whole app.
  */
 export class KioskSupervisor {
   private snapshot: KioskSnapshot = initialSnapshot();
   private listeners = new Set<Listener>();
   private pollId: ReturnType<typeof setInterval> | undefined;
-  private backoffId: ReturnType<typeof setTimeout> | undefined;
+  private scopedRetryId: ReturnType<typeof setTimeout> | undefined;
   private faultRetryId: ReturnType<typeof setTimeout> | undefined;
   private announceId: ReturnType<typeof setInterval> | undefined;
   private appStateSub: NativeEventSubscription | undefined;
   private openingLock = false;
   private started = false;
+  private lastTickAt = 0;
 
   subscribe = (listener: Listener): (() => void) => {
     this.listeners.add(listener);
@@ -80,9 +82,9 @@ export class KioskSupervisor {
     await this.boot();
   }
 
-  /** Re-run boot after STORAGE fault (keeps singleton alive). */
   async restart(): Promise<void> {
     this.stopPolling();
+    this.clearScopedRetry();
     this.clearFaultRetry();
     if (this.announceId != null) {
       clearInterval(this.announceId);
@@ -128,6 +130,7 @@ export class KioskSupervisor {
   stop(): void {
     this.started = false;
     this.stopPolling();
+    this.clearScopedRetry();
     this.clearFaultRetry();
     if (this.announceId != null) {
       clearInterval(this.announceId);
@@ -138,7 +141,10 @@ export class KioskSupervisor {
   }
 
   private onAppState = (state: AppStateStatus): void => {
-    if (state === "active") void this.tick(true);
+    if (state !== "active") return;
+    const elapsed = Date.now() - this.lastTickAt;
+    if (elapsed < MIN_FORCE_TICK_GAP_MS) return;
+    void this.tick(true);
   };
 
   private stopPolling(): void {
@@ -146,9 +152,12 @@ export class KioskSupervisor {
       clearInterval(this.pollId);
       this.pollId = undefined;
     }
-    if (this.backoffId != null) {
-      clearTimeout(this.backoffId);
-      this.backoffId = undefined;
+  }
+
+  private clearScopedRetry(): void {
+    if (this.scopedRetryId != null) {
+      clearTimeout(this.scopedRetryId);
+      this.scopedRetryId = undefined;
     }
   }
 
@@ -177,12 +186,32 @@ export class KioskSupervisor {
     this.pollId = setInterval(() => void this.tick(false), POLL_MS);
   }
 
-  private scheduleBackoff(delayMs: number): void {
-    this.stopPolling();
-    this.backoffId = setTimeout(() => {
-      this.startPolling();
-      void this.tick(false);
+  private scheduleScopedRetry(retryAfterSeconds: number | undefined): void {
+    this.clearScopedRetry();
+    const delayMs = computeScheduledRetryMs(retryAfterSeconds ?? 30, 1);
+    this.scopedRetryId = setTimeout(() => {
+      void this.tick(true);
     }, delayMs);
+  }
+
+  private handleRateLimited(peek: RegistrationPeek, phase: KioskPhase): void {
+    this.scheduleScopedRetry(peek.retry_after_seconds);
+
+    if (phase === "menu" || phase === "opening") {
+      logger.warn("kiosk.rate_limited_menu_continues", {
+        endpoint: "get_kiosk_state",
+        phase,
+        retryAfterSeconds: peek.retry_after_seconds,
+      });
+      return;
+    }
+
+    this.patch({
+      peek: {
+        ...peek,
+        status: peek.status === "registered" ? "registered" : "checking",
+      },
+    });
   }
 
   private invalidatePeekCache(code: string): void {
@@ -193,18 +222,17 @@ export class KioskSupervisor {
     const { code, phase } = this.snapshot;
     if (!code || !isSupabaseConfigured()) return;
 
+    this.lastTickAt = Date.now();
     const peek = await peekDeviceRegistration(code, force);
     if (this.snapshot.code !== code) return;
 
-    this.patch({ peek });
-
-    if (peek.reason === "rate_limited") {
-      const waitSec = peek.retry_after_seconds ?? 60;
-      this.scheduleBackoff(Math.max(MIN_BACKOFF_MS, waitSec * 1000));
+    if (peek.rateLimited || peek.reason === "rate_limited") {
+      this.handleRateLimited(peek, phase);
       return;
     }
 
-    // Deactivation always wins outside pairing/boot
+    this.patch({ peek });
+
     if (peek.status === "not_registered") {
       if (phase === "pairing" || phase === "boot") {
         return;
@@ -215,7 +243,6 @@ export class KioskSupervisor {
     }
 
     if (peek.status === "error") {
-      // Transient RPC errors must not wipe an active menu session
       return;
     }
 
@@ -232,16 +259,26 @@ export class KioskSupervisor {
     this.setPhase("opening", { fault: null });
 
     try {
-      // Single forced peek (avoids verify + peek double RPC burst)
       const peek = await peekDeviceRegistration(code, true);
-      this.patch({ peek });
-      if (peek.status !== "registered") {
-        if (peek.status === "not_registered") {
-          this.forcePairing(peek.reason ?? "device_inactive");
+      if (peek.rateLimited || peek.reason === "rate_limited") {
+        const canProceed =
+          peek.status === "registered" || this.snapshot.peek?.status === "registered";
+        if (canProceed) {
+          logger.warn("kiosk.open_menu_rate_limited_using_cache", { code });
+        } else {
+          this.handleRateLimited(peek, "opening");
           return;
         }
-        this.reportFault("NETWORK", peek.message);
-        return;
+      } else {
+        this.patch({ peek });
+        if (peek.status !== "registered") {
+          if (peek.status === "not_registered") {
+            this.forcePairing(peek.reason ?? "device_inactive");
+            return;
+          }
+          this.reportFault("NETWORK", peek.message);
+          return;
+        }
       }
 
       const menuUrlError = getMenuWebUrlValidationError();
@@ -289,7 +326,6 @@ export class KioskSupervisor {
     }
 
     if (payload.type === "meez:kiosk-ready") {
-      // MenuWebView clears its own loader; supervisor stays in menu
       return;
     }
 
@@ -324,7 +360,6 @@ export class KioskSupervisor {
     });
   }
 
-  /** فصل الجهاز محلياً — توليد رمز جديد والعودة لشاشة التفعيل */
   async unlinkLocal(): Promise<void> {
     const { code: oldCode } = this.snapshot;
     if (oldCode) this.invalidatePeekCache(oldCode);

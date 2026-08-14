@@ -83,7 +83,12 @@ const MenuDisplay = () => {
       const result = await evaluateKioskGate(code);
       if (cancelled) return;
       setGate((prev) => {
-        // أخطاء RPC عابرة لا تُفرغ جلسة المنيو النشطة ولا تُظهر شاشة خطأ
+        if (
+          result.reason === "rate_limited" &&
+          (prev.allowed || prev.registrationStatus === "registered")
+        ) {
+          return prev;
+        }
         if (
           result.reason === "check_failed" &&
           (prev.allowed || prev.registrationStatus === "registered")

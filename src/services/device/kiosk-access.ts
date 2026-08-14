@@ -41,5 +41,4 @@ export async function evaluateKioskGate(deviceCode: string): Promise<KioskGateRe
 }
 
 /** فترة إعادة التحقق من الاشتراك على الكشك (ms) — صامتة في الخلفية */
-/** إعادة التحقق من الاشتراك + heartbeat ضمني في check_kiosk_access */
-export const KIOSK_SUBSCRIPTION_POLL_MS = appEnv.isProd ? 90_000 : 45_000;
+export const KIOSK_SUBSCRIPTION_POLL_MS = appEnv.isProd ? 120_000 : 60_000;

@@ -34,14 +34,11 @@ export function describeRegistrationStatus(
   }
 
   if (peek.status === "error") {
-    if (peek.reason === "rate_limited") {
-      const sec = peek.retry_after_seconds;
+    if (peek.reason === "rate_limited" || peek.rateLimited) {
       return {
-        title: "محاولات كثيرة",
-        message: sec
-          ? `تم إيقاف الطلبات مؤقتاً. انتظر ${sec} ثانية ثم سيستمر التطبيق تلقائياً.`
-          : "تم إيقاف الطلبات مؤقتاً. انتظر قليلاً ثم سيستمر التطبيق تلقائياً.",
-        hint: "لا حاجة لإغلاق التطبيق — سيُعاد المحاولة تلقائياً",
+        title: "تحديث مؤجل",
+        message: "تعذّر تحديث حالة الجهاز الآن، سنحاول مرة أخرى تلقائيًا.",
+        hint: "يمكنك متابعة استخدام التطبيق — لا حاجة للانتظار",
       };
     }
 

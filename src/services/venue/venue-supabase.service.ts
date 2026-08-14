@@ -3,8 +3,27 @@ import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import { cachedFetch, invalidateCacheKey, invalidateCachePrefix } from "@/lib/request-cache";
 import type { VenueData } from "@/types/venue";
 import { logger } from "@/lib/logger";
+import {
+  hasExceededRetryAttempts,
+  parseRetryAfterSeconds,
+  recordRateLimitHit,
+  recordRateLimitSuccess,
+  shouldSkipRateLimitedRequest,
+} from "@/lib/rate-limit-coordinator";
 
-const RPC_TTL_MS = 4_000;
+export type KioskState = {
+  allowed: boolean;
+  registered: boolean;
+  reason?: string;
+  menu_type?: string | null;
+  venue_updated_at?: string | null;
+  subscription_status?: string | null;
+  retry_after_seconds?: number;
+  rateLimited?: boolean;
+};
+
+const RPC_TTL_MS = 8_000;
+const lastKnownKioskState = new Map<string, KioskState>();
 
 export function shouldUseVenueDatabase(): boolean {
   return isSupabaseConfigured() && !appEnv.useLocalMockAuth;
@@ -75,17 +94,34 @@ export async function fetchVenueFromDatabase(
   );
 }
 
-export type KioskState = {
-  allowed: boolean;
-  registered: boolean;
-  reason?: string;
-  menu_type?: string | null;
-  venue_updated_at?: string | null;
-  subscription_status?: string | null;
-  retry_after_seconds?: number;
-};
+function kioskStateScopeKey(norm: string): string {
+  return `kiosk:state:${norm}`;
+}
 
-/** بوابة الكشك — RPC get_kiosk_state (JSONB مُصفّى، rate-limited) */
+function fallbackKioskState(norm: string): KioskState {
+  const cached = lastKnownKioskState.get(norm);
+  if (cached) {
+    return {
+      ...cached,
+      rateLimited: true,
+      reason: "rate_limited",
+    };
+  }
+  return {
+    allowed: false,
+    registered: false,
+    reason: "rate_limited",
+    rateLimited: true,
+  };
+}
+
+function rememberKioskState(norm: string, state: KioskState): void {
+  if (state.reason !== "rate_limited" && !state.rateLimited) {
+    lastKnownKioskState.set(norm, state);
+  }
+}
+
+/** بوابة الكشك — RPC get_kiosk_state (JSONB مُصفّى، rate-limited per scope) */
 export async function fetchKioskState(
   code: string,
   force = false,
@@ -95,25 +131,55 @@ export async function fetchKioskState(
   }
 
   const norm = normalizeCode(code);
+  const scopeKey = kioskStateScopeKey(norm);
+
+  if (!force && shouldSkipRateLimitedRequest(scopeKey)) {
+    return fallbackKioskState(norm);
+  }
+
+  if (hasExceededRetryAttempts(scopeKey)) {
+    logger.warn("kiosk.state_max_retries", { code: norm });
+    return fallbackKioskState(norm);
+  }
 
   return cachedFetch(
-    `kiosk:state:${norm}`,
+    scopeKey,
     async () => {
       const { data, error } = await getSupabase().rpc("get_kiosk_state", {
         p_code: norm,
       });
 
       if (error) {
-        logger.error("kiosk.state_failed", { code: norm, message: error.message });
+        logger.error("kiosk.state_failed", {
+          endpoint: "get_kiosk_state",
+          method: "RPC",
+          code: norm,
+          message: error.message,
+        });
         return { allowed: false, registered: false, reason: "check_failed" };
       }
 
       if (!data || typeof data !== "object") {
-        return { allowed: false, registered: false, reason: "invalid_response" };
+        const state = { allowed: false, registered: false, reason: "invalid_response" };
+        rememberKioskState(norm, state);
+        recordRateLimitSuccess(scopeKey);
+        return state;
       }
 
       const row = data as Record<string, unknown>;
-      return {
+      if (row.reason === "rate_limited") {
+        const retrySec = parseRetryAfterSeconds(row.retry_after_seconds, 60);
+        recordRateLimitHit(
+          { key: scopeKey, endpoint: "get_kiosk_state", method: "RPC" },
+          retrySec,
+          { deviceCode: norm },
+        );
+        return fallbackKioskState(norm);
+      }
+
+      recordRateLimitSuccess(scopeKey);
+
+      const state: KioskState = {
         allowed: Boolean(row.allowed),
         registered: Boolean(row.registered),
         reason: typeof row.reason === "string" ? row.reason : undefined,
@@ -127,6 +193,8 @@ export async function fetchKioskState(
             ? row.retry_after_seconds
             : undefined,
       };
+      rememberKioskState(norm, state);
+      return state;
     },
     RPC_TTL_MS,
     force,

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Crop, MenuSettings } from "@/types/domain";
 import CropCarouselCard from "@/components/menu/crop/CropCarouselCard";
-import CropDetailModal from "@/components/menu/CropDetailModal";
+import CropCarouselExpandOverlay from "@/components/menu/CropCarouselExpandOverlay";
 import { MenuCropsTopChrome } from "@/components/menu/MenuCropsTopChrome";
 import { useMenuLang } from "@/context/MenuLangContext";
 import { useMenuKioskSync } from "@/hooks/useMenuKioskSync";
@@ -87,10 +87,13 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
         scrollAxis="horizontal"
         layoutMode="panel"
       >
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 md:px-5 md:pt-2 ipad-lg:px-6">
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5 md:px-5 md:pt-2 ipad-lg:px-6">
           <div
             ref={trackRef}
-            className="flex min-h-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className={cn(
+              "relative flex min-h-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+              modal && "overflow-hidden",
+            )}
             style={{ paddingBlock: CROP_TRACK_VERTICAL_PAD }}
           >
             <div
@@ -99,34 +102,51 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
                 lang === "ar" ? "flex-row-reverse" : "flex-row",
               )}
             >
-              {ordered.map((c) => (
-                <CropCarouselCard
-                  key={c.id}
-                  crop={c}
-                  lang={lang}
-                  accentColor={palette.accentColor}
-                  fallbackTextColor={palette.textColor}
-                  featured={c.id === settings.featuredCropId}
-                  cardHeight={cardHeight}
-                  cardWidth={cardWidth}
-                  onClick={() => setModal(c)}
-                />
-              ))}
+              {ordered.map((c) => {
+                const isExpanded = modal?.id === c.id;
+                const isBackground = Boolean(modal && !isExpanded);
+                return (
+                  <div
+                    key={c.id}
+                    className={cn(
+                      "shrink-0 snap-center transition-all duration-300 ease-out motion-reduce:transition-none",
+                      isBackground && "scale-[0.94] opacity-40 blur-[7px] pointer-events-none",
+                      isExpanded && "scale-95 opacity-0 pointer-events-none",
+                    )}
+                    style={
+                      cardHeight && cardWidth
+                        ? { height: cardHeight, width: cardWidth }
+                        : { aspectRatio: "3/4", height: "100%" }
+                    }
+                  >
+                    <CropCarouselCard
+                      crop={c}
+                      lang={lang}
+                      accentColor={palette.accentColor}
+                      fallbackTextColor={palette.textColor}
+                      featured={c.id === settings.featuredCropId}
+                      cardHeight={cardHeight}
+                      cardWidth={cardWidth}
+                      onClick={() => !modal && setModal(c)}
+                    />
+                  </div>
+                );
+              })}
             </div>
+
+            {modal && (
+              <CropCarouselExpandOverlay
+                crop={modal}
+                lang={lang}
+                accentColor={palette.accentColor}
+                fallbackTextColor={palette.textColor}
+                featured={modal.id === settings.featuredCropId}
+                onClose={() => setModal(null)}
+              />
+            )}
           </div>
         </div>
       </MenuCropsTopChrome>
-
-      {modal && (
-        <CropDetailModal
-          crop={modal}
-          lang={lang}
-          accent={palette.accentColor}
-          fallbackTextColor={palette.textColor}
-          featured={modal.id === settings.featuredCropId}
-          onClose={() => setModal(null)}
-        />
-      )}
     </div>
   );
 };

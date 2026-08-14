@@ -125,7 +125,6 @@ export function useMenuVenue(
           if (!navigator.onLine) {
             const offline = classifyUserFacingError(new Error("offline"), { online: false });
             if (mountedRef.current) {
-              // لا تُظهر بانر خطأ أثناء عرض منيو محمّل — أعد المحاولة بصمت
               if (!catalogResolvedRef.current) setSyncError(offline);
               scheduleAutoRetry(() => void reloadFull(true));
             }

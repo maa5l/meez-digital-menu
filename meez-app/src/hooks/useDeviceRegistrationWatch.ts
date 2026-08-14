@@ -1,24 +1,24 @@
 import { useEffect, useRef } from "react";
 import { AppState, type AppStateStatus } from "react-native";
 import { isSupabaseConfigured } from "@/config/env";
+import { computeScheduledRetryMs } from "@/lib/rate-limit-coordinator";
 import {
   peekDeviceRegistration,
   type RegistrationPeek,
 } from "@/services/kiosk-check";
 
-const POLL_MS = 12_000;
-const MIN_BACKOFF_MS = 15_000;
+const POLL_MS = 30_000;
+const MIN_FORCE_GAP_MS = 15_000;
 
 type Options = {
   enabled?: boolean;
-  /** await_activation: انتظر التفعيل ثم توقف. monitor_active: راقب إلغاء التفعيل أثناء عرض المنيو */
   mode?: "await_activation" | "monitor_active";
   onStatus?: (peek: RegistrationPeek) => void;
   onRegistered?: (code: string) => void;
   onUnregistered?: (code: string) => void;
 };
 
-/** polling خفيف — مع تراجع عند rate limit */
+/** polling خفيف — rate limit على get_kiosk_state فقط */
 export function useDeviceRegistrationWatch(code: string | null, options?: Options) {
   const enabled = options?.enabled !== false;
   const mode = options?.mode ?? "await_activation";
@@ -36,22 +36,21 @@ export function useDeviceRegistrationWatch(code: string | null, options?: Option
     let cancelled = false;
     activatedRef.current = false;
     let pollId: ReturnType<typeof setInterval> | undefined;
-    let backoffId: ReturnType<typeof setTimeout> | undefined;
+    let retryId: ReturnType<typeof setTimeout> | undefined;
+    let lastForceAt = 0;
 
-    const stopPolling = () => {
+    const stopTimers = () => {
       if (pollId != null) clearInterval(pollId);
       pollId = undefined;
-      if (backoffId != null) clearTimeout(backoffId);
-      backoffId = undefined;
+      if (retryId != null) clearTimeout(retryId);
+      retryId = undefined;
     };
 
-    const schedulePoll = (delayMs: number) => {
-      stopPolling();
-      backoffId = setTimeout(() => {
-        if (!cancelled) {
-          pollId = setInterval(() => void check(false), POLL_MS);
-        }
-      }, delayMs);
+    const scheduleRetry = (retryAfterSeconds?: number) => {
+      if (retryId != null) clearTimeout(retryId);
+      retryId = setTimeout(() => {
+        if (!cancelled) void check(true);
+      }, computeScheduledRetryMs(retryAfterSeconds ?? 30, 1));
     };
 
     const check = async (force: boolean) => {
@@ -63,30 +62,24 @@ export function useDeviceRegistrationWatch(code: string | null, options?: Option
 
       onStatusRef.current?.(next);
 
+      if (next.rateLimited || next.reason === "rate_limited") {
+        scheduleRetry(next.retry_after_seconds);
+        if (mode === "monitor_active" && next.status === "registered") {
+          return;
+        }
+        return;
+      }
+
       if (mode === "await_activation") {
         if (next.status === "registered") {
           activatedRef.current = true;
-          stopPolling();
+          stopTimers();
           onRegisteredRef.current?.(code);
           return;
         }
-      } else {
-        // monitor_active: أي حالة غير مسجّل/مسموح → العودة لشاشة الرمز
-        if (next.status !== "registered") {
-          if (next.reason === "rate_limited") {
-            const waitSec = next.retry_after_seconds ?? 60;
-            schedulePoll(Math.max(MIN_BACKOFF_MS, waitSec * 1000));
-            return;
-          }
-          onUnregisteredRef.current?.(code);
-          return;
-        }
-      }
-
-      if (next.reason === "rate_limited") {
-        const waitSec = next.retry_after_seconds ?? 60;
-        const waitMs = Math.max(MIN_BACKOFF_MS, waitSec * 1000);
-        schedulePoll(waitMs);
+      } else if (next.status !== "registered") {
+        onUnregisteredRef.current?.(code);
+        return;
       }
     };
 
@@ -97,17 +90,18 @@ export function useDeviceRegistrationWatch(code: string | null, options?: Option
     }
 
     const onAppState = (state: AppStateStatus) => {
-      if (state === "active" && !cancelled) {
-        if (mode === "await_activation" && activatedRef.current) return;
-        void check(true);
-      }
+      if (state !== "active" || cancelled) return;
+      if (mode === "await_activation" && activatedRef.current) return;
+      if (Date.now() - lastForceAt < MIN_FORCE_GAP_MS) return;
+      lastForceAt = Date.now();
+      void check(true);
     };
 
     const sub = AppState.addEventListener("change", onAppState);
 
     return () => {
       cancelled = true;
-      stopPolling();
+      stopTimers();
       sub.remove();
     };
   }, [code, enabled, mode]);
