@@ -627,21 +627,21 @@ export const ProductGridCard = ({
 }) => {
   const cardImage = getProductCardImage(product);
   const cardRadius = "rounded-[1.5rem] md:rounded-[1.75rem]";
+  const imageFlex = PRODUCT_CARD.padTop + PRODUCT_CARD.imageHeight;
+  const footerFlex = PRODUCT_CARD.footerHeight + PRODUCT_CARD.padBottom;
   const className = cn(
-    "group relative flex w-full flex-col overflow-hidden text-start",
+    "group relative grid w-full overflow-hidden text-start",
     cardRadius,
     menuChromeMotion,
     onClick && "transition-shadow hover:shadow-lg",
   );
-  const style = { aspectRatio: PRODUCT_CARD_ASPECT };
-  const imageFlex = PRODUCT_CARD.padTop + PRODUCT_CARD.imageHeight;
-  const footerFlex = PRODUCT_CARD.footerHeight + PRODUCT_CARD.padBottom;
+  const style = {
+    aspectRatio: PRODUCT_CARD_ASPECT,
+    gridTemplateRows: `${imageFlex}fr ${footerFlex}fr`,
+  };
   const body = (
     <>
-      <div
-        className="relative min-h-0 w-full shrink-0 overflow-hidden"
-        style={{ flex: `${imageFlex} 0 0` }}
-      >
+      <div className="relative h-full min-h-0 w-full overflow-hidden">
         <ProductImageBadge product={product} lang={lang} placement="inset" />
         <div className="absolute inset-0 flex items-center justify-center">
           {cardImage ? (
@@ -664,10 +664,10 @@ export const ProductGridCard = ({
       </div>
       <div
         className={cn(
-          "flex min-h-0 w-full shrink-0 flex-col overflow-hidden",
+          "flex min-h-0 w-full flex-col overflow-hidden",
           "border-x-2 border-b-2 border-black/[0.07]",
         )}
-        style={{ flex: `${footerFlex} 0 0`, background: cardBg }}
+        style={{ background: cardBg }}
       >
         <ProductCardFooter product={product} lang={lang} cardBg={cardBg} compact />
       </div>
