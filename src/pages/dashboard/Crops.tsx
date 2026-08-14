@@ -44,15 +44,17 @@ const empty: Omit<Crop, "id"> = {
 
 function cropToForm(c: Crop): Omit<Crop, "id"> {
   const { id: _id, ...rest } = c;
-  const landscape = rest.imageLandscape?.trim() || rest.image?.trim() || "";
+  const legacyImage = rest.image?.trim() || "";
+  const landscape = rest.imageLandscape?.trim() || legacyImage;
+  const portrait = rest.imagePortrait?.trim() || "";
   return {
     ...empty,
     ...rest,
     cardColor: rest.cardColor || empty.cardColor,
     textColor: rest.textColor || empty.textColor,
-    image: landscape,
+    image: landscape || portrait || "",
     imageLandscape: landscape,
-    imagePortrait: rest.imagePortrait?.trim() || "",
+    imagePortrait: portrait,
     bgType: rest.bgType || "color",
     gradientColors: rest.gradientColors?.length
       ? rest.gradientColors
@@ -71,7 +73,9 @@ const Crops = () => {
 
   useEffect(() => {
     const onFail = () => {
-      toast.error("تعذّر الحفظ — مساحة التخزين ممتلئة. صغّر صور المحاصيل أو أزل صوراً غير ضرورية.");
+      toast.error(
+        "تعذّر الحفظ — مساحة التخزين ممتلئة. أعد رفع الصور (تُضغط تلقائياً) أو احذف صوراً قديمة غير مستخدمة.",
+      );
     };
     window.addEventListener("meez:venue-save-failed", onFail);
     return () => window.removeEventListener("meez:venue-save-failed", onFail);
@@ -105,7 +109,7 @@ const Crops = () => {
       return;
     }
 
-    const landscape = form.imageLandscape?.trim() || form.image?.trim() || "";
+    const landscape = form.imageLandscape?.trim() || "";
     const portrait = form.imagePortrait?.trim() || "";
     const payload: Omit<Crop, "id"> = {
       ...form,
@@ -295,21 +299,19 @@ const Crops = () => {
                       label="صورة عرضية"
                       hint="بانر أفقي — خلفية البطاقة وتفاصيل العرض"
                       previewClassName="h-24 w-full rounded-lg object-cover"
-                      value={form.imageLandscape || form.image}
+                      value={form.imageLandscape}
                       onUpload={processCropLandscapeImageFile}
                       onChange={(dataUrl) =>
-                        setForm({
-                          ...form,
+                        setForm((prev) => ({
+                          ...prev,
                           imageLandscape: dataUrl,
-                          image: dataUrl,
-                        })
+                        }))
                       }
                       onClear={() =>
-                        setForm({
-                          ...form,
+                        setForm((prev) => ({
+                          ...prev,
                           imageLandscape: "",
-                          image: form.imagePortrait || "",
-                        })
+                        }))
                       }
                     />
                     <ImageUploadSlot
@@ -318,8 +320,18 @@ const Crops = () => {
                       previewClassName="mx-auto h-36 w-28 rounded-lg object-cover"
                       value={form.imagePortrait}
                       onUpload={processCropPortraitImageFile}
-                      onChange={(dataUrl) => setForm({ ...form, imagePortrait: dataUrl })}
-                      onClear={() => setForm({ ...form, imagePortrait: "" })}
+                      onChange={(dataUrl) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          imagePortrait: dataUrl,
+                        }))
+                      }
+                      onClear={() =>
+                        setForm((prev) => ({
+                          ...prev,
+                          imagePortrait: "",
+                        }))
+                      }
                     />
                   </div>
                 )}

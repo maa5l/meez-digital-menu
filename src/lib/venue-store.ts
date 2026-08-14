@@ -16,6 +16,7 @@ import {
   shouldUseVenueDatabase,
 } from "@/services/venue/venue-supabase.service";
 import { parseVenueDataSafe } from "@/lib/venue-schema";
+import { compactVenueForLocalStorage } from "@/lib/venue-storage-compact";
 
 const VENUE_PREFIX = "meez:venue:";
 const DEVICE_OWNER_PREFIX = STORAGE_KEYS.DEVICE_OWNER_PREFIX;
@@ -90,12 +91,21 @@ export function resolveOwnerUserId(): string | null {
   return getCurrentUserId() ?? getLocalJson<string | null>(STORAGE_KEYS.LAST_VENUE_OWNER, null);
 }
 
+let deviceSnapshotCleanupDone = false;
+
 export function loadVenueData(userId: string): VenueData {
+  if (!deviceSnapshotCleanupDone && typeof window !== "undefined") {
+    freeLocalStorageFromHeavyDeviceSnapshots();
+    deviceSnapshotCleanupDone = true;
+  }
   const stored = getLocalJson<VenueData | null>(venueKey(userId), null);
   if (!stored || stored.version !== 1) {
     return createEmptyVenueData();
   }
-  return normalizeVenue(stored);
+  const normalized = normalizeVenue(stored);
+  const compact = compactVenueForLocalStorage(normalized);
+  setLocalJson(venueKey(userId), compact);
+  return compact;
 }
 
 export function setDeviceMenuType(deviceCode: string, menuType: "products" | "crops"): void {
@@ -121,17 +131,36 @@ export function inferDeviceMenuType(device: Device): "products" | "crops" {
   return "products";
 }
 
-/** نسخة منيو للجهاز — تُحدَّث عند كل حفظ من لوحة التحكم */
+/** نسخة منيو للجهاز — مؤشر خفيف فقط (البيانات الكاملة عند meez:venue:{owner}) */
 export function refreshDeviceVenueSync(deviceCode: string, ownerUserId?: string): void {
   const code = deviceCode.trim().toUpperCase();
   const ownerId = ownerUserId ?? getDeviceOwnerUserId(code) ?? resolveOwnerUserId();
   if (!ownerId) return;
-  const venue = loadVenueData(ownerId);
   setLocalJson(`${DEVICE_VENUE_PREFIX}${code}`, {
     ownerUserId: ownerId,
-    venue,
     syncedAt: new Date().toISOString(),
   });
+}
+
+/** يحرّر مساحة localStorage بإزالة نسخ المنيو المكررة داخل مفاتيح الأجهزة */
+function freeLocalStorageFromHeavyDeviceSnapshots(): void {
+  if (typeof window === "undefined") return;
+  const keys: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith(DEVICE_VENUE_PREFIX)) keys.push(key);
+  }
+  for (const key of keys) {
+    const snap = getLocalJson<{ ownerUserId?: string; venue?: VenueData; syncedAt?: string } | null>(
+      key,
+      null,
+    );
+    if (!snap?.venue) continue;
+    setLocalJson(key, {
+      ownerUserId: snap.ownerUserId,
+      syncedAt: snap.syncedAt ?? new Date().toISOString(),
+    });
+  }
 }
 
 function syncAllDeviceVenueSnapshots(ownerUserId: string, data: VenueData): void {
@@ -141,11 +170,15 @@ function syncAllDeviceVenueSnapshots(ownerUserId: string, data: VenueData): void
 }
 
 function saveVenueDataLocal(userId: string, data: VenueData): VenueData {
-  const payload: VenueData = {
+  const payload: VenueData = compactVenueForLocalStorage({
     ...data,
     updatedAt: new Date().toISOString(),
-  };
-  const ok = setLocalJson(venueKey(userId), payload);
+  });
+  let ok = setLocalJson(venueKey(userId), payload);
+  if (!ok) {
+    freeLocalStorageFromHeavyDeviceSnapshots();
+    ok = setLocalJson(venueKey(userId), payload);
+  }
   if (!ok) {
     throw new Error("storage_quota_exceeded");
   }
@@ -364,11 +397,11 @@ export async function syncVenueForDeviceIfStale(
 
     const remote = await fetchVenueForDeviceFromDatabase(code, force);
     if (remote?.version === 1) {
-      const normalized = normalizeVenue(remote);
+      const normalized = compactVenueForLocalStorage(normalizeVenue(remote));
       const ownerId = getDeviceOwnerUserId(code);
       if (ownerId) saveVenueDataLocal(ownerId, normalized);
       setLocalJson(`${DEVICE_VENUE_PREFIX}${code}`, {
-        venue: normalized,
+        ...(ownerId ? { ownerUserId: ownerId } : { venue: normalized }),
         syncedAt: new Date().toISOString(),
         remoteUpdatedAt: remoteUpdatedAt ?? undefined,
       });

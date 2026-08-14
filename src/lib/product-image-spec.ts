@@ -7,17 +7,19 @@ export const PRODUCT_IMAGE_SPEC = {
   minWidth: PRODUCT_CARD.imageWidth,
   minHeight: PRODUCT_CARD.imageHeight,
   targetAspect: PRODUCT_CARD.imageWidth / PRODUCT_CARD.imageHeight,
-  jpegQuality: 0.92,
+  maxLongEdge: 1280,
+  jpegQuality: 0.8,
 } as const;
 
 /** صورة عرضية — بانر المنيو وبطاقات الشبكة */
 export const PRODUCT_LANDSCAPE_IMAGE_SPEC = {
-  recommendedWidth: 1920,
-  recommendedHeight: 1080,
-  minWidth: 960,
-  minHeight: 540,
+  recommendedWidth: 1280,
+  recommendedHeight: 720,
+  minWidth: 640,
+  minHeight: 360,
   targetAspect: 16 / 9,
-  jpegQuality: 0.92,
+  maxLongEdge: 1280,
+  jpegQuality: 0.8,
 } as const;
 
 /** صورة عمودية — تفاصيل المنتج */
@@ -27,5 +29,6 @@ export const PRODUCT_PORTRAIT_IMAGE_SPEC = {
   minWidth: 450,
   minHeight: 600,
   targetAspect: 3 / 4,
-  jpegQuality: 0.92,
+  maxLongEdge: 1200,
+  jpegQuality: 0.8,
 } as const;

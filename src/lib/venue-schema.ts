@@ -89,6 +89,8 @@ const CropSchema = z
     notes: coerceString(),
     notesEn: coerceString(),
     image: z.string().nullish().catch(undefined).transform((v) => v ?? undefined),
+    imageLandscape: z.string().nullish().catch(undefined).transform((v) => v ?? undefined),
+    imagePortrait: z.string().nullish().catch(undefined).transform((v) => v ?? undefined),
     sortOrder: z.number().finite().optional().catch(undefined),
   })
   .passthrough();

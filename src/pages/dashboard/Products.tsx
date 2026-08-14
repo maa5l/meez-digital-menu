@@ -54,8 +54,7 @@ const Products = () => {
   const [descriptionEn, setDescriptionEn] = useState("");
   const [price, setPrice] = useState("");
   const [calories, setCalories] = useState("");
-  const [imageLandscape, setImageLandscape] = useState("");
-  const [imagePortrait, setImagePortrait] = useState("");
+  const [productImages, setProductImages] = useState({ landscape: "", portrait: "" });
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
   const [hasCrop, setHasCrop] = useState(false);
   const [linkedCropId, setLinkedCropId] = useState("");
@@ -74,8 +73,7 @@ const Products = () => {
     setDescriptionEn("");
     setPrice("");
     setCalories("");
-    setImageLandscape("");
-    setImagePortrait("");
+    setProductImages({ landscape: "", portrait: "" });
     setSelectedAllergens([]);
     setHasCrop(false);
     setLinkedCropId("");
@@ -95,9 +93,10 @@ const Products = () => {
     setDescriptionEn(p.descriptionEn ?? "");
     setPrice(String(p.price));
     setCalories(String(p.calories));
-    const landscape = p.imageLandscape?.trim() || p.image?.trim() || "";
-    setImageLandscape(landscape);
-    setImagePortrait(p.imagePortrait?.trim() || "");
+    setProductImages({
+      landscape: p.imageLandscape?.trim() || p.image?.trim() || "",
+      portrait: p.imagePortrait?.trim() || "",
+    });
     setSelectedAllergens(
       parseAllergensIds(p.allergens).length > 0
         ? parseAllergensIds(p.allergens)
@@ -144,8 +143,8 @@ const Products = () => {
 
   const buildProduct = (id: string): Product => {
     const parsedOrder = Number(sortOrder);
-    const landscape = imageLandscape.trim();
-    const portrait = imagePortrait.trim();
+    const landscape = productImages.landscape.trim();
+    const portrait = productImages.portrait.trim();
     const selectedCrop = hasCrop ? crops.find((c) => c.id === linkedCropId) : undefined;
 
     return {
@@ -177,11 +176,11 @@ const Products = () => {
 
   const save = () => {
     if (!name.trim() || categories.length === 0) return;
-    if (!imageLandscape.trim()) {
+    if (!productImages.landscape.trim()) {
       toast.error("صورة المنتج العرضية مطلوبة");
       return;
     }
-    if (!imagePortrait.trim()) {
+    if (!productImages.portrait.trim()) {
       toast.error("صورة المنتج العمودية مطلوبة");
       return;
     }
@@ -288,19 +287,23 @@ const Products = () => {
               label="صورة عرضية *"
               hint={`${PRODUCT_LANDSCAPE_IMAGE_SPEC.recommendedWidth}×${PRODUCT_LANDSCAPE_IMAGE_SPEC.recommendedHeight} بكسل (16:9) — بطاقات المنيو والمعاينة`}
               previewClassName="h-24 w-full rounded-lg object-cover"
-              value={imageLandscape}
+              value={productImages.landscape}
               onUpload={processProductLandscapeImageFile}
-              onChange={setImageLandscape}
-              onClear={() => setImageLandscape("")}
+              onChange={(dataUrl) =>
+                setProductImages((prev) => ({ ...prev, landscape: dataUrl }))
+              }
+              onClear={() => setProductImages((prev) => ({ ...prev, landscape: "" }))}
             />
             <ProductImageUploadSlot
               label="صورة عمودية *"
               hint={`${PRODUCT_PORTRAIT_IMAGE_SPEC.recommendedWidth}×${PRODUCT_PORTRAIT_IMAGE_SPEC.recommendedHeight} بكسل (3:4) — تفاصيل المنتج`}
               previewClassName="mx-auto h-36 w-28 rounded-lg object-cover"
-              value={imagePortrait}
+              value={productImages.portrait}
               onUpload={processProductPortraitImageFile}
-              onChange={setImagePortrait}
-              onClear={() => setImagePortrait("")}
+              onChange={(dataUrl) =>
+                setProductImages((prev) => ({ ...prev, portrait: dataUrl }))
+              }
+              onClear={() => setProductImages((prev) => ({ ...prev, portrait: "" }))}
             />
           </div>
         </div>
