@@ -99,6 +99,7 @@ export function ThemePreviewFrame({
         >
           {ready ? (
             <iframe
+              key={src}
               title="معاينة المنيو"
               src={src}
               className="absolute left-0 top-0 border-0 bg-white"

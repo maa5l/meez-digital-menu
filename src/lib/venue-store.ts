@@ -122,7 +122,9 @@ export async function getDeviceMenuTypeAsync(deviceCode: string): Promise<"produ
   const local = getDeviceMenuType(deviceCode);
   if (local) return local;
   if (!shouldUseVenueDatabase()) return null;
-  return getDeviceMenuTypeFromDatabase(deviceCode);
+  const fromCloud = await getDeviceMenuTypeFromDatabase(deviceCode);
+  if (fromCloud) setDeviceMenuType(deviceCode, fromCloud);
+  return fromCloud;
 }
 
 export function inferDeviceMenuType(device: Device): "products" | "crops" {

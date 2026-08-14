@@ -4,7 +4,7 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useVenueData } from "@/hooks/useVenueData";
 import {
   getCurrentUserId,
-  inferDeviceMenuType,
+  getDeviceMenuType,
   linkDeviceToOwner,
   refreshDeviceVenueSync,
   setDeviceMenuType,
@@ -101,7 +101,8 @@ const Devices = () => {
       ownerId,
     );
     for (const d of list) {
-      setDeviceMenuType(d.code, inferDeviceMenuType(d));
+      const menuType = d.menuType ?? getDeviceMenuType(d.code);
+      if (menuType) setDeviceMenuType(d.code, menuType);
       refreshDeviceVenueSync(d.code, ownerId);
     }
     void syncDeviceActivationsToCloud(ownerId, list);

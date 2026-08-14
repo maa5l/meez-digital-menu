@@ -10,7 +10,8 @@ import { MenuSyncBanner } from "@/components/menu/MenuSyncBanner";
 import { KioskSubscriptionBlocked } from "@/components/subscription/KioskSubscriptionBlocked";
 import { useMenuVenue, type MenuVenueResult } from "@/hooks/useMenuVenue";
 import { useOrderedCatalog } from "@/hooks/useOrderedCatalog";
-import { getDeviceMenuType, getDeviceMenuTypeAsync } from "@/lib/venue-store";
+import { getDeviceMenuType, getDeviceMenuTypeAsync, setDeviceMenuType as persistDeviceMenuType } from "@/lib/venue-store";
+import { normalizeMenuCatalogType, resolveMenuDisplayType } from "@/lib/menu-display-type";
 import {
   getPendingDeviceCode,
   setPendingDeviceCode,
@@ -58,18 +59,31 @@ const MenuDisplay = () => {
   });
 
   const [deviceMenuType, setDeviceMenuType] = useState<"products" | "crops" | null>(() =>
-    code ? getDeviceMenuType(code) : null,
+    isPreview || !code ? null : getDeviceMenuType(code),
   );
 
-  const type =
-    typeParam === "crops" || typeParam === "products"
-      ? typeParam
-      : deviceMenuType ?? "products";
+  const type = resolveMenuDisplayType({
+    isPreview,
+    typeParam,
+    deviceMenuType,
+    gateMenuType: gate.menu_type,
+  });
 
   useEffect(() => {
-    if (typeParam === "crops" || typeParam === "products" || !code) return;
-    void getDeviceMenuTypeAsync(code).then(setDeviceMenuType);
-  }, [code, typeParam]);
+    if (isPreview || typeParam === "crops" || typeParam === "products" || !code) return;
+    void getDeviceMenuTypeAsync(code).then((resolved) => {
+      if (!resolved) return;
+      setDeviceMenuType(resolved);
+    });
+  }, [code, typeParam, isPreview]);
+
+  useEffect(() => {
+    if (isPreview || !code) return;
+    const fromGate = normalizeMenuCatalogType(gate.menu_type);
+    if (!fromGate) return;
+    setDeviceMenuType(fromGate);
+    persistDeviceMenuType(code, fromGate);
+  }, [code, gate.menu_type, isPreview]);
 
   useEffect(() => {
     if (isPreview || !code) return;

@@ -3,11 +3,12 @@ import AllergenIcons from "@/components/menu/AllergenIcons";
 import { localizeProduct, type MenuLang } from "@/lib/product-i18n";
 import { hasProductBadge, productBadgeColor, productBadgeLabel } from "@/lib/product-badge";
 import {
+  PRODUCT_CARD,
   PRODUCT_CARD_ASPECT,
   PRODUCT_CARD_FOOTER_HEIGHT,
   PRODUCT_CARD_PAD_BOTTOM,
-  PRODUCT_CARD_PAD_TOP,
   PRODUCT_CARD_PAD_X,
+  PRODUCT_CARD_PAD_TOP,
   PRODUCT_IMAGE_ASPECT,
 } from "@/lib/product-card-spec";
 import { cropDisplayLine } from "@/lib/crop-info";
@@ -240,7 +241,7 @@ function ProductCardFooterCompact({
 
   return (
     <div
-      className="flex w-full flex-none flex-col overflow-hidden rounded-b-[1.5rem] md:rounded-b-[1.75rem]"
+      className="flex w-full flex-none flex-col overflow-hidden"
       style={{ background: cardBg, height: PRODUCT_CARD_FOOTER_HEIGHT, maxHeight: PRODUCT_CARD_FOOTER_HEIGHT }}
     >
       <div
@@ -627,43 +628,45 @@ export const ProductGridCard = ({
 }) => {
   const cardImage = getProductCardImage(product);
   const className = cn(
-    "group relative flex w-full flex-col overflow-hidden rounded-[1.5rem] border-2 border-black/[0.07] text-start",
+    "group relative flex w-full flex-col overflow-hidden text-start",
     menuChromeMotion,
     onClick && "transition-shadow hover:shadow-lg",
   );
-  const style = { background: cardBg, aspectRatio: PRODUCT_CARD_ASPECT };
+  const style = { aspectRatio: PRODUCT_CARD_ASPECT };
+  const imageFlex = PRODUCT_CARD.imageHeight;
+  const footerFlex = PRODUCT_CARD.footerHeight + PRODUCT_CARD.padBottom;
   const body = (
     <>
       <div
-        className="relative flex-none w-full"
-        style={{ paddingInline: PRODUCT_CARD_PAD_X, paddingTop: PRODUCT_CARD_PAD_TOP }}
+        className="relative min-h-0 w-full shrink-0 overflow-hidden rounded-t-[1.5rem] md:rounded-t-[1.75rem]"
+        style={{ flex: `${imageFlex} 0 0` }}
       >
-        <div
-          className="relative w-full overflow-hidden rounded-[1.1rem] bg-white md:rounded-[1.15rem]"
-          style={{ aspectRatio: PRODUCT_IMAGE_ASPECT }}
-        >
-          <ProductImageBadge product={product} lang={lang} placement="inset" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            {cardImage ? (
-              <MenuProductImage
-                src={cardImage}
-                alt={product.name}
-                className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
-                placeholder={
-                  <span className="px-2 text-center text-xs font-bold text-muted-foreground/40">
-                    {labels[lang].noImage}
-                  </span>
-                }
-              />
-            ) : (
-              <span className="px-2 text-center text-xs font-bold text-muted-foreground/40">
-                {labels[lang].noImage}
-              </span>
-            )}
-          </div>
+        <ProductImageBadge product={product} lang={lang} placement="inset" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          {cardImage ? (
+            <MenuProductImage
+              src={cardImage}
+              alt={product.name}
+              className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
+              placeholder={
+                <span className="px-2 text-center text-xs font-bold text-muted-foreground/40">
+                  {labels[lang].noImage}
+                </span>
+              }
+            />
+          ) : (
+            <span className="px-2 text-center text-xs font-bold text-muted-foreground/40">
+              {labels[lang].noImage}
+            </span>
+          )}
         </div>
       </div>
-      <ProductCardFooter product={product} lang={lang} cardBg={cardBg} compact />
+      <div
+        className="flex min-h-0 shrink-0 flex-col overflow-hidden rounded-b-[1.5rem] border-2 border-black/[0.07] md:rounded-b-[1.75rem]"
+        style={{ flex: `${footerFlex} 0 0`, background: cardBg }}
+      >
+        <ProductCardFooter product={product} lang={lang} cardBg={cardBg} compact />
+      </div>
     </>
   );
 

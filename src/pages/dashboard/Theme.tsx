@@ -48,6 +48,7 @@ const Theme = () => {
 
   const productsPreviewUrl = "/menu?preview=1";
   const cropsPreviewUrl = "/menu?type=crops&preview=1";
+  const activePreviewUrl = section.startsWith("crops") ? cropsPreviewUrl : productsPreviewUrl;
 
   const sectionMeta = THEME_SECTIONS.find((s) => s.id === section)!;
 
@@ -68,7 +69,7 @@ const Theme = () => {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" className="gap-1.5 touch-manipulation" asChild>
-              <a href={productsPreviewUrl} target="_blank" rel="noreferrer">
+              <a href={activePreviewUrl} target="_blank" rel="noreferrer">
                 <ExternalLink className="h-3.5 w-3.5" />
                 معاينة
               </a>
