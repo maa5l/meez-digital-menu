@@ -64,7 +64,7 @@ const ProductDetailModal = ({ product, lang, onClose }: Props) => {
             )}
           >
             <div
-              className="relative mx-auto w-full max-w-[250px] overflow-hidden rounded-[1.25rem] border-2 border-black/[0.06] bg-neutral-50"
+              className="relative mx-auto w-full max-w-[250px] overflow-hidden rounded-[1.25rem]"
               style={{
                 aspectRatio: modalAspect,
                 maxHeight: getProductPortraitImage(product) ? 320 : PRODUCT_CARD.imageHeight,
