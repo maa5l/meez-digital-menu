@@ -5,7 +5,6 @@ import { hasProductBadge, productBadgeColor, productBadgeLabel } from "@/lib/pro
 import {
   PRODUCT_CARD,
   PRODUCT_CARD_ASPECT,
-  PRODUCT_CARD_FOOTER_HEIGHT,
   PRODUCT_CARD_PAD_BOTTOM,
   PRODUCT_CARD_PAD_X,
   PRODUCT_CARD_PAD_TOP,
@@ -241,8 +240,8 @@ function ProductCardFooterCompact({
 
   return (
     <div
-      className="flex w-full flex-none flex-col overflow-hidden"
-      style={{ background: cardBg, height: PRODUCT_CARD_FOOTER_HEIGHT, maxHeight: PRODUCT_CARD_FOOTER_HEIGHT }}
+      className="flex h-full min-h-0 w-full flex-col overflow-hidden"
+      style={{ background: cardBg }}
     >
       <div
         className="grid h-full min-h-0 grid-cols-2 grid-rows-2 gap-x-2.5 gap-y-2"
@@ -627,18 +626,20 @@ export const ProductGridCard = ({
   onClick?: () => void;
 }) => {
   const cardImage = getProductCardImage(product);
+  const cardRadius = "rounded-[1.5rem] md:rounded-[1.75rem]";
   const className = cn(
     "group relative flex w-full flex-col overflow-hidden text-start",
+    cardRadius,
     menuChromeMotion,
     onClick && "transition-shadow hover:shadow-lg",
   );
   const style = { aspectRatio: PRODUCT_CARD_ASPECT };
-  const imageFlex = PRODUCT_CARD.imageHeight;
+  const imageFlex = PRODUCT_CARD.padTop + PRODUCT_CARD.imageHeight;
   const footerFlex = PRODUCT_CARD.footerHeight + PRODUCT_CARD.padBottom;
   const body = (
     <>
       <div
-        className="relative min-h-0 w-full shrink-0 overflow-hidden rounded-t-[1.5rem] md:rounded-t-[1.75rem]"
+        className="relative min-h-0 w-full shrink-0 overflow-hidden"
         style={{ flex: `${imageFlex} 0 0` }}
       >
         <ProductImageBadge product={product} lang={lang} placement="inset" />
@@ -662,7 +663,10 @@ export const ProductGridCard = ({
         </div>
       </div>
       <div
-        className="flex min-h-0 shrink-0 flex-col overflow-hidden rounded-b-[1.5rem] border-2 border-black/[0.07] md:rounded-b-[1.75rem]"
+        className={cn(
+          "flex min-h-0 w-full shrink-0 flex-col overflow-hidden",
+          "border-x-2 border-b-2 border-black/[0.07]",
+        )}
         style={{ flex: `${footerFlex} 0 0`, background: cardBg }}
       >
         <ProductCardFooter product={product} lang={lang} cardBg={cardBg} compact />
