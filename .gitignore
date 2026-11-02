@@ -21,6 +21,8 @@ supabase/scripts/restore/DATA_RESTORE.sql
 supabase/scripts/restore/02_AUTH_DATA.sql
 supabase/scripts/restore/02_AUTH_DATA_INSERTS.sql
 supabase/scripts/restore/03_PUBLIC_DATA.sql
+supabase/scripts/restore/03a_PUBLIC_DATA_NO_VENUES.sql
+supabase/scripts/restore/03b_venues_*.sql
 server/.env
 backend/.env
 backend/.venv
