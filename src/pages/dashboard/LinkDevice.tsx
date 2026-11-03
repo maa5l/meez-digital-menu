@@ -3,7 +3,7 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { useVenueData } from "@/hooks/useVenueData";
 import { ROUTES } from "@/config/app";
-import { resolveAppOrigin } from "@/config/env";
+import { resolveKioskOrigin } from "@/config/env";
 import { getPublicSiteHref, getPublicSiteLabel, isIpadTrialMode } from "@/config/ipad-trial";
 import { toast } from "sonner";
 import {
@@ -23,7 +23,7 @@ const LinkDevice = () => {
   const max = subscription.maxScreens;
   const canAdd = used < max;
 
-  const ipadEntryUrl = `${resolveAppOrigin()}${ROUTES.pair}`;
+  const ipadEntryUrl = `${resolveKioskOrigin()}${ROUTES.pair}`;
   const siteLabel = getPublicSiteLabel();
   const siteHref = getPublicSiteHref();
 

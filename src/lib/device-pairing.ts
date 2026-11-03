@@ -1,17 +1,17 @@
-import { resolveAppOrigin } from "@/config/env";
+import { resolveKioskOrigin } from "@/config/env";
 import { ROUTES } from "@/config/app";
 import { isValidDeviceCode } from "@/services/device/activation";
 import { isPairingSessionId } from "@/services/device/pairing-session.service";
 
 /** رابط شاشة الجهاز مع كود التحقق */
 export function getDevicePairingUrlWithCode(code: string, baseUrl?: string): string {
-  const origin = (baseUrl ?? resolveAppOrigin()).replace(/\/$/, "");
+  const origin = (baseUrl ?? resolveKioskOrigin()).replace(/\/$/, "");
   return `${origin}${ROUTES.pair}?code=${encodeURIComponent(code.trim().toUpperCase())}`;
 }
 
 /** رابط المنيو بعد التفعيل */
 export function getDeviceMenuUrl(code: string, baseUrl?: string): string {
-  const origin = (baseUrl ?? resolveAppOrigin()).replace(/\/$/, "");
+  const origin = (baseUrl ?? resolveKioskOrigin()).replace(/\/$/, "");
   return `${origin}${ROUTES.menu}?code=${encodeURIComponent(code.trim().toUpperCase())}`;
 }
 

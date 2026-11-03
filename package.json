@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:kiosk-web": "vite --mode kiosk",
     "dev:kiosk": "npm run dev --prefix meez-app",
+    "build:kiosk": "vite build --mode kiosk",
     "eas:android:preview": "npm exec --prefix meez-app -- eas-cli@latest build --platform android --profile preview",
     "eas:ios:preview": "npm exec --prefix meez-app -- eas-cli@latest build --platform ios --profile preview",
     "build": "vite build",

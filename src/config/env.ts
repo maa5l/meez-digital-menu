@@ -10,10 +10,17 @@ const hasSupabaseKeys = Boolean(
   supabaseUrl &&
     supabaseAnonKey &&
     supabaseAnonKey.length >= 20 &&
+    supabaseAnonKey.startsWith("eyJ") &&
     !supabaseUrl.includes("YOUR_PROJECT") &&
     !supabaseAnonKey.includes("your_anon_key") &&
+    !supabaseAnonKey.includes("PASTE_ANON_KEY") &&
     supabaseAnonKey !== "your_publishable_or_anon_key",
 );
+
+const appSurfaceRaw = ((env.VITE_APP_SURFACE as string | undefined) ?? "full").toLowerCase();
+/** full = المنصة كاملة؛ kiosk = تفعيل + منيو فقط (موقع الكشك) */
+const appSurface = appSurfaceRaw === "kiosk" ? "kiosk" : "full";
+const kioskOrigin = ((env.VITE_KIOSK_ORIGIN as string | undefined) ?? "").replace(/\/$/, "");
 
 export const appEnv = {
   mode: env.MODE as "development" | "production" | "test",
@@ -21,6 +28,11 @@ export const appEnv = {
   isProd: env.PROD,
   apiBaseUrl: (env.VITE_API_BASE_URL as string | undefined) ?? "",
   appUrl: (env.VITE_APP_URL as string | undefined) ?? "http://localhost:8080",
+  /** full | kiosk — للفصل بين منصة الإدارة وموقع الكشك */
+  appSurface: appSurface as "full" | "kiosk",
+  isKioskSurface: appSurface === "kiosk",
+  /** أصل موقع الكشك (pair/menu) — يُستخدم في روابط التفعيل من اللوحة */
+  kioskOrigin,
   /** في التطوير: مفعّل افتراضياً. في الإنتاج: فقط عند VITE_ENABLE_MOCK_AUTH=true */
   enableMockAuth: env.PROD ? env.VITE_ENABLE_MOCK_AUTH === "true" : env.VITE_ENABLE_MOCK_AUTH !== "false",
   /**
@@ -62,6 +74,21 @@ export function resolveAppOrigin(): string {
     return current;
   }
   return appEnv.appUrl.replace(/\/$/, "");
+}
+
+/**
+ * أصل شاشة التفعيل/المنيو للكشك.
+ * إذا ضُبط VITE_KIOSK_ORIGIN على منصة الإدارة، تُوجَّه الروابط هناك.
+ * على سطح الكشك نفسه يُفضَّل النطاق الحالي.
+ */
+export function resolveKioskOrigin(): string {
+  if (appEnv.isKioskSurface && typeof window !== "undefined") {
+    return window.location.origin;
+  }
+  if (appEnv.kioskOrigin.startsWith("http")) {
+    return appEnv.kioskOrigin;
+  }
+  return resolveAppOrigin();
 }
 
 export function requireApiBaseUrl(): string {

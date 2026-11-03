@@ -42,7 +42,7 @@ function MenuHeaderLogo({
   );
 }
 
-/** صف علوي — سعرات | أسطورة حساسية في الوسط | شعار */
+/** صف علوي — سعرات | أسطورة حساسية في الوسط أعلى | شعار */
 const MenuHeaderChromeRow = ({
   lang,
   textColor,
@@ -72,15 +72,6 @@ const MenuHeaderChromeRow = ({
   const allergenColor =
     customization.headerAllergenColor?.trim() || textColor;
 
-  const legend = (
-    <MenuHeaderAllergenLegend
-      allergenIds={customization.headerAllergens}
-      color={allergenColor}
-      lang={lang}
-      className={cn(overlay && "drop-shadow-sm")}
-    />
-  );
-
   return (
     <div
       key={lang}
@@ -104,9 +95,14 @@ const MenuHeaderChromeRow = ({
         </>
       )}
 
-      {/* وسط ثابت — لا يزحزح السعرات أو الشعار */}
-      <div className="pointer-events-none absolute inset-y-0 left-1/2 z-[1] flex -translate-x-1/2 items-center justify-center px-1">
-        {legend}
+      {/* وسط أفقي + محاذاة لأعلى الصف */}
+      <div className="pointer-events-none absolute left-1/2 top-0 z-[1] flex -translate-x-1/2 items-start justify-center px-1">
+        <MenuHeaderAllergenLegend
+          allergenIds={customization.headerAllergens}
+          color={allergenColor}
+          lang={lang}
+          className={cn(overlay && "drop-shadow-sm")}
+        />
       </div>
     </div>
   );

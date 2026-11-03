@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ROUTES } from "@/config/app";
+import { appEnv } from "@/config/env";
 import { ProtectedRoute } from "@/middleware/ProtectedRoute";
 import { PublicOnlyRoute } from "@/middleware/PublicOnlyRoute";
 import { AdminProtectedRoute } from "@/middleware/AdminProtectedRoute";
@@ -27,8 +28,9 @@ const AdminCustomerDetail = lazy(() => import("@/pages/admin/AdminCustomerDetail
 
 function PageLoader() {
   const kiosk =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("kiosk") === "1";
+    appEnv.isKioskSurface ||
+    (typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("kiosk") === "1");
 
   return (
     <div
@@ -44,126 +46,145 @@ function PageLoader() {
   );
 }
 
+function KioskRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to={ROUTES.pair} replace />} />
+      <Route path="/display" element={<DeviceCode />} />
+      <Route path="/pair" element={<DevicePairing />} />
+      <Route path="/menu" element={<MenuDisplay />} />
+      <Route path="/subscription-expired" element={<SubscriptionExpired />} />
+      <Route path="*" element={<Navigate to={ROUTES.pair} replace />} />
+    </Routes>
+  );
+}
+
+function FullPlatformRoutes() {
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route
+        path={ROUTES.auth}
+        element={
+          <PublicOnlyRoute>
+            <Auth />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route path="/auth" element={<Navigate to={ROUTES.auth} replace />} />
+      <Route path="/display" element={<DeviceCode />} />
+      <Route path="/pair" element={<DevicePairing />} />
+      <Route path="/menu" element={<MenuDisplay />} />
+      <Route path="/subscription-expired" element={<SubscriptionExpired />} />
+
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <Overview />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/categories"
+        element={
+          <ProtectedRoute>
+            <Categories />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/products"
+        element={
+          <ProtectedRoute>
+            <Products />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/crops"
+        element={
+          <ProtectedRoute>
+            <Crops />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/devices"
+        element={
+          <ProtectedRoute>
+            <Devices />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/link-device"
+        element={
+          <ProtectedRoute>
+            <LinkDevice />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/theme"
+        element={
+          <ProtectedRoute>
+            <Theme />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/subscription"
+        element={
+          <ProtectedRoute>
+            <Subscription />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin"
+        element={
+          <AdminProtectedRoute>
+            <AdminDashboard />
+          </AdminProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/customers"
+        element={
+          <AdminProtectedRoute>
+            <AdminCustomers />
+          </AdminProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/customers/:id"
+        element={
+          <AdminProtectedRoute minRole="admin">
+            <AdminCustomerDetail />
+          </AdminProtectedRoute>
+        }
+      />
+
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
 export function AppRoutes() {
   return (
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route
-            path={ROUTES.auth}
-            element={
-              <PublicOnlyRoute>
-                <Auth />
-              </PublicOnlyRoute>
-            }
-          />
-          <Route path="/auth" element={<Navigate to={ROUTES.auth} replace />} />
-          <Route path="/display" element={<DeviceCode />} />
-          <Route path="/pair" element={<DevicePairing />} />
-          <Route path="/menu" element={<MenuDisplay />} />
-          <Route path="/subscription-expired" element={<SubscriptionExpired />} />
-
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Overview />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard/categories"
-            element={
-              <ProtectedRoute>
-                <Categories />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard/products"
-            element={
-              <ProtectedRoute>
-                <Products />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard/crops"
-            element={
-              <ProtectedRoute>
-                <Crops />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard/devices"
-            element={
-              <ProtectedRoute>
-                <Devices />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard/link-device"
-            element={
-              <ProtectedRoute>
-                <LinkDevice />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard/theme"
-            element={
-              <ProtectedRoute>
-                <Theme />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard/subscription"
-            element={
-              <ProtectedRoute>
-                <Subscription />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/dashboard/settings"
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
-
-          <Route
-            path="/admin"
-            element={
-              <AdminProtectedRoute>
-                <AdminDashboard />
-              </AdminProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/customers"
-            element={
-              <AdminProtectedRoute>
-                <AdminCustomers />
-              </AdminProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/customers/:id"
-            element={
-              <AdminProtectedRoute minRole="admin">
-                <AdminCustomerDetail />
-              </AdminProtectedRoute>
-            }
-          />
-
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        {appEnv.isKioskSurface ? <KioskRoutes /> : <FullPlatformRoutes />}
       </Suspense>
     </BrowserRouter>
   );
