@@ -618,25 +618,34 @@ GRANT EXECUTE ON FUNCTION public.validate_device_verification_code(text) TO anon
 -- Subscription Enforcement Layer — per-screen licensing (SaaS)
 -- ============================================================
 
-CREATE TYPE public.subscription_status AS ENUM (
-  'trial',
-  'active',
-  'past_due',
-  'grace_period',
-  'suspended',
-  'expired',
-  'canceled'
-);
+DO $$ BEGIN
+  CREATE TYPE public.subscription_status AS ENUM (
+    'trial',
+    'active',
+    'past_due',
+    'grace_period',
+    'suspended',
+    'expired',
+    'canceled'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE public.device_license_status AS ENUM (
-  'active',
-  'inactive'
-);
+DO $$ BEGIN
+  CREATE TYPE public.device_license_status AS ENUM (
+    'active',
+    'inactive'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE public.billing_cycle AS ENUM (
-  'monthly',
-  'yearly'
-);
+DO $$ BEGIN
+  CREATE TYPE public.billing_cycle AS ENUM (
+    'monthly',
+    'yearly'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- 1) Subscriptions (one row per owner)
 CREATE TABLE IF NOT EXISTS public.subscriptions (
@@ -919,6 +928,7 @@ END;
 $$;
 
 -- 9) Device activation with license check
+DROP FUNCTION IF EXISTS public.activate_device_with_license(TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.activate_device_with_license(
   p_code TEXT,
   p_menu_type TEXT DEFAULT NULL,
@@ -1655,6 +1665,8 @@ $$;
 REVOKE ALL ON FUNCTION public.enforce_owner_device_limits(UUID) FROM PUBLIC;
 
 -- 4) Hardened device registration (single authority)
+DROP FUNCTION IF EXISTS public.register_device_with_license(TEXT, TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.register_device_with_license(TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.register_device_with_license(
   p_code TEXT,
   p_menu_type TEXT DEFAULT NULL,
@@ -1762,6 +1774,7 @@ $$;
 GRANT EXECUTE ON FUNCTION public.register_device_with_license(TEXT, TEXT, TEXT) TO authenticated;
 
 -- Backward-compatible alias
+DROP FUNCTION IF EXISTS public.activate_device_with_license(TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.activate_device_with_license(
   p_code TEXT,
   p_menu_type TEXT DEFAULT NULL,
@@ -2225,6 +2238,8 @@ REVOKE ALL ON FUNCTION public.consume_verification_code(TEXT, UUID) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.consume_verification_code(TEXT, UUID) TO authenticated;
 
 -- تحديث تسجيل الجهاز: يتطلب كود تحقق صالح للأجهزة الجديدة
+DROP FUNCTION IF EXISTS public.register_device_with_license(TEXT, TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.register_device_with_license(TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.register_device_with_license(
   p_code TEXT,
   p_menu_type TEXT DEFAULT NULL,
@@ -2417,6 +2432,8 @@ $$;
 -- توحيد مقارنة كود التحقق (upper/trim) في register_device_with_license
 -- verify_owner_verification_code يستخدم upper(trim) بينما register كان يطابق حرفياً
 
+DROP FUNCTION IF EXISTS public.register_device_with_license(TEXT, TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.register_device_with_license(TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.register_device_with_license(
   p_code TEXT,
   p_menu_type TEXT DEFAULT NULL,
@@ -2595,6 +2612,8 @@ GRANT EXECUTE ON FUNCTION public.app_environment() TO authenticated, anon, servi
 GRANT EXECUTE ON FUNCTION public.app_is_development() TO authenticated, anon, service_role;
 GRANT EXECUTE ON FUNCTION public.resolve_dev_owner_id() TO authenticated, anon, service_role;
 
+DROP FUNCTION IF EXISTS public.register_device_with_license(TEXT, TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.register_device_with_license(TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.register_device_with_license(
   p_code TEXT,
   p_menu_type TEXT DEFAULT NULL,
@@ -2797,6 +2816,7 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS public.activate_device_with_license(TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.activate_device_with_license(
   p_code TEXT,
   p_menu_type TEXT DEFAULT NULL,
@@ -2839,6 +2859,9 @@ AS $$
   ) IN ('development', 'dev', 'local');
 $$;
 
+DROP FUNCTION IF EXISTS public.activate_device_with_license(TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.register_device_with_license(TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.register_device_with_license(TEXT, TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.register_device_with_license(
   p_code TEXT,
   p_menu_type TEXT DEFAULT NULL,
@@ -3392,6 +3415,7 @@ REVOKE SELECT ON TABLE public.venues FROM anon;
 DROP POLICY IF EXISTS "device_activations_select_anon_kiosk" ON public.device_activations;
 DROP POLICY IF EXISTS "device_activations_anon_kiosk_select" ON public.device_activations;
 
+DROP POLICY IF EXISTS "device_activations_select_anon_kiosk" ON public.device_activations;
 CREATE POLICY "device_activations_select_anon_kiosk"
   ON public.device_activations
   FOR SELECT
@@ -5918,6 +5942,9 @@ END;
 $$;
 
 -- تفعيل جديد: يتطلب إعلان الرمز من الجهاز الفعلي
+DROP FUNCTION IF EXISTS public.activate_device_with_license(TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.register_device_with_license(TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.register_device_with_license(TEXT, TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.register_device_with_license(
   p_code TEXT,
   p_menu_type TEXT DEFAULT NULL,
@@ -9259,26 +9286,32 @@ BEGIN
 END $$;
 
 -- Published-only (or always-safe reference data)
+DROP POLICY IF EXISTS landing_pages_public_read ON public.landing_pages;
 CREATE POLICY landing_pages_public_read ON public.landing_pages
   FOR SELECT TO anon, authenticated
   USING (status = 'published' AND deleted_at IS NULL);
 
+DROP POLICY IF EXISTS pages_public_read ON public.pages;
 CREATE POLICY pages_public_read ON public.pages
   FOR SELECT TO anon, authenticated
   USING (status = 'published' AND deleted_at IS NULL);
 
+DROP POLICY IF EXISTS homepage_sections_public_read ON public.homepage_sections;
 CREATE POLICY homepage_sections_public_read ON public.homepage_sections
   FOR SELECT TO anon, authenticated
   USING (is_visible = true);
 
+DROP POLICY IF EXISTS hero_sections_public_read ON public.hero_sections;
 CREATE POLICY hero_sections_public_read ON public.hero_sections
   FOR SELECT TO anon, authenticated
   USING (status = 'published');
 
+DROP POLICY IF EXISTS sliders_public_read ON public.sliders;
 CREATE POLICY sliders_public_read ON public.sliders
   FOR SELECT TO anon, authenticated
   USING (status = 'published');
 
+DROP POLICY IF EXISTS banners_public_read ON public.banners;
 CREATE POLICY banners_public_read ON public.banners
   FOR SELECT TO anon, authenticated
   USING (
@@ -9287,6 +9320,7 @@ CREATE POLICY banners_public_read ON public.banners
     AND (ends_at IS NULL OR ends_at >= now())
   );
 
+DROP POLICY IF EXISTS cms_announcements_public_read ON public.cms_announcements;
 CREATE POLICY cms_announcements_public_read ON public.cms_announcements
   FOR SELECT TO anon, authenticated
   USING (
@@ -9295,38 +9329,47 @@ CREATE POLICY cms_announcements_public_read ON public.cms_announcements
     AND (ends_at IS NULL OR ends_at >= now())
   );
 
+DROP POLICY IF EXISTS faqs_public_read ON public.faqs;
 CREATE POLICY faqs_public_read ON public.faqs
   FOR SELECT TO anon, authenticated
   USING (is_published = true);
 
+DROP POLICY IF EXISTS faq_categories_public_read ON public.faq_categories;
 CREATE POLICY faq_categories_public_read ON public.faq_categories
   FOR SELECT TO anon, authenticated
   USING (true);
 
+DROP POLICY IF EXISTS testimonials_public_read ON public.testimonials;
 CREATE POLICY testimonials_public_read ON public.testimonials
   FOR SELECT TO anon, authenticated
   USING (is_published = true);
 
+DROP POLICY IF EXISTS partners_public_read ON public.partners;
 CREATE POLICY partners_public_read ON public.partners
   FOR SELECT TO anon, authenticated
   USING (is_published = true);
 
+DROP POLICY IF EXISTS team_members_public_read ON public.team_members;
 CREATE POLICY team_members_public_read ON public.team_members
   FOR SELECT TO anon, authenticated
   USING (is_published = true);
 
+DROP POLICY IF EXISTS blog_categories_public_read ON public.blog_categories;
 CREATE POLICY blog_categories_public_read ON public.blog_categories
   FOR SELECT TO anon, authenticated
   USING (true);
 
+DROP POLICY IF EXISTS blogs_public_read ON public.blogs;
 CREATE POLICY blogs_public_read ON public.blogs
   FOR SELECT TO anon, authenticated
   USING (status = 'published');
 
+DROP POLICY IF EXISTS news_public_read ON public.news;
 CREATE POLICY news_public_read ON public.news
   FOR SELECT TO anon, authenticated
   USING (status = 'published');
 
+DROP POLICY IF EXISTS popups_public_read ON public.popups;
 CREATE POLICY popups_public_read ON public.popups
   FOR SELECT TO anon, authenticated
   USING (
@@ -9335,20 +9378,24 @@ CREATE POLICY popups_public_read ON public.popups
     AND (ends_at IS NULL OR ends_at >= now())
   );
 
+DROP POLICY IF EXISTS seo_metadata_public_read ON public.seo_metadata;
 CREATE POLICY seo_metadata_public_read ON public.seo_metadata
   FOR SELECT TO anon, authenticated
   USING (true); -- SEO fields are intended public; keep drafts out of CMS entities above
 
+DROP POLICY IF EXISTS languages_public_read ON public.languages;
 CREATE POLICY languages_public_read ON public.languages
   FOR SELECT TO anon, authenticated
   USING (is_enabled = true);
 
+DROP POLICY IF EXISTS translations_public_read ON public.translations;
 CREATE POLICY translations_public_read ON public.translations
   FOR SELECT TO anon, authenticated
   USING (true);
 
 -- feature_flags: authenticated only (never anon); no full payload leak to public
 DROP POLICY IF EXISTS feature_flags_public_read ON public.feature_flags;
+DROP POLICY IF EXISTS feature_flags_authenticated_read ON public.feature_flags;
 CREATE POLICY feature_flags_authenticated_read ON public.feature_flags
   FOR SELECT TO authenticated
   USING (true);

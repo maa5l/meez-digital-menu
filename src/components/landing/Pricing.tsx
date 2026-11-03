@@ -61,7 +61,7 @@ const Pricing = () => {
                 ))}
               </ul>
 
-              <Link to="/auth">
+              <Link to="/login?mode=signup">
                 <Button variant="hero" size="xl" className="w-full">
                   ابدأ تجربتك المجانية {SUBSCRIPTION.trialDays} أيام
                 </Button>

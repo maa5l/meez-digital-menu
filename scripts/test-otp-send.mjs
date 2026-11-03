@@ -3,7 +3,7 @@
  * الاستخدام: node scripts/test-otp-send.mjs [email]
  */
 const email = process.argv[2] ?? "bioio2256@gmail.com";
-const url = process.env.VITE_SUPABASE_URL ?? "https://feorprugthydhyytvebe.supabase.co";
+const url = process.env.VITE_SUPABASE_URL ?? "https://zzrbqiqygiqwudozexis.supabase.co";
 const key =
   process.env.VITE_SUPABASE_ANON_KEY ??
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlb3JwcnVndGh5ZGh5eXR2ZWJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwMDQ5NjQsImV4cCI6MjA5NDU4MDk2NH0.WCO8laounfYSrr0qiGMXBX6R0hzH9klcdlpgt7LcU2w";

@@ -18,7 +18,7 @@ const CTA = () => {
             <p className="text-lg md:text-xl text-primary-foreground/80 mb-10 leading-relaxed">
               ابدأ تجربتك المجانية اليوم — {SUBSCRIPTION.trialDays} أيام كاملة بدون أي قيود وبدون بطاقة ائتمان.
             </p>
-            <Link to="/auth">
+            <Link to="/login?mode=signup">
               <Button variant="hero" size="xl" className="group">
                 ابدأ الآن مجانًا
                 <ArrowLeft className="group-hover:-translate-x-1 transition-transform" />

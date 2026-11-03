@@ -32,10 +32,10 @@ const Navbar = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-2">
-          <Link to="/auth">
+          <Link to="/login">
             <Button variant="ghost">تسجيل الدخول</Button>
           </Link>
-          <Link to="/auth">
+          <Link to="/login?mode=signup">
             <Button variant="hero">ابدأ مجانًا</Button>
           </Link>
         </div>
@@ -74,12 +74,12 @@ const Navbar = () => {
                 ))}
               </div>
               <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
-                <Link to="/auth" onClick={closeMenu}>
+                <Link to="/login" onClick={closeMenu}>
                   <Button variant="ghost" className="w-full justify-center">
                     تسجيل الدخول
                   </Button>
                 </Link>
-                <Link to="/auth" onClick={closeMenu}>
+                <Link to="/login?mode=signup" onClick={closeMenu}>
                   <Button variant="hero" className="w-full justify-center">
                     ابدأ مجانًا
                   </Button>

@@ -30,6 +30,7 @@ export function getTrustedMenuOrigins(): string[] {
 const BLOCKED_MENU_PATHS = new Set([
   "/",
   "/auth",
+  "/login",
   "/pair",
   "/display",
   "/subscription-expired",

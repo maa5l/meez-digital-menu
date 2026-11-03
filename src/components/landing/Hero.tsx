@@ -32,7 +32,7 @@ const Hero = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center w-full sm:w-auto pt-2">
-            <Link to="/auth">
+            <Link to="/login?mode=signup">
               <Button variant="hero" size="xl" className="group w-full sm:w-auto">
                 ابدأ تجربتك المجانية
                 <ArrowLeft className="group-hover:-translate-x-1 transition-transform" />

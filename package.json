@@ -21,12 +21,12 @@
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:status": "supabase status",
-    "supabase:link": "supabase link --project-ref feorprugthydhyytvebe",
+    "supabase:link": "supabase link --project-ref zzrbqiqygiqwudozexis",
     "supabase:db:push": "supabase db push",
     "supabase:db:pull": "supabase db pull",
-    "supabase:types": "supabase gen types typescript --project-id feorprugthydhyytvebe > src/lib/supabase/database.types.ts",
+    "supabase:types": "supabase gen types typescript --project-id zzrbqiqygiqwudozexis > src/lib/supabase/database.types.ts",
     "supabase:auth:push": "node scripts/push-auth-email-templates.mjs",
-    "supabase:config:push": "supabase config push --project-ref feorprugthydhyytvebe --yes",
+    "supabase:config:push": "supabase config push --project-ref zzrbqiqygiqwudozexis --yes",
     "test:otp": "node scripts/test-otp-send.mjs"
   },
   "dependencies": {

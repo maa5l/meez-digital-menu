@@ -57,15 +57,42 @@ async function syncAccountWithVenue(userId: string): Promise<void> {
 }
 
 async function afterSupabaseAuth(session: Session, venueName?: string): Promise<void> {
-  await ensureUserProfile(session.user, venueName);
-  await repairSignupTrialIfNeeded(session.user);
-  await ensureSubscriptionRecord();
-  await ensureVenueRecordForOwner();
-  await hydrateVenueForUser(
-    session.user.id,
-    venueName || (session.user.user_metadata?.venue_name as string | undefined),
-  );
-  await syncAccountWithVenue(session.user.id);
+  // Soft-fail each step so a missing RPC/table after DB restore does not block login.
+  const steps: Array<[string, () => Promise<void>]> = [
+    ["ensure_profile", async () => {
+      await ensureUserProfile(session.user, venueName);
+    }],
+    ["repair_signup_trial", async () => {
+      await repairSignupTrialIfNeeded(session.user);
+    }],
+    ["ensure_subscription", async () => {
+      await ensureSubscriptionRecord();
+    }],
+    ["ensure_venue", async () => {
+      await ensureVenueRecordForOwner();
+    }],
+    ["hydrate_venue", async () => {
+      await hydrateVenueForUser(
+        session.user.id,
+        venueName || (session.user.user_metadata?.venue_name as string | undefined),
+      );
+    }],
+    ["sync_account_venue", async () => {
+      await syncAccountWithVenue(session.user.id);
+    }],
+  ];
+
+  for (const [label, run] of steps) {
+    try {
+      await run();
+    } catch (error) {
+      logger.warn("auth.after_auth_step_failed", {
+        step: label,
+        userId: session.user.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 }
 
 function mapSupabaseSession(session: Session): AuthSession {
@@ -167,8 +194,9 @@ export async function signInWithPassword(email: string, password: string): Promi
     throw new Error("لم يتم إنشاء جلسة. تحقق من إعدادات Supabase Auth.");
   }
 
-  await afterSupabaseAuth(data.session);
+  // Establish app session first; cloud hydration must not cancel a successful login.
   syncSessionFromSupabase(data.session);
+  await afterSupabaseAuth(data.session);
   logger.audit("auth.password_login", { email: normalizedEmail });
 }
 
@@ -203,8 +231,8 @@ export async function signUp(
   if (error) throw error;
 
   if (data.session) {
-    await afterSupabaseAuth(data.session, venueName);
     syncSessionFromSupabase(data.session);
+    await afterSupabaseAuth(data.session, venueName);
     logger.audit("auth.register", { email: normalizedEmail });
     return { needsEmailConfirmation: false };
   }

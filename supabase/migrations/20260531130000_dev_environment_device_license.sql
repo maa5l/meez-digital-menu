@@ -249,6 +249,7 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS public.activate_device_with_license(TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.activate_device_with_license(
   p_code TEXT,
   p_menu_type TEXT DEFAULT NULL,

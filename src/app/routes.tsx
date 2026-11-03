@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { ROUTES } from "@/config/app";
 import { ProtectedRoute } from "@/middleware/ProtectedRoute";
 import { PublicOnlyRoute } from "@/middleware/PublicOnlyRoute";
 import { AdminProtectedRoute } from "@/middleware/AdminProtectedRoute";
@@ -50,13 +51,14 @@ export function AppRoutes() {
         <Routes>
           <Route path="/" element={<Index />} />
           <Route
-            path="/auth"
+            path={ROUTES.auth}
             element={
               <PublicOnlyRoute>
                 <Auth />
               </PublicOnlyRoute>
             }
           />
+          <Route path="/auth" element={<Navigate to={ROUTES.auth} replace />} />
           <Route path="/display" element={<DeviceCode />} />
           <Route path="/pair" element={<DevicePairing />} />
           <Route path="/menu" element={<MenuDisplay />} />

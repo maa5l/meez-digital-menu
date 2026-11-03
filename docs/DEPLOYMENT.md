@@ -11,21 +11,21 @@
 
 | Name | Value |
 |------|--------|
-| `VITE_SUPABASE_URL` | `https://feorprugthydhyytvebe.supabase.co` |
+| `VITE_SUPABASE_URL` | `https://zzrbqiqygiqwudozexis.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | مفتاح **anon public** من Supabase (JWT يبدأ بـ `eyJ` — انظر أدناه) |
 | `VITE_APP_URL` | `https://your-app.vercel.app` (اختياري — QR يستخدم نطاق الصفحة تلقائياً) |
 | `VITE_ENABLE_MOCK_AUTH` | `false` |
 
 **Supabase → Authentication → URL Configuration:**  
 أضف رابط Vercel في **Site URL** و**Redirect URLs**، مثل:  
-`https://your-app.vercel.app` و `https://your-app.vercel.app/auth`
+`https://bymeez.com` و `https://bymeez.com/login`
 
 **إذا ظهر:** `already exists` → لا تنشئ متغيراً جديداً؛ اضغط **Edit** على الموجود.  
 **إذا ظهر:** `is invalid` → احذف المتغير وأعد إضافته بمفتاح `eyJ...` بدون علامات اقتباس أو مسافات.
 
 5. **Redeploy** بعد حفظ المتغيرات.
 
-6. تأكد أن `VITE_APP_URL` = رابط Vercel الفعلي (مثل `https://meez-digital-menu.vercel.app`) وليس `localhost`.
+6. تأكد أن `VITE_APP_URL` = رابط الإنتاج الفعلي (مثل `https://bymeez.com`) وليس `localhost`.
 
 ### الدخول يفتح «حساباً جديداً» فارغاً
 
@@ -33,7 +33,7 @@
 |--------|------|
 | بياناتك كانت على **localhost فقط** ولم تُرفع لـ Supabase | من المحلي: سجّل دخولاً ثم أضف منتجاً واحداً على الأقل (يُحفظ في `venues`)، أو انسخ الصف من SQL Editor |
 | migrations غير منفّذة على Supabase | نفّذ ملفات `supabase/migrations/` (انظر `docs/SUPABASE_SETUP.md`) |
-| مفتاح anon خاطئ على Vercel | نفس المشروع `feorprugthydhyytvebe` ومفتاح `eyJ...` من Dashboard |
+| مفتاح anon خاطئ على Vercel | نفس المشروع `zzrbqiqygiqwudozexis` ومفتاح `eyJ...` من Dashboard |
 | `VITE_ENABLE_MOCK_AUTH=true` على Vercel | اضبطه `false` وأعد النشر |
 
 ملف `vercel.json` في الجذر يوجّه كل المسارات إلى `index.html` (React Router).

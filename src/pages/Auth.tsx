@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,7 +19,14 @@ import { toast } from "sonner";
 type AuthMode = "login" | "signup";
 
 const Auth = () => {
-  const [mode, setMode] = useState<AuthMode>("signup");
+  const [searchParams] = useSearchParams();
+  const [mode, setMode] = useState<AuthMode>(() =>
+    searchParams.get("mode") === "signup" ? "signup" : "login",
+  );
+
+  useEffect(() => {
+    setMode(searchParams.get("mode") === "signup" ? "signup" : "login");
+  }, [searchParams]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [venueName, setVenueName] = useState("");
@@ -34,7 +41,7 @@ const Auth = () => {
   const switchMode = (next: AuthMode) => {
     setMode(next);
     setFieldError("");
-    setEmail("");
+    // Keep email when switching tabs so password-manager fills stay usable
     setPassword("");
     setVenueName("");
     setPhone("");
@@ -102,13 +109,20 @@ const Auth = () => {
   };
 
   const loginForm = (
-    <form key="login" onSubmit={onLogin} className="space-y-5" noValidate autoComplete="on">
+    <form
+      key="login"
+      onSubmit={onLogin}
+      className="space-y-5"
+      noValidate
+      autoComplete="on"
+      method="post"
+    >
       <div className="space-y-2">
         <Label htmlFor="login-email">البريد الإلكتروني</Label>
         <Input
           id="login-email"
-          name="email"
-          type="email"
+          name="username"
+          type="text"
           inputMode="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -184,24 +198,28 @@ const Auth = () => {
             <Logo className="h-9 w-auto aspect-[1031/736]" />
           </Link>
 
-          <div className="inline-flex p-1 bg-secondary rounded-xl mb-8">
+          <div className="inline-flex p-1 bg-secondary rounded-xl mb-8" role="tablist" aria-label="وضع الحساب">
             <button
               type="button"
-              onClick={() => switchMode("signup")}
-              className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
-                mode === "signup" ? "bg-card shadow-soft text-primary" : "text-muted-foreground"
-              }`}
-            >
-              حساب جديد
-            </button>
-            <button
-              type="button"
+              role="tab"
+              aria-selected={mode === "login"}
               onClick={() => switchMode("login")}
               className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
                 mode === "login" ? "bg-card shadow-soft text-primary" : "text-muted-foreground"
               }`}
             >
               تسجيل الدخول
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "signup"}
+              onClick={() => switchMode("signup")}
+              className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
+                mode === "signup" ? "bg-card shadow-soft text-primary" : "text-muted-foreground"
+              }`}
+            >
+              حساب جديد
             </button>
           </div>
 
@@ -305,16 +323,29 @@ const Auth = () => {
             loginForm
           )}
 
-          <p className="text-center text-sm text-muted-foreground mt-6">
-            بإنشاء الحساب فأنت توافق على{" "}
-            <Link to="/" className="text-accent font-semibold hover:underline">
-              الشروط
-            </Link>{" "}
-            و
-            <Link to="/" className="text-accent font-semibold hover:underline mr-1">
-              سياسة الخصوصية
-            </Link>
-          </p>
+          {mode === "signup" ? (
+            <p className="text-center text-sm text-muted-foreground mt-6">
+              بإنشاء الحساب فأنت توافق على{" "}
+              <Link to="/" className="text-accent font-semibold hover:underline">
+                الشروط
+              </Link>{" "}
+              و
+              <Link to="/" className="text-accent font-semibold hover:underline mr-1">
+                سياسة الخصوصية
+              </Link>
+            </p>
+          ) : (
+            <p className="text-center text-sm text-muted-foreground mt-6">
+              ليس لديك حساب؟{" "}
+              <button
+                type="button"
+                onClick={() => switchMode("signup")}
+                className="text-accent font-semibold hover:underline"
+              >
+                أنشئ حسابًا جديدًا
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </div>

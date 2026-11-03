@@ -112,6 +112,7 @@ CREATE POLICY translations_public_read ON public.translations
 
 -- feature_flags: authenticated only (never anon); no full payload leak to public
 DROP POLICY IF EXISTS feature_flags_public_read ON public.feature_flags;
+DROP POLICY IF EXISTS feature_flags_authenticated_read ON public.feature_flags;
 CREATE POLICY feature_flags_authenticated_read ON public.feature_flags
   FOR SELECT TO authenticated
   USING (true);

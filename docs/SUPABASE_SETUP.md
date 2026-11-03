@@ -1,7 +1,7 @@
 # إعداد Supabase — مشروع ميز
 
-**Project ref:** `feorprugthydhyytvebe`  
-**URL:** `https://feorprugthydhyytvebe.supabase.co`
+**Project ref:** `zzrbqiqygiqwudozexis`  
+**URL:** `https://zzrbqiqygiqwudozexis.supabase.co`
 
 ## ما يُخزَّن في قاعدة البيانات
 
@@ -25,7 +25,7 @@
 | **anon public** (JWT يبدأ بـ `eyJ...`) | `VITE_SUPABASE_ANON_KEY` |
 
 ```env
-VITE_SUPABASE_URL=https://feorprugthydhyytvebe.supabase.co
+VITE_SUPABASE_URL=https://zzrbqiqygiqwudozexis.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 VITE_ENABLE_MOCK_AUTH=false

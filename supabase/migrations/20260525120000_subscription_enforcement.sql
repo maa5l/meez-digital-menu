@@ -2,25 +2,34 @@
 -- Subscription Enforcement Layer — per-screen licensing (SaaS)
 -- ============================================================
 
-CREATE TYPE public.subscription_status AS ENUM (
-  'trial',
-  'active',
-  'past_due',
-  'grace_period',
-  'suspended',
-  'expired',
-  'canceled'
-);
+DO $$ BEGIN
+  CREATE TYPE public.subscription_status AS ENUM (
+    'trial',
+    'active',
+    'past_due',
+    'grace_period',
+    'suspended',
+    'expired',
+    'canceled'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE public.device_license_status AS ENUM (
-  'active',
-  'inactive'
-);
+DO $$ BEGIN
+  CREATE TYPE public.device_license_status AS ENUM (
+    'active',
+    'inactive'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE public.billing_cycle AS ENUM (
-  'monthly',
-  'yearly'
-);
+DO $$ BEGIN
+  CREATE TYPE public.billing_cycle AS ENUM (
+    'monthly',
+    'yearly'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- 1) Subscriptions (one row per owner)
 CREATE TABLE IF NOT EXISTS public.subscriptions (
@@ -303,6 +312,7 @@ END;
 $$;
 
 -- 9) Device activation with license check
+DROP FUNCTION IF EXISTS public.activate_device_with_license(TEXT, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION public.activate_device_with_license(
   p_code TEXT,
   p_menu_type TEXT DEFAULT NULL,

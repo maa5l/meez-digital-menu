@@ -3,7 +3,7 @@ export const APP_NAME_EN = "Meez";
 
 export const ROUTES = {
   home: "/",
-  auth: "/auth",
+  auth: "/login",
   display: "/display",
   pair: "/pair",
   menu: "/menu",

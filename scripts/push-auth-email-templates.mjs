@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const PROJECT_REF = process.env.SUPABASE_PROJECT_REF ?? "feorprugthydhyytvebe";
+const PROJECT_REF = process.env.SUPABASE_PROJECT_REF ?? "zzrbqiqygiqwudozexis";
 const TOKEN = process.env.SUPABASE_ACCESS_TOKEN;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
