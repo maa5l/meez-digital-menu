@@ -15,6 +15,7 @@ import {
   defaultProductsPalette,
   migrateMenuSettings,
 } from "@/lib/menu-palette";
+import { sanitizeHeaderAllergenIds } from "@/constants/allergens";
 import { STORAGE_KEYS } from "@/constants/storage";
 import { getLocalJson, setLocalJson, getLocalString } from "@/security/storage";
 import { menuSettingsSchema } from "@/validations/menu-settings.schema";
@@ -78,7 +79,13 @@ function sanitizeHeaderCustomization(
     logoImage: sanitizeImageUrl(header.logoImage),
     headerImage: sanitizeImageUrl(header.headerImage),
     calorieTextColor: header.calorieTextColor ? (sanitizeHexColor(header.calorieTextColor) ?? undefined) : undefined,
+    headerAllergens: sanitizeHeaderAllergenIds(header.headerAllergens),
+    headerAllergenColor: header.headerAllergenColor
+      ? (sanitizeHexColor(header.headerAllergenColor) ?? undefined)
+      : undefined,
     showLanguageToggle: header.showLanguageToggle ?? true,
+    autoHideHeaderOnScroll: header.autoHideHeaderOnScroll,
+    hideHeader: header.hideHeader,
   };
 }
 
@@ -107,6 +114,10 @@ function sanitizeSettings(input: MenuSettings): MenuSettings {
     headerBgColor: input.headerBgColor ? (sanitizeHexColor(input.headerBgColor) ?? undefined) : undefined,
     headerTextColor: input.headerTextColor ? (sanitizeHexColor(input.headerTextColor) ?? undefined) : undefined,
     calorieTextColor: input.calorieTextColor ? (sanitizeHexColor(input.calorieTextColor) ?? undefined) : undefined,
+    headerAllergens: sanitizeHeaderAllergenIds(input.headerAllergens),
+    headerAllergenColor: input.headerAllergenColor
+      ? (sanitizeHexColor(input.headerAllergenColor) ?? undefined)
+      : undefined,
     featuredImage: sanitizeImageUrl(input.featuredImage),
     logoImage: sanitizeImageUrl(input.logoImage),
     headerImage: sanitizeImageUrl(input.headerImage),

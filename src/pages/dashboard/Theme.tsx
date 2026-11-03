@@ -24,6 +24,12 @@ import {
 import { useThemeEditor } from "@/pages/dashboard/theme/useThemeEditor";
 import { THEME_SECTIONS, type ThemeSectionId } from "@/pages/dashboard/theme/theme-sections";
 import {
+  getHeaderAllergenOptions,
+  HEADER_ALLERGEN_IDS,
+  resolveHeaderAllergenIds,
+} from "@/constants/allergens";
+import {
+  Check,
   Coffee,
   ExternalLink,
   GalleryHorizontal,
@@ -37,6 +43,7 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { cn } from "@/lib/utils";
 
 const Theme = () => {
   const editor = useThemeEditor();
@@ -554,6 +561,35 @@ function HeaderSection({
         </div>
       </ThemeCard>
 
+      <ThemeCard>
+        <ThemeFieldGroup
+          label="مسببات الحساسية في الهيدر"
+          hint="أيقونات صغيرة ثابتة في وسط أعلى المنيو — اختر المسببات الموجودة عندك"
+        >
+          <HeaderAllergenPicker
+            value={header.headerAllergens}
+            onChange={(ids) => onPatch({ headerAllergens: ids })}
+          />
+        </ThemeFieldGroup>
+        <div className="mt-4 space-y-2">
+          <ColorPickerField
+            label="لون أيقونات الحساسية"
+            value={header.headerAllergenColor || header.calorieTextColor || textColorFallback}
+            onChange={(v) => onPatch({ headerAllergenColor: v })}
+          />
+          {header.headerAllergenColor && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => onPatch({ headerAllergenColor: undefined })}
+            >
+              إعادة لون الأيقونات للافتراضي
+            </Button>
+          )}
+        </div>
+      </ThemeCard>
+
       <AdvancedCollapsible title="إعدادات متقدمة — إفصاح السعرات">
         <ColorPickerField
           label="لون نص إفصاح السعرات"
@@ -567,6 +603,80 @@ function HeaderSection({
         )}
       </AdvancedCollapsible>
     </ThemeSectionPanel>
+  );
+}
+
+function HeaderAllergenPicker({
+  value,
+  onChange,
+}: {
+  value?: string[];
+  onChange: (ids: string[]) => void;
+}) {
+  const selected = resolveHeaderAllergenIds(value);
+  const options = getHeaderAllergenOptions();
+
+  const toggle = (id: string) => {
+    const next = selected.includes(id)
+      ? selected.filter((v) => v !== id)
+      : [...selected, id];
+    onChange(resolveHeaderAllergenIds(next));
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        <ToggleChip
+          label="كل السبعة"
+          checked={selected.length === HEADER_ALLERGEN_IDS.length}
+          onChange={() => onChange([...HEADER_ALLERGEN_IDS])}
+        />
+        <ToggleChip
+          label="إخفاء الكل"
+          checked={selected.length === 0}
+          onChange={() => onChange([])}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+        {options.map(({ id, labelAr, labelEn, Icon }) => {
+          const on = selected.includes(id);
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => toggle(id)}
+              className={cn(
+                "relative flex items-center gap-2 rounded-xl border-2 px-2.5 py-2 text-right transition-all touch-manipulation",
+                on
+                  ? "border-accent bg-accent/15 shadow-sm"
+                  : "border-border bg-card hover:border-accent/40",
+              )}
+              aria-pressed={on}
+            >
+              {on && (
+                <span className="absolute top-1.5 left-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-accent text-accent-foreground">
+                  <Check className="h-2.5 w-2.5 stroke-[3]" />
+                </span>
+              )}
+              <span
+                className={cn(
+                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+                  on ? "bg-accent/25 text-primary" : "bg-secondary text-muted-foreground",
+                )}
+              >
+                <Icon className="h-4 w-4" strokeWidth={2} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-bold text-primary">{labelAr}</span>
+                <span className="block truncate text-[10px] text-muted-foreground" dir="ltr">
+                  {labelEn}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

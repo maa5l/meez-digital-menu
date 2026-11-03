@@ -40,6 +40,44 @@ export const ALLERGEN_OPTIONS: AllergenOption[] = [
   { id: "molluscs", labelAr: "رخويات", labelEn: "Molluscs", Icon: Waves },
 ];
 
+/** أهم 7 مسببات — أسطورة ثابتة في وسط هيدر المنيو */
+export const HEADER_ALLERGEN_IDS = [
+  "milk",
+  "eggs",
+  "peanuts",
+  "tree_nuts",
+  "wheat",
+  "soy",
+  "sesame",
+] as const;
+
+export type HeaderAllergenId = (typeof HEADER_ALLERGEN_IDS)[number];
+
+const HEADER_ALLERGEN_SET = new Set<string>(HEADER_ALLERGEN_IDS);
+
+export function getHeaderAllergenOptions(): AllergenOption[] {
+  return HEADER_ALLERGEN_IDS.map(
+    (id) => ALLERGEN_OPTIONS.find((a) => a.id === id)!,
+  ).filter(Boolean);
+}
+
+/**
+ * undefined = كل السبعة ظاهرة (الافتراضي).
+ * [] = إخفاء الأسطورة.
+ * وإلا تُعرض المسببات المختارة من السبعة فقط وبالترتيب الثابت.
+ */
+export function resolveHeaderAllergenIds(ids?: string[] | null): string[] {
+  if (ids == null) return [...HEADER_ALLERGEN_IDS];
+  const selected = new Set(ids.filter((id) => HEADER_ALLERGEN_SET.has(id)));
+  return HEADER_ALLERGEN_IDS.filter((id) => selected.has(id));
+}
+
+export function sanitizeHeaderAllergenIds(ids?: string[] | null): string[] | undefined {
+  if (ids == null) return undefined;
+  if (!Array.isArray(ids)) return undefined;
+  return resolveHeaderAllergenIds(ids);
+}
+
 /** يحوّل الاختيارات إلى نص — نفس حقل `allergens` / `allergensEn` */
 export function formatAllergensString(ids: string[], lang: "ar" | "en" = "ar"): string | undefined {
   if (!ids.length) return undefined;

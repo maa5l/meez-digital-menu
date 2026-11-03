@@ -28,6 +28,8 @@ export function getProductsHeaderCustomization(settings: MenuSettings): MenuHead
     headerTextColor: settings.headerTextColor,
     logoImage: settings.logoImage,
     calorieTextColor: settings.calorieTextColor,
+    headerAllergens: settings.headerAllergens,
+    headerAllergenColor: settings.headerAllergenColor,
     showLanguageToggle: settings.showLanguageToggle,
     autoHideHeaderOnScroll: settings.autoHideHeaderOnScroll,
     hideHeader: settings.hideHeader,

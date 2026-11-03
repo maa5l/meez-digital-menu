@@ -89,6 +89,13 @@ export type MenuHeaderCustomization = {
   headerTextColor?: string;
   logoImage?: string;
   calorieTextColor?: string;
+  /**
+   * مسببات الحساسية الظاهرة في وسط الهيدر (من أهم 7).
+   * undefined = كل السبعة؛ [] = إخفاء الأسطورة.
+   */
+  headerAllergens?: string[];
+  /** لون أيقونات أسطورة الحساسية في الهيدر (اختياري) */
+  headerAllergenColor?: string;
   showLanguageToggle?: boolean;
   /** true (افتراضي) = يختفي الهيدر عند التمرير للأسفل */
   autoHideHeaderOnScroll?: boolean;
@@ -137,6 +144,9 @@ export type MenuSettings = {
   showLanguageToggle?: boolean;
   /** لون نص وأيقونات إفصاح السعرات (اختياري) */
   calorieTextColor?: string;
+  /** مسببات الحساسية في وسط هيدر المنتجات (انظر MenuHeaderCustomization) */
+  headerAllergens?: string[];
+  headerAllergenColor?: string;
 };
 
 export type AuthSession = {

@@ -1,5 +1,6 @@
 import { Logo } from "@/components/Brand";
 import MenuCalorieDisclaimer from "@/components/menu/MenuCalorieDisclaimer";
+import MenuHeaderAllergenLegend from "@/components/menu/MenuHeaderAllergenLegend";
 import { DEFAULT_MENU_LAYOUT_METRICS } from "@/lib/menu-layout-metrics";
 import { menuChromeMotion } from "@/lib/menu-header";
 import type { MenuHeaderCustomization } from "@/types/domain";
@@ -41,7 +42,7 @@ function MenuHeaderLogo({
   );
 }
 
-/** صف علوي — إفصاح السعرات والشعار على نفس المستوى (عربي: سعرات يسار / شعار يمين) */
+/** صف علوي — سعرات | أسطورة حساسية في الوسط | شعار */
 const MenuHeaderChromeRow = ({
   lang,
   textColor,
@@ -68,11 +69,23 @@ const MenuHeaderChromeRow = ({
     </div>
   );
 
+  const allergenColor =
+    customization.headerAllergenColor?.trim() || textColor;
+
+  const legend = (
+    <MenuHeaderAllergenLegend
+      allergenIds={customization.headerAllergens}
+      color={allergenColor}
+      lang={lang}
+      className={cn(overlay && "drop-shadow-sm")}
+    />
+  );
+
   return (
     <div
       key={lang}
       className={cn(
-        "flex w-full items-start gap-3 md:gap-5",
+        "relative flex w-full items-start gap-3 md:gap-5",
         menuChromeMotion,
         "animate-in fade-in duration-300 fill-mode-both motion-reduce:animate-none",
         className,
@@ -90,6 +103,11 @@ const MenuHeaderChromeRow = ({
           {logo}
         </>
       )}
+
+      {/* وسط ثابت — لا يزحزح السعرات أو الشعار */}
+      <div className="pointer-events-none absolute inset-y-0 left-1/2 z-[1] flex -translate-x-1/2 items-center justify-center px-1">
+        {legend}
+      </div>
     </div>
   );
 };
