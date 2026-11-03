@@ -14,6 +14,7 @@ import { shouldUseVenueDatabase } from "@/services/venue/venue-supabase.service"
 import { normalizeDeviceCodeParam } from "@/lib/device-pairing";
 import { ROUTES } from "@/config/app";
 import { useDeviceRegistrationWatch } from "@/hooks/useDeviceRegistrationWatch";
+import { usePairHomeScreenMeta } from "@/hooks/usePairHomeScreenMeta";
 
 /** شاشة الآيباد — رمز التفعيل فقط؛ المنيو يفتح صامتاً بعد التسجيل */
 const DevicePairing = () => {
@@ -23,6 +24,9 @@ const DevicePairing = () => {
   const codeFromUrl = normalizeDeviceCodeParam(params.get("code"));
   const [code, setCode] = useState<string | null>(codeFromUrl);
   const [error, setError] = useState<string | null>(null);
+
+  // Pair-only manifest so iOS A2HS launches /pair, not marketing /.
+  usePairHomeScreenMeta();
 
   const menuHref = useMemo(
     () => (code ? `${ROUTES.menu}?code=${encodeURIComponent(code)}` : ROUTES.pair),

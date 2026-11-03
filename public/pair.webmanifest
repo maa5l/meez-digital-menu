@@ -1,0 +1,26 @@
+{
+  "name": "Meez — تفعيل الجهاز",
+  "short_name": "تفعيل ميز",
+  "description": "شاشة تفعيل جهاز المنيو الرقمي",
+  "start_url": "/pair",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F6F2EA",
+  "theme_color": "#7B4A32",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
