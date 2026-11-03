@@ -12,7 +12,7 @@ type Props = {
   className?: string;
 };
 
-/** أسطورة مسببات الحساسية — وسط الهيدر، أيقونات صغيرة ثابتة الموضع */
+/** أسطورة مسببات الحساسية — وسط الهيدر: أيقونة + اسم تحتها */
 const MenuHeaderAllergenLegend = ({
   allergenIds,
   color,
@@ -26,26 +26,31 @@ const MenuHeaderAllergenLegend = ({
 
   return (
     <div
-      dir="ltr"
+      dir={lang === "ar" ? "rtl" : "ltr"}
       className={cn(
-        "pointer-events-none flex max-w-[min(100%,28rem)] flex-wrap items-center justify-center gap-0.5 sm:gap-1",
+        "pointer-events-none flex max-w-[min(100%,36rem)] flex-wrap items-start justify-center gap-x-1 gap-y-0.5 sm:gap-x-1.5",
         className,
       )}
       role="list"
       aria-label={lang === "en" ? "Allergen legend" : "أسطورة مسببات الحساسية"}
     >
-      {options.map(({ id, labelAr, labelEn, Icon }) => {
-        const label = lang === "en" ? labelEn : labelAr;
+      {options.map(({ id, labelAr, labelEn, shortLabelAr, shortLabelEn, Icon }) => {
+        const fullLabel = lang === "en" ? labelEn : labelAr;
+        const shortLabel = lang === "en" ? shortLabelEn : shortLabelAr;
         return (
           <span
             key={id}
             role="listitem"
-            title={label}
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-black/[0.08] sm:h-7 sm:w-7"
+            title={fullLabel}
+            className="flex w-[2.35rem] shrink-0 flex-col items-center gap-0.5 sm:w-[2.6rem]"
             style={{ color }}
           >
-            <Icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" strokeWidth={2.25} aria-hidden />
-            <span className="sr-only">{label}</span>
+            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-black/[0.08] sm:h-6 sm:w-6">
+              <Icon className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={2.25} aria-hidden />
+            </span>
+            <span className="max-w-full truncate text-center text-[8px] font-bold leading-tight tracking-tight sm:text-[9px]">
+              {shortLabel}
+            </span>
           </span>
         );
       })}

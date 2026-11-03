@@ -20,24 +20,27 @@ export type AllergenOption = {
   id: string;
   labelAr: string;
   labelEn: string;
+  /** اسم مختصر تحت أيقونة الهيدر */
+  shortLabelAr: string;
+  shortLabelEn: string;
   Icon: LucideIcon;
 };
 
 export const ALLERGEN_OPTIONS: AllergenOption[] = [
-  { id: "milk", labelAr: "حليب / ألبان", labelEn: "Milk / Dairy", Icon: Milk },
-  { id: "eggs", labelAr: "بيض", labelEn: "Eggs", Icon: Egg },
-  { id: "peanuts", labelAr: "فول سوداني", labelEn: "Peanuts", Icon: Nut },
-  { id: "tree_nuts", labelAr: "مكسرات شجرية", labelEn: "Tree Nuts", Icon: TreePine },
-  { id: "wheat", labelAr: "قمح / غلوتين", labelEn: "Wheat / Gluten", Icon: Wheat },
-  { id: "soy", labelAr: "صويا", labelEn: "Soy", Icon: Bean },
-  { id: "fish", labelAr: "سمك", labelEn: "Fish", Icon: Fish },
-  { id: "shellfish", labelAr: "قشريات", labelEn: "Shellfish", Icon: Shell },
-  { id: "sesame", labelAr: "سمسم", labelEn: "Sesame", Icon: Sprout },
-  { id: "mustard", labelAr: "خردل", labelEn: "Mustard", Icon: Sandwich },
-  { id: "celery", labelAr: "كرفس", labelEn: "Celery", Icon: LeafyGreen },
-  { id: "lupin", labelAr: "ترمس", labelEn: "Lupin", Icon: Flower2 },
-  { id: "sulphites", labelAr: "كبريتات", labelEn: "Sulphites", Icon: FlaskConical },
-  { id: "molluscs", labelAr: "رخويات", labelEn: "Molluscs", Icon: Waves },
+  { id: "milk", labelAr: "حليب / ألبان", labelEn: "Milk / Dairy", shortLabelAr: "حليب", shortLabelEn: "Milk", Icon: Milk },
+  { id: "eggs", labelAr: "بيض", labelEn: "Eggs", shortLabelAr: "بيض", shortLabelEn: "Eggs", Icon: Egg },
+  { id: "peanuts", labelAr: "فول سوداني", labelEn: "Peanuts", shortLabelAr: "فول", shortLabelEn: "Peanut", Icon: Nut },
+  { id: "tree_nuts", labelAr: "مكسرات شجرية", labelEn: "Tree Nuts", shortLabelAr: "مكسرات", shortLabelEn: "Nuts", Icon: TreePine },
+  { id: "wheat", labelAr: "قمح / غلوتين", labelEn: "Wheat / Gluten", shortLabelAr: "قمح", shortLabelEn: "Wheat", Icon: Wheat },
+  { id: "soy", labelAr: "صويا", labelEn: "Soy", shortLabelAr: "صويا", shortLabelEn: "Soy", Icon: Bean },
+  { id: "fish", labelAr: "سمك", labelEn: "Fish", shortLabelAr: "سمك", shortLabelEn: "Fish", Icon: Fish },
+  { id: "shellfish", labelAr: "قشريات", labelEn: "Shellfish", shortLabelAr: "قشريات", shortLabelEn: "Shell", Icon: Shell },
+  { id: "sesame", labelAr: "سمسم", labelEn: "Sesame", shortLabelAr: "سمسم", shortLabelEn: "Sesame", Icon: Sprout },
+  { id: "mustard", labelAr: "خردل", labelEn: "Mustard", shortLabelAr: "خردل", shortLabelEn: "Mustard", Icon: Sandwich },
+  { id: "celery", labelAr: "كرفس", labelEn: "Celery", shortLabelAr: "كرفس", shortLabelEn: "Celery", Icon: LeafyGreen },
+  { id: "lupin", labelAr: "ترمس", labelEn: "Lupin", shortLabelAr: "ترمس", shortLabelEn: "Lupin", Icon: Flower2 },
+  { id: "sulphites", labelAr: "كبريتات", labelEn: "Sulphites", shortLabelAr: "كبريتات", shortLabelEn: "Sulphite", Icon: FlaskConical },
+  { id: "molluscs", labelAr: "رخويات", labelEn: "Molluscs", shortLabelAr: "رخويات", shortLabelEn: "Mollusc", Icon: Waves },
 ];
 
 /** كل مسببات الحساسية المتاحة لأسطورة الهيدر (بنفس ترتيب القائمة) */
