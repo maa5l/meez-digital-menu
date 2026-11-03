@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Logo } from "@/components/Brand";
 import { IpadTrialScreen } from "@/components/device/IpadTrialScreen";
-import { isIpadTrialMode } from "@/config/ipad-trial";
+import { isIpadTrialMode, getPublicSiteLabel } from "@/config/ipad-trial";
 import { AlertCircle, Loader2 } from "lucide-react";
 import {
   getOrCreatePendingDeviceCode,
-  getPendingDeviceCode,
   rotatePendingDeviceCode,
   setPendingDeviceCode,
 } from "@/services/device/activation";
@@ -14,7 +13,6 @@ import { announceKioskPairingCode } from "@/services/device/kiosk-pairing-announ
 import { shouldUseVenueDatabase } from "@/services/venue/venue-supabase.service";
 import { normalizeDeviceCodeParam } from "@/lib/device-pairing";
 import { ROUTES } from "@/config/app";
-import { getPublicSiteHref, getPublicSiteLabel } from "@/config/ipad-trial";
 import { useDeviceRegistrationWatch } from "@/hooks/useDeviceRegistrationWatch";
 
 /** شاشة الآيباد — رمز التفعيل فقط؛ المنيو يفتح صامتاً بعد التسجيل */
@@ -43,20 +41,10 @@ const DevicePairing = () => {
       }
       return;
     }
-    if (isIpadTrialMode) {
-      const generated = getOrCreatePendingDeviceCode();
-      setCode(generated);
-      setError(null);
-      return;
-    }
-    const pending = getPendingDeviceCode();
-    if (pending) {
-      setCode(pending);
-      setError(null);
-      return;
-    }
-    setError("افتح الرابط من لوحة التحكم");
-    setCode(null);
+    // Always keep /pair on the activation screen with a local code — never bounce to marketing home.
+    const generated = getOrCreatePendingDeviceCode();
+    setCode(generated);
+    setError(null);
   }, [codeFromUrl]);
 
   useDeviceRegistrationWatch(code, {
@@ -127,15 +115,9 @@ const DevicePairing = () => {
           {code}
         </div>
         <p className="text-sm opacity-70 mb-8">فعّل هذا الرمز من لوحة التحكم</p>
-        <a
-          href={getPublicSiteHref()}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block text-lg font-semibold text-accent hover:underline underline-offset-4"
-          dir="ltr"
-        >
+        <p className="text-lg font-semibold text-accent/80" dir="ltr">
           {getPublicSiteLabel()}
-        </a>
+        </p>
       </div>
     </div>
   );

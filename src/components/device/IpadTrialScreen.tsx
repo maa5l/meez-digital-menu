@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { Logo } from "@/components/Brand";
-import { getPublicSiteHref, getPublicSiteLabel } from "@/config/ipad-trial";
-import { ROUTES } from "@/config/app";
+import { getPublicSiteLabel } from "@/config/ipad-trial";
 
 type Props = {
   code: string;
@@ -16,7 +14,6 @@ type Props = {
 export function IpadTrialScreen({ code, subtitle, preview = false }: Props) {
   const [showCode, setShowCode] = useState(false);
   const siteLabel = getPublicSiteLabel();
-  const siteHref = getPublicSiteHref();
 
   useEffect(() => {
     const t = setTimeout(() => setShowCode(true), 900);
@@ -62,25 +59,13 @@ export function IpadTrialScreen({ code, subtitle, preview = false }: Props) {
             لوحة التحكم → تطبيق الآيباد → تفعيل الجهاز → أدخل الرمز أعلاه
           </p>
         ) : (
-          <Link
-            to={`${ROUTES.menu}?preview=1`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block mb-8 text-sm font-bold text-accent hover:underline underline-offset-4"
-          >
-            معاينة المنيو ←
-          </Link>
+          <p className="text-xs opacity-50 max-w-sm mx-auto mb-8">معاينة شاشة التفعيل من لوحة التحكم</p>
         )}
 
-        <a
-          href={siteHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block text-lg md:text-xl font-semibold text-accent hover:underline underline-offset-4"
-          dir="ltr"
-        >
+        {/* Plain label only — never link out to the marketing homepage from kiosk. */}
+        <p className="text-lg md:text-xl font-semibold text-accent/80" dir="ltr">
           {siteLabel}
-        </a>
+        </p>
       </div>
     </div>
   );
