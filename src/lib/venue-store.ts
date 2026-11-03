@@ -229,62 +229,87 @@ function getRememberedRemoteUpdatedAt(key: string): string | null {
   return getLocalJson<string | null>(key, null);
 }
 
+/** بعد await — أعد قراءة المحلي حتى لا نمسح تعديلات حصلت أثناء السحب */
+function readLatestLocalVenue(userId: string): VenueData {
+  return loadVenueData(userId);
+}
+
+function isLocalVenueNewer(local: VenueData, remote: VenueData): boolean {
+  if (!local.updatedAt) return false;
+  if (!remote.updatedAt) return !isVenueEffectivelyEmpty(local);
+  return local.updatedAt > remote.updatedAt;
+}
+
+/** لا تستبدل محلياً فيه محتوى بمنشأة سحابية فارغة أثناء سباق التحميل */
+function shouldKeepLocalOverRemote(local: VenueData, remote: VenueData): boolean {
+  if (isLocalVenueNewer(local, remote)) return true;
+  if (!isVenueEffectivelyEmpty(local) && isVenueEffectivelyEmpty(remote)) return true;
+  return false;
+}
+
+async function pushLocalVenueIfNeeded(userId: string, local: VenueData): Promise<void> {
+  if (isVenueEffectivelyEmpty(local)) return;
+  try {
+    await saveVenueToDatabase(userId, local);
+  } catch (err) {
+    logger.error("venue.push_newer_local_failed", {
+      userId,
+      message: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
 /** مزامنة من السحابة — يجلب JSON كاملاً فقط عند تغيّر updated_at */
 export async function pullVenueFromCloud(userId: string): Promise<VenueData> {
-  const local = loadVenueData(userId);
-  if (!shouldUseVenueDatabase()) return local;
+  if (!shouldUseVenueDatabase()) return loadVenueData(userId);
 
   try {
     const remoteUpdatedAt = await fetchVenueUpdatedAtForOwner(userId);
     const cacheKey = venueRemoteUpdatedKey(userId);
     const known = getRememberedRemoteUpdatedAt(cacheKey);
+    const localAfterMeta = readLatestLocalVenue(userId);
 
     if (
       remoteUpdatedAt &&
       known === remoteUpdatedAt &&
-      local.version === 1 &&
-      !isVenueEffectivelyEmpty(local)
+      localAfterMeta.version === 1 &&
+      !isVenueEffectivelyEmpty(localAfterMeta)
     ) {
-      return local;
+      return readLatestLocalVenue(userId);
     }
 
     const remote = await fetchVenueFromDatabase(userId);
+    const latestLocal = readLatestLocalVenue(userId);
+
     if (!remote || remote.version !== 1) {
-      if (!isVenueEffectivelyEmpty(local)) {
-        await saveVenueToDatabase(userId, local);
-      }
-      return local;
+      await pushLocalVenueIfNeeded(userId, latestLocal);
+      return readLatestLocalVenue(userId);
     }
 
     const remoteNorm = normalizeVenue(remote);
 
-    // لا تستبدل محلياً أحدث إن فشل/تأخر الحفظ السحابي
-    if (
-      !isVenueEffectivelyEmpty(local) &&
-      local.updatedAt &&
-      remoteNorm.updatedAt &&
-      local.updatedAt > remoteNorm.updatedAt
-    ) {
-      try {
-        await saveVenueToDatabase(userId, local);
-      } catch (err) {
-        logger.error("venue.push_newer_local_failed", {
-          userId,
-          message: err instanceof Error ? err.message : String(err),
-        });
-      }
-      return local;
+    // لا تستبدل محلياً أحدث (يشمل التصنيفات/المنتجات المضافة أثناء السحب)
+    if (shouldKeepLocalOverRemote(latestLocal, remoteNorm)) {
+      await pushLocalVenueIfNeeded(userId, latestLocal);
+      return readLatestLocalVenue(userId);
+    }
+
+    // قبل الكتابة فوق التخزين — تحقق مرة أخيرة من تعديلات متزامنة
+    const finalLocal = readLatestLocalVenue(userId);
+    if (shouldKeepLocalOverRemote(finalLocal, remoteNorm)) {
+      await pushLocalVenueIfNeeded(userId, finalLocal);
+      return readLatestLocalVenue(userId);
     }
 
     saveVenueDataLocal(userId, remoteNorm);
     rememberRemoteUpdatedAt(cacheKey, remoteUpdatedAt);
-    return remoteNorm;
+    return readLatestLocalVenue(userId);
   } catch (err) {
     logger.error("venue.cloud_pull_failed", {
       userId,
       message: err instanceof Error ? err.message : String(err),
     });
-    return local;
+    return readLatestLocalVenue(userId);
   }
 }
 

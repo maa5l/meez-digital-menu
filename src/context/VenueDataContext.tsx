@@ -69,7 +69,19 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
       try {
         const venue = await pullVenueFromCloud(userId);
         if (mountedRef.current) {
-          setData(venue);
+          // لا تمسح تعديلات الواجهة (مثل إضافة تصنيف) التي حدثت أثناء السحب
+          const latestLocal = loadCurrentVenueData();
+          const localNewer =
+            Boolean(latestLocal.updatedAt) &&
+            (!venue.updatedAt || latestLocal.updatedAt > venue.updatedAt);
+          const localHasContentRemoteEmpty =
+            (latestLocal.categories.length > 0 ||
+              latestLocal.products.length > 0 ||
+              latestLocal.crops.length > 0) &&
+            venue.categories.length === 0 &&
+            venue.products.length === 0 &&
+            venue.crops.length === 0;
+          setData(localNewer || localHasContentRemoteEmpty ? latestLocal : venue);
           initialCloudLoadDoneRef.current = true;
         }
       } finally {

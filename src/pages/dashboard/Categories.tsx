@@ -25,11 +25,15 @@ const Categories = () => {
 
   const add = () => {
     if (!name.trim()) return;
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `c${Date.now()}`;
     updateVenue((v) => ({
       ...v,
       categories: [
         ...v.categories,
-        { id: `c${Date.now()}`, name, nameEn: nameEn.trim() || undefined },
+        { id, name: name.trim(), nameEn: nameEn.trim() || undefined },
       ],
     }));
     setName("");
