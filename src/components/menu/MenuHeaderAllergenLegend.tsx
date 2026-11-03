@@ -28,7 +28,7 @@ const MenuHeaderAllergenLegend = ({
     <div
       dir="ltr"
       className={cn(
-        "pointer-events-none flex max-w-[min(100%,18rem)] flex-wrap items-center justify-center gap-1 sm:gap-1.5",
+        "pointer-events-none flex max-w-[min(100%,28rem)] flex-wrap items-center justify-center gap-0.5 sm:gap-1",
         className,
       )}
       role="list"

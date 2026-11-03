@@ -564,7 +564,7 @@ function HeaderSection({
       <ThemeCard>
         <ThemeFieldGroup
           label="مسببات الحساسية في الهيدر"
-          hint="أيقونات صغيرة ثابتة في وسط أعلى المنيو — اختر المسببات الموجودة عندك"
+          hint="كل المسببات متاحة للاختيار — أيقونات صغيرة ثابتة في وسط أعلى المنيو"
         >
           <HeaderAllergenPicker
             value={header.headerAllergens}
@@ -627,7 +627,7 @@ function HeaderAllergenPicker({
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
         <ToggleChip
-          label="كل السبعة"
+          label="تحديد الكل"
           checked={selected.length === HEADER_ALLERGEN_IDS.length}
           onChange={() => onChange([...HEADER_ALLERGEN_IDS])}
         />
@@ -637,7 +637,7 @@ function HeaderAllergenPicker({
           onChange={() => onChange([])}
         />
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {options.map(({ id, labelAr, labelEn, Icon }) => {
           const on = selected.includes(id);
           return (

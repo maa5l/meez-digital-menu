@@ -90,8 +90,8 @@ export type MenuHeaderCustomization = {
   logoImage?: string;
   calorieTextColor?: string;
   /**
-   * مسببات الحساسية الظاهرة في وسط الهيدر (من أهم 7).
-   * undefined = كل السبعة؛ [] = إخفاء الأسطورة.
+   * مسببات الحساسية الظاهرة في وسط الهيدر.
+   * undefined = الكل؛ [] = إخفاء الأسطورة.
    */
   headerAllergens?: string[];
   /** لون أيقونات أسطورة الحساسية في الهيدر (اختياري) */

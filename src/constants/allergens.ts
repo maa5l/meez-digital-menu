@@ -40,31 +40,21 @@ export const ALLERGEN_OPTIONS: AllergenOption[] = [
   { id: "molluscs", labelAr: "رخويات", labelEn: "Molluscs", Icon: Waves },
 ];
 
-/** أهم 7 مسببات — أسطورة ثابتة في وسط هيدر المنيو */
-export const HEADER_ALLERGEN_IDS = [
-  "milk",
-  "eggs",
-  "peanuts",
-  "tree_nuts",
-  "wheat",
-  "soy",
-  "sesame",
-] as const;
+/** كل مسببات الحساسية المتاحة لأسطورة الهيدر (بنفس ترتيب القائمة) */
+export const HEADER_ALLERGEN_IDS = ALLERGEN_OPTIONS.map((a) => a.id);
 
 export type HeaderAllergenId = (typeof HEADER_ALLERGEN_IDS)[number];
 
 const HEADER_ALLERGEN_SET = new Set<string>(HEADER_ALLERGEN_IDS);
 
 export function getHeaderAllergenOptions(): AllergenOption[] {
-  return HEADER_ALLERGEN_IDS.map(
-    (id) => ALLERGEN_OPTIONS.find((a) => a.id === id)!,
-  ).filter(Boolean);
+  return [...ALLERGEN_OPTIONS];
 }
 
 /**
- * undefined = كل السبعة ظاهرة (الافتراضي).
+ * undefined = كل المسببات ظاهرة (الافتراضي).
  * [] = إخفاء الأسطورة.
- * وإلا تُعرض المسببات المختارة من السبعة فقط وبالترتيب الثابت.
+ * وإلا تُعرض المسببات المختارة فقط وبالترتيب الثابت.
  */
 export function resolveHeaderAllergenIds(ids?: string[] | null): string[] {
   if (ids == null) return [...HEADER_ALLERGEN_IDS];
