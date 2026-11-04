@@ -95,8 +95,8 @@ const MenuHeaderChromeRow = ({
         </>
       )}
 
-      {/* وسط أفقي + محاذاة لأعلى الصف */}
-      <div className="pointer-events-none absolute left-1/2 top-0 z-[1] flex -translate-x-1/2 items-start justify-center px-1">
+      {/* وسط أعلى الصف — مطلق حتى لا يزيد ارتفاع الهيدر */}
+      <div className="pointer-events-none absolute left-1/2 top-0 z-[1] max-h-[2.1rem] -translate-x-1/2 overflow-hidden px-1">
         <MenuHeaderAllergenLegend
           allergenIds={customization.headerAllergens}
           color={allergenColor}

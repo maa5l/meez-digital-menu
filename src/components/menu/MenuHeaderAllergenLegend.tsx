@@ -12,7 +12,7 @@ type Props = {
   className?: string;
 };
 
-/** أسطورة مسببات الحساسية — وسط الهيدر: أيقونة + اسم تحتها */
+/** أسطورة صغيرة في وسط الهيدر — صف واحد ثابت الارتفاع، لا يوسّع الهيدر */
 const MenuHeaderAllergenLegend = ({
   allergenIds,
   color,
@@ -28,7 +28,7 @@ const MenuHeaderAllergenLegend = ({
     <div
       dir={lang === "ar" ? "rtl" : "ltr"}
       className={cn(
-        "pointer-events-none flex max-w-[min(100%,36rem)] flex-wrap items-start justify-center gap-x-1 gap-y-0.5 sm:gap-x-1.5",
+        "pointer-events-none flex max-h-[2.1rem] max-w-[min(100%,34rem)] flex-nowrap items-start justify-center gap-px overflow-hidden sm:gap-0.5",
         className,
       )}
       role="list"
@@ -42,13 +42,13 @@ const MenuHeaderAllergenLegend = ({
             key={id}
             role="listitem"
             title={fullLabel}
-            className="flex w-[2.35rem] shrink-0 flex-col items-center gap-0.5 sm:w-[2.6rem]"
+            className="flex w-[1.45rem] shrink-0 flex-col items-center gap-px sm:w-[1.6rem]"
             style={{ color }}
           >
-            <span className="flex h-5 w-5 items-center justify-center rounded-md bg-black/[0.08] sm:h-6 sm:w-6">
-              <Icon className="h-2.5 w-2.5 sm:h-3 sm:w-3" strokeWidth={2.25} aria-hidden />
+            <span className="flex h-3.5 w-3.5 items-center justify-center rounded-[3px] bg-black/[0.08] sm:h-4 sm:w-4">
+              <Icon className="h-2 w-2 sm:h-2.5 sm:w-2.5" strokeWidth={2.5} aria-hidden />
             </span>
-            <span className="max-w-full truncate text-center text-[8px] font-bold leading-tight tracking-tight sm:text-[9px]">
+            <span className="max-w-full truncate text-center text-[6px] font-bold leading-none tracking-tight sm:text-[7px]">
               {shortLabel}
             </span>
           </span>
