@@ -1,5 +1,6 @@
+import AllergenIcons from "@/components/menu/AllergenIcons";
 import {
-  getHeaderAllergenOptions,
+  formatAllergensString,
   resolveHeaderAllergenIds,
 } from "@/constants/allergens";
 import type { MenuLang } from "@/lib/product-i18n";
@@ -12,7 +13,7 @@ type Props = {
   className?: string;
 };
 
-/** أسطورة صغيرة في وسط الهيدر — صف واحد ثابت الارتفاع، لا يوسّع الهيدر */
+/** أسطورة الهيدر — نفس أيقونات/أسماء المنتجات، بحجم أصغر وصف واحد */
 const MenuHeaderAllergenLegend = ({
   allergenIds,
   color,
@@ -22,39 +23,22 @@ const MenuHeaderAllergenLegend = ({
   const ids = resolveHeaderAllergenIds(allergenIds);
   if (!ids.length) return null;
 
-  const options = getHeaderAllergenOptions().filter((o) => ids.includes(o.id));
+  const allergens = formatAllergensString(ids, "ar");
+  const allergensEn = formatAllergensString(ids, "en");
 
   return (
-    <div
-      dir={lang === "ar" ? "rtl" : "ltr"}
+    <AllergenIcons
+      allergens={allergens}
+      allergensEn={allergensEn}
+      lang={lang}
+      size="xs"
+      color={color}
+      emptyPlaceholder={null}
       className={cn(
-        "pointer-events-none flex max-h-[2.1rem] max-w-[min(100%,34rem)] flex-nowrap items-start justify-center gap-px overflow-hidden sm:gap-0.5",
+        "max-h-[2.1rem] max-w-[min(100%,34rem)] flex-nowrap justify-center gap-px overflow-hidden sm:gap-0.5",
         className,
       )}
-      role="list"
-      aria-label={lang === "en" ? "Allergen legend" : "أسطورة مسببات الحساسية"}
-    >
-      {options.map(({ id, labelAr, labelEn, shortLabelAr, shortLabelEn, Icon }) => {
-        const fullLabel = lang === "en" ? labelEn : labelAr;
-        const shortLabel = lang === "en" ? shortLabelEn : shortLabelAr;
-        return (
-          <span
-            key={id}
-            role="listitem"
-            title={fullLabel}
-            className="flex w-[1.45rem] shrink-0 flex-col items-center gap-px sm:w-[1.6rem]"
-            style={{ color }}
-          >
-            <span className="flex h-3.5 w-3.5 items-center justify-center rounded-[3px] bg-black/[0.08] sm:h-4 sm:w-4">
-              <Icon className="h-2 w-2 sm:h-2.5 sm:w-2.5" strokeWidth={2.5} aria-hidden />
-            </span>
-            <span className="max-w-full truncate text-center text-[6px] font-bold leading-none tracking-tight sm:text-[7px]">
-              {shortLabel}
-            </span>
-          </span>
-        );
-      })}
-    </div>
+    />
   );
 };
 
