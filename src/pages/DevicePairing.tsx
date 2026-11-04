@@ -63,11 +63,34 @@ const DevicePairing = () => {
 
   useEffect(() => {
     if (!code || isPreview || !shouldUseVenueDatabase()) return;
-    void announceKioskPairingCode(code);
-    const announceId = window.setInterval(() => {
-      void announceKioskPairingCode(code);
-    }, 30_000);
-    return () => window.clearInterval(announceId);
+
+    let cancelled = false;
+
+    const announce = () => {
+      void announceKioskPairingCode(code).then((ok) => {
+        if (!cancelled && !ok) {
+          // إعادة محاولة سريعة عند فشل الإعلان (شبكة/آيباد)
+          window.setTimeout(() => {
+            if (!cancelled) void announceKioskPairingCode(code);
+          }, 2_000);
+        }
+      });
+    };
+
+    announce();
+    const announceId = window.setInterval(announce, 12_000);
+    const onVisible = () => {
+      if (!document.hidden) announce();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(announceId);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
   }, [code, isPreview]);
 
   if (error && !code) {
@@ -118,7 +141,12 @@ const DevicePairing = () => {
         <div className="font-mono font-black text-5xl tracking-[0.35em] mb-6" dir="ltr">
           {code}
         </div>
-        <p className="text-sm opacity-70 mb-8">فعّل هذا الرمز من لوحة التحكم</p>
+        <p className="text-sm opacity-70 mb-3">
+          من لوحة التحكم → الأجهزة → أدخل الأحرف/الأرقام بعد QM-
+        </p>
+        <p className="text-xs opacity-55 mb-8">
+          ابقَ هذه الشاشة مفتوحة أثناء التفعيل. بعد التفعيل ينتقل المنيو تلقائياً.
+        </p>
         <p className="text-lg font-semibold text-accent/80" dir="ltr">
           {getPublicSiteLabel()}
         </p>

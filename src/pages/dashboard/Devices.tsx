@@ -49,7 +49,11 @@ import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
 import { notifySubscriptionUpdated } from "@/hooks/useSubscription";
 import { deviceActivationCodeSchema } from "@/validations/device.schema";
 import { getErrorMessage } from "@/lib/errors";
-import { ROUTES } from "@/config/app";
+import {
+  ROUTES,
+  deviceActivationCodeSuffix,
+  normalizeDeviceActivationCode,
+} from "@/config/app";
 import { isIpadTrialMode } from "@/config/ipad-trial";
 import { getPendingVerification, clearPendingVerification } from "@/lib/pending-verification";
 import { ensureOwnerVerificationSession } from "@/services/device/verification-code.service";
@@ -81,7 +85,7 @@ const Devices = () => {
     const type = nav?.menuType ?? pending?.menuType ?? "products";
 
     if (code && (nav?.openActivate || pending)) {
-      setActivationCode(code);
+      setActivationCode(deviceActivationCodeSuffix(code));
       setMenuType(type);
       setOpen(true);
       navigate(location.pathname, { replace: true, state: {} });
@@ -125,7 +129,8 @@ const Devices = () => {
       );
       return;
     }
-    if (list.some((d) => d.code === activationCode.trim().toUpperCase())) {
+    const fullCode = normalizeDeviceActivationCode(activationCode);
+    if (list.some((d) => d.code === fullCode)) {
       toast.error("هذا الرمز مفعّل مسبقاً");
       return;
     }
@@ -209,7 +214,7 @@ const Devices = () => {
       setActivationCode("");
       setMenuType("products");
       clearPendingVerification();
-      toast.success("تم التفعيل في Supabase — انتظر ثوانٍ على شاشة الكشك");
+      toast.success("تم التفعيل — شاشة الكشك تنتقل للمنيو خلال ثوانٍ");
       setOpen(false);
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -342,15 +347,31 @@ const Devices = () => {
 
               <div className="space-y-2">
                 <Label>{isIpadTrialMode ? "رمز الآيباد" : "رمز الجهاز"}</Label>
-                <Input
-                  value={activationCode}
-                  onChange={(e) => setActivationCode(e.target.value)}
-                  placeholder="QM-XXXX"
-                  className="h-12 rounded-xl font-mono text-center text-lg tracking-widest uppercase"
+                <div
+                  className="flex h-12 items-center overflow-hidden rounded-xl border border-input bg-background focus-within:ring-2 focus-within:ring-ring"
                   dir="ltr"
-                />
+                >
+                  <span className="shrink-0 border-e border-border bg-muted/50 px-3 font-mono text-lg font-bold tracking-widest text-muted-foreground">
+                    QM-
+                  </span>
+                  <Input
+                    value={activationCode}
+                    onChange={(e) =>
+                      setActivationCode(deviceActivationCodeSuffix(e.target.value))
+                    }
+                    placeholder="A1B2"
+                    maxLength={4}
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    className="h-full flex-1 rounded-none border-0 font-mono text-center text-lg tracking-[0.35em] uppercase shadow-none focus-visible:ring-0"
+                    dir="ltr"
+                    inputMode="text"
+                    aria-label="لاحقة رمز التفعيل بدون QM-"
+                  />
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  انسخ الرمز الظاهر على شاشة تطبيق الكشك —{" "}
+                  أدخل الأحرف/الأرقام الأربعة فقط — البادئة QM- تُضاف تلقائياً.{" "}
                   <Link to={ROUTES.dashboardLinkDevice} className="text-accent underline">
                     تعليمات الربط
                   </Link>

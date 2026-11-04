@@ -32,6 +32,9 @@ const Navbar = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-2">
+          <Link to="/pair">
+            <Button variant="ghost">شاشة التفعيل</Button>
+          </Link>
           <Link to="/login">
             <Button variant="ghost">تسجيل الدخول</Button>
           </Link>
@@ -74,6 +77,11 @@ const Navbar = () => {
                 ))}
               </div>
               <div className="mt-4 flex flex-col gap-2 border-t border-border pt-4">
+                <Link to="/pair" onClick={closeMenu}>
+                  <Button variant="ghost" className="w-full justify-center">
+                    شاشة التفعيل (آيباد)
+                  </Button>
+                </Link>
                 <Link to="/login" onClick={closeMenu}>
                   <Button variant="ghost" className="w-full justify-center">
                     تسجيل الدخول

@@ -5,7 +5,8 @@ import {
 } from "@/services/device/activation";
 import { shouldUseVenueDatabase } from "@/services/venue/venue-supabase.service";
 
-const REGISTRATION_POLL_MS = 30_000;
+/** على شاشة التفعيل نفحص بسرعة حتى يظهر المنيو بعد التفعيل مباشرة */
+const REGISTRATION_POLL_MS = 2_500;
 
 type Options = {
   enabled?: boolean;

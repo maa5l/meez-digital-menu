@@ -38,9 +38,9 @@ const Hero = () => {
                 <ArrowLeft className="group-hover:-translate-x-1 transition-transform" />
               </Button>
             </Link>
-            <Link to="/menu">
+            <Link to="/pair">
               <Button variant="heroOutline" size="xl" className="w-full sm:w-auto">
-                شاهد المنيو الحي
+                شاشة التفعيل (آيباد)
               </Button>
             </Link>
           </div>

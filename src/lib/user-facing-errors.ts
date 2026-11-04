@@ -176,7 +176,7 @@ export function kioskInactiveNotice(): UserFacingError {
     category: "kiosk_inactive",
     title: "الكشك غير مفعّل",
     message: "هذا الجهاز لم يُفعَّل بعد من لوحة التحكم.",
-    hint: "لوحة التحكم → الأجهزة → أدخل الرمز الظاهر على الشاشة",
+    hint: "افتح /pair على الجهاز، انسخ الرمز، ثم من لوحة التحكم → الأجهزة أدخل الأحرف بعد QM- وفعّل",
     retryable: true,
     autoRetry: true,
     logLabel: "kiosk_inactive",
