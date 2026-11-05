@@ -7,9 +7,9 @@ export default {
   prefix: "",
   theme: {
     fontFamily: {
-      sans: ['"Huwiya"', "system-ui", "sans-serif"],
-      display: ['"Huwiya"', "system-ui", "sans-serif"],
-      body: ['"Huwiya"', "system-ui", "sans-serif"],
+      sans: ['"Kanun"', "system-ui", "sans-serif"],
+      display: ['"Kanun"', "system-ui", "sans-serif"],
+      body: ['"Kanun"', "system-ui", "sans-serif"],
     },
     container: {
       center: true,

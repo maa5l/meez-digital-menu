@@ -1,0 +1,71 @@
+@font-face {
+  font-family: "Kanun";
+  src: url("/fonts/KanunAR-LT-Hairline.otf") format("opentype");
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Kanun";
+  src: url("/fonts/KanunAR-LT-Thin.otf") format("opentype");
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Kanun";
+  src: url("/fonts/KanunAR-LT-ExtraLight.otf") format("opentype");
+  font-weight: 250;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Kanun";
+  src: url("/fonts/KanunAR-LT-Light.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Kanun";
+  src: url("/fonts/KanunAR-LT-Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Kanun";
+  src: url("/fonts/KanunAR-LT-Medium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Kanun";
+  src: url("/fonts/KanunAR-LT-Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Kanun";
+  src: url("/fonts/KanunAR-LT-Heavy.otf") format("opentype");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Kanun";
+  src: url("/fonts/KanunAR-LT-Black.otf") format("opentype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
