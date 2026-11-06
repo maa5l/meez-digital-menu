@@ -49,6 +49,7 @@ const CategorySchema = z
     name: coerceString("—"),
     nameEn: z.string().optional().catch(undefined),
     icon: z.string().optional().catch(undefined),
+    sortOrder: z.number().finite().optional().catch(undefined),
   })
   .passthrough();
 

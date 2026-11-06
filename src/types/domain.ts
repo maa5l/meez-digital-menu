@@ -4,6 +4,8 @@ export type Category = {
   nameEn?: string;
   /** @deprecated لم يعد يُستخدم في الواجهة */
   icon?: string;
+  /** رقم الترتيب اليدوي (أصغر = أولاً) — 1 ثم 2 ثم 3 */
+  sortOrder?: number;
 };
 
 export type CropBrewingInfo = {

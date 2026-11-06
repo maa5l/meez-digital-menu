@@ -294,6 +294,7 @@ const MenuDisplayShell = ({
 
   const orderedProducts = useOrderedCatalog(venue.products, settings.productsOrderMode);
   const orderedCrops = useOrderedCatalog(venue.crops, settings.cropsOrderMode);
+  const orderedCategories = useOrderedCatalog(venue.categories, "manual");
 
   const catalogEmpty = type === "crops" ? cropsEmpty : productsEmpty;
   /** أثناء الاتصال: لا تُظهر الفراغ أبدًا — سبلاش أو الكاش المحلي إن وُجد */
@@ -349,13 +350,13 @@ const MenuDisplayShell = ({
         ) : settings.productTemplate === "detail" ? (
           <TemplateProductsDetail
             settings={settings}
-            categories={venue.categories}
+            categories={orderedCategories}
             products={orderedProducts}
           />
         ) : (
           <TemplateProductsFeatured
             settings={settings}
-            categories={venue.categories}
+            categories={orderedCategories}
             products={orderedProducts}
           />
         )}
