@@ -183,7 +183,7 @@ const Auth = () => {
             ارتقِ بتجربة ضيوفك إلى <span className="text-gradient-gold">مستوى جديد</span>
           </h2>
           <p className="text-primary-foreground/70 text-lg leading-relaxed max-w-md">
-            انضم لمئات المطاعم والمقاهي التي تستخدم قائمة لعرض منيو رقمي فاخر.
+            انضم لمئات المطاعم والمقاهي التي تستخدم ميز لعرض منيو رقمي فاخر.
           </p>
         </div>
 

@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Plus, Search, Pencil, Trash2, ImageIcon, Sprout } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Copy, ImageIcon, Sprout } from "lucide-react";
 import AllergenSelector from "@/components/dashboard/AllergenSelector";
 import { formatAllergensString, parseAllergensIds } from "@/constants/allergens";
 import {
@@ -131,6 +131,17 @@ const Products = () => {
     setEditingId(p.id);
     loadProduct(p);
     setOpen(true);
+  };
+
+  /** تكرار منتج — يفتح نموذج إضافة مسبق التعبئة لتسهيل المنتجات المتشابهة */
+  const openDuplicate = (p: Product) => {
+    setEditingId(null);
+    loadProduct(p);
+    setName(`${p.name.trim()} (نسخة)`);
+    setNameEn(p.nameEn?.trim() ? `${p.nameEn.trim()} (Copy)` : "");
+    setSortOrder(String(nextSortOrder(list)));
+    setOpen(true);
+    toast.message("تم نسخ التفاصيل — عدّل ما تريد ثم احفظ كمنتج جديد");
   };
 
   const handleDialogChange = (next: boolean) => {
@@ -592,8 +603,20 @@ const Products = () => {
                         className="h-8 w-8"
                         onClick={() => openEdit(p)}
                         aria-label={`تعديل ${p.name}`}
+                        title="تعديل"
                       >
                         <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => openDuplicate(p)}
+                        aria-label={`تكرار ${p.name}`}
+                        title="تكرار"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
                       </Button>
                       <Button
                         type="button"
@@ -602,6 +625,7 @@ const Products = () => {
                         className="h-8 w-8 text-destructive"
                         onClick={() => remove(p.id)}
                         aria-label={`حذف ${p.name}`}
+                        title="حذف"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
