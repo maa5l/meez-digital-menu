@@ -97,10 +97,8 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
             style={{ paddingBlock: CROP_TRACK_VERTICAL_PAD }}
           >
             <div
-              className={cn(
-                "flex h-full min-h-0 items-stretch gap-3 md:gap-4",
-                lang === "ar" ? "flex-row-reverse" : "flex-row",
-              )}
+              className="flex h-full min-h-0 flex-row items-stretch gap-3 md:gap-4"
+              dir="ltr"
             >
               {ordered.map((c) => {
                 const isExpanded = modal?.id === c.id;

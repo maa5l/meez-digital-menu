@@ -108,7 +108,7 @@ const MenuVenueHeader = ({
               className={cn(
                 "font-display mx-auto max-w-full break-words font-black leading-tight line-clamp-2",
                 bannerSrc
-                  ? "text-[11px] text-white drop-shadow-md sm:text-xs md:text-sm ipad-lg:text-base"
+                  ? "text-[11px] text-white sm:text-xs md:text-sm ipad-lg:text-base"
                   : "text-sm md:text-lg ipad-lg:text-xl",
               )}
             >
@@ -119,7 +119,7 @@ const MenuVenueHeader = ({
                 className={cn(
                   "mx-auto mt-0.5 max-w-full break-words line-clamp-2 font-bold",
                   bannerSrc
-                    ? "text-[9px] text-white/90 drop-shadow-sm sm:text-[10px] md:text-xs"
+                    ? "text-[9px] text-white/90 sm:text-[10px] md:text-xs"
                     : "text-[9px] opacity-70 md:text-[10px]",
                 )}
               >

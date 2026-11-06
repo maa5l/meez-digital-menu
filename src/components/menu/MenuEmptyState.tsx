@@ -1,10 +1,12 @@
 import { UtensilsCrossed, Sprout } from "lucide-react";
 import type { MenuSettings } from "@/types/domain";
 import MenuCropsHeader from "@/components/menu/MenuCropsHeader";
+import MenuFixedCalorieBar from "@/components/menu/MenuFixedCalorieBar";
 import MenuLangToggle from "@/components/menu/MenuLangToggle";
 import MenuProductHeader from "@/components/menu/MenuProductHeader";
 import { UserErrorPanel } from "@/components/UserErrorPanel";
 import { useMenuLang } from "@/context/MenuLangContext";
+import { getCalorieDisclaimerColor } from "@/lib/menu-header";
 import { emptyMenuNotice } from "@/lib/user-facing-errors";
 import {
   getCropsHeaderCustomization,
@@ -29,6 +31,8 @@ const MenuEmptyState = ({ settings, type }: Props) => {
   const showLang = isCrops ? isCropsLangToggleEnabled(settings) : isProductsLangToggleEnabled(settings);
   const hideHeader = headerCustomization.hideHeader === true;
   const emptyError = emptyMenuNotice();
+  const calorieColor = getCalorieDisclaimerColor(headerCustomization, palette.textColor);
+  const headerFg = headerCustomization.headerTextColor ?? palette.textColor;
 
   return (
     <div
@@ -36,21 +40,25 @@ const MenuEmptyState = ({ settings, type }: Props) => {
       dir={lang === "ar" ? "rtl" : "ltr"}
       style={{ color: palette.textColor, background: palette.bgColor }}
     >
-      {!hideHeader &&
-        (isCrops ? (
-          <MenuCropsHeader settings={settings} lang={lang} embedded />
-        ) : (
-          <MenuProductHeader settings={settings} lang={lang} embedded />
-        ))}
+      {hideHeader ? (
+        <MenuFixedCalorieBar
+          lang={lang}
+          textColor={calorieColor}
+          headerFg={headerFg}
+          customization={headerCustomization}
+          showLang={showLang}
+          onLangToggle={toggleLang}
+          embedded
+          variant="full"
+        />
+      ) : isCrops ? (
+        <MenuCropsHeader settings={settings} lang={lang} embedded />
+      ) : (
+        <MenuProductHeader settings={settings} lang={lang} embedded />
+      )}
 
       {showLang && !hideHeader && (
         <div className="shrink-0 px-5 py-2 md:px-10" dir="ltr">
-          <MenuLangToggle lang={lang} textColor={palette.textColor} onToggle={toggleLang} />
-        </div>
-      )}
-
-      {showLang && hideHeader && (
-        <div className="absolute end-3 top-3 z-10 md:end-6 md:top-4" dir="ltr">
           <MenuLangToggle lang={lang} textColor={palette.textColor} onToggle={toggleLang} />
         </div>
       )}

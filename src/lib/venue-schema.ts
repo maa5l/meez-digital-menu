@@ -85,6 +85,7 @@ const CropSchema = z
     process: coerceString(),
     processEn: coerceString(),
     variety: coerceString(),
+    varietyEn: coerceString(),
     altitude: coerceString(),
     notes: coerceString(),
     notesEn: coerceString(),

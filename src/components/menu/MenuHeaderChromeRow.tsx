@@ -29,13 +29,13 @@ function MenuHeaderLogo({
     <img
       src={customization.logoImage}
       alt="logo"
-      className={cn("w-auto object-contain", overlay && "drop-shadow-md")}
+      className="w-auto object-contain"
       style={{ height: size, maxHeight: size }}
     />
   ) : (
     <span
       style={{ color: overlay ? "#fff" : headerFg, height: size, maxHeight: size }}
-      className={cn("inline-flex items-center", overlay && "drop-shadow-md")}
+      className="inline-flex items-center"
     >
       <Logo className="h-full w-auto max-h-full aspect-[1031/736]" />
     </span>
@@ -71,6 +71,8 @@ const MenuHeaderChromeRow = ({
 
   const allergenColor =
     customization.headerAllergenColor?.trim() || textColor;
+  /** موضع ثابت على الشاشة — لا يتأثر بتبديل اللغة */
+  const logoOnRight = (customization.logoSide ?? "right") === "right";
 
   return (
     <div
@@ -83,15 +85,15 @@ const MenuHeaderChromeRow = ({
       )}
       dir="ltr"
     >
-      {lang === "en" ? (
-        <>
-          {logo}
-          <div className="flex min-w-0 flex-1 justify-end">{calories}</div>
-        </>
-      ) : (
+      {logoOnRight ? (
         <>
           <div className="min-w-0 flex-1">{calories}</div>
           {logo}
+        </>
+      ) : (
+        <>
+          {logo}
+          <div className="flex min-w-0 flex-1 justify-end">{calories}</div>
         </>
       )}
 
@@ -101,7 +103,6 @@ const MenuHeaderChromeRow = ({
           allergenIds={customization.headerAllergens}
           color={allergenColor}
           lang={lang}
-          className={cn(overlay && "drop-shadow-sm")}
         />
       </div>
     </div>

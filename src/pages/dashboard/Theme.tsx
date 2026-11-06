@@ -522,6 +522,21 @@ function HeaderSection({
           onUpload={onLogoUpload}
           onClear={header.logoImage ? () => onPatch({ logoImage: undefined }) : undefined}
         />
+        <div className="mt-3">
+          <p className="mb-2 text-xs font-bold text-muted-foreground">موضع الشعار (ثابت — لا يتغير مع اللغة)</p>
+          <div className="flex flex-wrap gap-2">
+            <ToggleChip
+              label="يمين"
+              checked={(header.logoSide ?? "right") === "right"}
+              onChange={() => onPatch({ logoSide: "right" })}
+            />
+            <ToggleChip
+              label="يسار"
+              checked={header.logoSide === "left"}
+              onChange={() => onPatch({ logoSide: "left" })}
+            />
+          </div>
+        </div>
       </ThemeCard>
 
       <ThemeCard>
@@ -543,7 +558,7 @@ function HeaderSection({
         <p className="mb-3 text-sm font-bold text-primary">خيارات العرض</p>
         <div className="flex flex-wrap gap-2">
           <ToggleChip
-            label="إخفاء الهيدر"
+            label="إخفاء البانر"
             checked={header.hideHeader === true}
             onChange={(v) => onPatch({ hideHeader: v })}
           />

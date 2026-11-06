@@ -59,18 +59,16 @@ export function MenuProductTopChrome({
   const panelFlow = layoutMode === "panel";
 
   const headerNode = hideHeader ? (
-    showLangInCompactBar ? (
-      <MenuFixedCalorieBar
-        lang={lang}
-        textColor={calorieColor}
-        headerFg={headerFg}
-        customization={headerCustomization}
-        showLang
-        onLangToggle={onLangToggle}
-        embedded={panelFlow}
-        variant="lang-only"
-      />
-    ) : null
+    <MenuFixedCalorieBar
+      lang={lang}
+      textColor={calorieColor}
+      headerFg={headerFg}
+      customization={headerCustomization}
+      showLang={showLangInCompactBar}
+      onLangToggle={onLangToggle}
+      embedded={panelFlow}
+      variant="full"
+    />
   ) : (
     <MenuProductHeader
       settings={settings}

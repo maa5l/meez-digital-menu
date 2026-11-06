@@ -29,6 +29,7 @@ const empty: Omit<Crop, "id"> = {
   process: "",
   processEn: "",
   variety: "",
+  varietyEn: "",
   altitude: "",
   notes: "",
   notesEn: "",
@@ -185,25 +186,6 @@ const Crops = () => {
                 value={form.beanNameEn}
                 onChange={(v) => setForm({ ...form, beanNameEn: v })}
               />
-              <div className="space-y-2">
-                <Label className="text-xs">رقم الترتيب</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={form.sortOrder ?? ""}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setForm({
-                      ...form,
-                      sortOrder: v.trim() === "" ? undefined : Number(v),
-                    });
-                  }}
-                  placeholder="1 = أولاً"
-                  className="h-11 rounded-xl"
-                  dir="ltr"
-                />
-                <p className="text-[11px] text-muted-foreground">الأصغر يظهر أولاً عند الترتيب اليدوي في الثيم</p>
-              </div>
               <Field
                 label="البلد (عربي)"
                 value={form.country}
@@ -225,14 +207,43 @@ const Crops = () => {
                 onChange={(v) => setForm({ ...form, processEn: v })}
               />
               <Field
-                label="السلالة"
+                label="السلالة (عربي)"
                 value={form.variety}
                 onChange={(v) => setForm({ ...form, variety: v })}
+              />
+              <Field
+                label="Variety (English)"
+                value={form.varietyEn || ""}
+                onChange={(v) => setForm({ ...form, varietyEn: v })}
               />
               <Field
                 label="الارتفاع"
                 value={form.altitude}
                 onChange={(v) => setForm({ ...form, altitude: v })}
+              />
+              <div className="space-y-2">
+                <Label className="text-xs">رقم الترتيب</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={form.sortOrder ?? ""}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setForm({
+                      ...form,
+                      sortOrder: v.trim() === "" ? undefined : Number(v),
+                    });
+                  }}
+                  placeholder="1 = أولاً"
+                  className="h-11 rounded-xl"
+                  dir="ltr"
+                />
+                <p className="text-[11px] text-muted-foreground">الأصغر يظهر أولاً عند الترتيب اليدوي في الثيم</p>
+              </div>
+              <ColorPick
+                label="لون الخط"
+                value={form.textColor || "#3068A8"}
+                onChange={(v) => setForm({ ...form, textColor: v })}
               />
               <Field
                 label="الإيحاءات (عربي)"
@@ -243,11 +254,6 @@ const Crops = () => {
                 label="Notes (English)"
                 value={form.notesEn}
                 onChange={(v) => setForm({ ...form, notesEn: v })}
-              />
-              <ColorPick
-                label="لون الخط"
-                value={form.textColor || "#3068A8"}
-                onChange={(v) => setForm({ ...form, textColor: v })}
               />
               <div className="col-span-2 space-y-2 border border-border rounded-2xl p-3 bg-secondary/30">
                 <Label className="text-xs">خلفية البطاقة</Label>
@@ -384,7 +390,7 @@ const Crops = () => {
               <dl className="text-sm space-y-1">
                 <Row k="البلد" v={`${c.country} • ${c.countryEn}`} />
                 <Row k="المعالجة" v={`${c.process} • ${c.processEn}`} />
-                <Row k="السلالة" v={c.variety} />
+                <Row k="السلالة" v={`${c.variety}${c.varietyEn ? ` • ${c.varietyEn}` : ""}`} />
                 <Row k="الارتفاع" v={c.altitude} />
               </dl>
               <div className="mt-3 pt-3 border-t border-border text-xs">

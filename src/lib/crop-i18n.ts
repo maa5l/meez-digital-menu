@@ -87,7 +87,7 @@ export function localizeCrop(crop: Crop, lang: MenuLang) {
     farm: pickBilingual(lang, crop.farm, crop.farmEn),
     producer: pickBilingual(lang, crop.producer, crop.producerEn),
     process: pickBilingual(lang, crop.process, crop.processEn) || "—",
-    variety: crop.variety?.trim() || "—",
+    variety: pickBilingual(lang, crop.variety, crop.varietyEn) || "—",
     altitude: crop.altitude?.trim() || "—",
     roastLevel: pickBilingual(lang, crop.roastLevel, crop.roastLevelEn),
     roastDate: crop.roastDate?.trim() || "",

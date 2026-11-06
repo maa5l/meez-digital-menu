@@ -86,12 +86,12 @@ export function getMenuTopChromeHeight(
   return getEffectiveHeaderHeight(metrics, customization) + (hasSubheader ? metrics.subheaderHeight : 0);
 }
 
-/** ارتفاع الشريط العلوي عند إخفاء الهيدر — صفر أو شريط اللغة فقط */
+/** ارتفاع الشريط العلوي عند إخفاء البانر — الشعار يبقى دائماً */
 export function getHiddenHeaderTopHeight(
-  showLangInCompactBar: boolean,
+  _showLangInCompactBar: boolean,
   metrics: MenuLayoutMetrics = DEFAULT_MENU_LAYOUT_METRICS,
 ): number {
-  return showLangInCompactBar ? metrics.langBarHeight : 0;
+  return metrics.compactTopHeight;
 }
 
 /** مساحة أعلى منطقة التمرير — تتقلص عند إخفاء الهيدر مع الإبقاء على شريط التصنيفات */

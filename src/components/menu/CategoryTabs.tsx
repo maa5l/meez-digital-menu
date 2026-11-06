@@ -2,6 +2,7 @@ import type { Category } from "@/types/domain";
 import MenuLangToggle from "@/components/menu/MenuLangToggle";
 import { localizeCategory } from "@/lib/product-i18n";
 import { menuChromeMotion } from "@/lib/menu-header";
+import { badgeForeground } from "@/lib/product-badge";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -59,14 +60,22 @@ const CategoryTabs = ({
               onClick={() => onSelect(c.id)}
               dir={lang === "en" ? "ltr" : "rtl"}
               className={cn(
-                "touch-manipulation shrink-0 self-center rounded-full border bg-transparent px-4 py-1.5",
+                "touch-manipulation shrink-0 self-center rounded-full border px-4 py-1.5",
                 "text-sm font-bold transition-colors md:px-5 md:py-2",
-                active ? "border-current" : "border-transparent",
+                active ? "border-transparent" : "border-transparent bg-transparent",
               )}
-              style={{
-                color: active ? accentColor : textColor,
-                opacity: active ? 1 : 0.75,
-              }}
+              style={
+                active
+                  ? {
+                      backgroundColor: accentColor,
+                      color: badgeForeground(accentColor),
+                      opacity: 1,
+                    }
+                  : {
+                      color: textColor,
+                      opacity: 0.75,
+                    }
+              }
             >
               {localizeCategory(c, lang)}
             </button>

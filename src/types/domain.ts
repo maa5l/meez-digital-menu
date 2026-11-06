@@ -88,6 +88,11 @@ export type MenuHeaderCustomization = {
   headerBgColor?: string;
   headerTextColor?: string;
   logoImage?: string;
+  /**
+   * موضع الشعار على الشاشة (يسار/يمين) — ثابت ولا يتأثر بتبديل اللغة.
+   * افتراضي: right
+   */
+  logoSide?: "left" | "right";
   calorieTextColor?: string;
   /**
    * مسببات الحساسية الظاهرة في وسط الهيدر.
@@ -99,7 +104,7 @@ export type MenuHeaderCustomization = {
   showLanguageToggle?: boolean;
   /** true (افتراضي) = يختفي الهيدر عند التمرير للأسفل */
   autoHideHeaderOnScroll?: boolean;
-  /** إخفاء الهيدر (البانر والشعار والعنوان) — يبقى إفصاح السعرات فقط */
+  /** إخفاء بانر/عنوان الهيدر — الشعار وإفصاح السعرات يبقيان */
   hideHeader?: boolean;
 };
 
@@ -136,6 +141,8 @@ export type MenuSettings = {
   headerBgColor?: string;
   headerTextColor?: string;
   logoImage?: string;
+  /** موضع الشعار — يسار/يمين ثابت (انظر MenuHeaderCustomization) */
+  logoSide?: "left" | "right";
   /** صورة بانر الهيدر (فوق العنوان) */
   headerImage?: string;
   headerImageAspectRatio?: number;
@@ -165,6 +172,7 @@ export type Crop = {
   process: string;
   processEn: string;
   variety: string;
+  varietyEn?: string;
   altitude: string;
   notes: string;
   notesEn: string;
