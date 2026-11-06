@@ -40,7 +40,10 @@ async function repairSignupTrialIfNeeded(user: User): Promise<void> {
 async function hydrateVenueForUser(userId: string, venueName?: string): Promise<void> {
   if (shouldUseVenueDatabase()) {
     const venue = await pullVenueFromCloud(userId);
+    // لا تُنشئ منشأة فارغة وتُحفظ للسحابة إلا إن كانت السحابة فعلاً بلا صف محتوى
     if (isVenueEffectivelyEmpty(venue)) {
+      const existing = loadVenueData(userId);
+      if (existing.version === 1 && !isVenueEffectivelyEmpty(existing)) return;
       initializeVenueForUser(userId, venueName);
     }
     return;

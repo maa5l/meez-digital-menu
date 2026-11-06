@@ -242,6 +242,9 @@ function isLocalVenueNewer(local: VenueData, remote: VenueData): boolean {
 
 /** لا تستبدل محلياً فيه محتوى بمنشأة سحابية فارغة أثناء سباق التحميل */
 function shouldKeepLocalOverRemote(local: VenueData, remote: VenueData): boolean {
+  // محلي فارغ (غالباً بعد مسح الكاش أو أول تحميل) لا يفوز على سحابة فيها بيانات
+  // حتى لو كان updatedAt أحدث — وإلا يُتجاهل السحب وتختفي التصنيفات/المنتجات بعد إعادة الدخول
+  if (isVenueEffectivelyEmpty(local) && !isVenueEffectivelyEmpty(remote)) return false;
   if (isLocalVenueNewer(local, remote)) return true;
   if (!isVenueEffectivelyEmpty(local) && isVenueEffectivelyEmpty(remote)) return true;
   return false;
