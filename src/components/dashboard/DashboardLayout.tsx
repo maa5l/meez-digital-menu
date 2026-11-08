@@ -6,7 +6,7 @@ import { Logo } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/services/auth/auth.service";
 import { ROUTES } from "@/config/app";
-import { useSubscription, useSyncVenueSubscription } from "@/hooks/useSubscription";
+import { useSubscription } from "@/hooks/useSubscription";
 import { SubscriptionBanner } from "@/components/subscription/SubscriptionBanner";
 
 const navItems = [
@@ -74,7 +74,6 @@ const DashboardLayout = ({
   const location = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { access } = useSubscription();
-  useSyncVenueSubscription();
 
   useEffect(() => {
     setMobileNavOpen(false);

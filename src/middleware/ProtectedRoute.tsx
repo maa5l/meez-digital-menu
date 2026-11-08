@@ -6,6 +6,7 @@ import { getActiveSession } from "@/services/auth/auth.service";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { appEnv } from "@/config/env";
 import { VenueDataProvider } from "@/context/VenueDataContext";
+import { SubscriptionProvider } from "@/context/SubscriptionContext";
 import { SubscriptionGate } from "@/middleware/SubscriptionGate";
 import { logger } from "@/lib/logger";
 
@@ -42,7 +43,9 @@ export function ProtectedRoute({ children }: Props) {
 
   return (
     <VenueDataProvider>
-      <SubscriptionGate>{children}</SubscriptionGate>
+      <SubscriptionProvider>
+        <SubscriptionGate>{children}</SubscriptionGate>
+      </SubscriptionProvider>
     </VenueDataProvider>
   );
 }

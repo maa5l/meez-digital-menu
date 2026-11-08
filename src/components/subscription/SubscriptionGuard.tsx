@@ -20,8 +20,14 @@ export function SubscriptionGuard({
   const readyRef = useRef(false);
   if (!loading) readyRef.current = true;
 
+  // لا نحجب المحتوى إذا الكاش المحلي يسمح بالتعديل/الدخول
+  const hasLocalPass =
+    access.dashboard_allowed ||
+    (requireEdit ? access.dashboard_edit_allowed : false) ||
+    (requireAddDevices ? access.can_add_devices : false);
+
   // بعد أول تحميل نُبقي المحتوى ظاهراً — التحديثات الخلفية لا تُخفي الصفحة
-  if (loading && !readyRef.current) {
+  if (loading && !readyRef.current && !hasLocalPass) {
     return (
       <div className="min-h-[40vh] flex items-center justify-center" aria-busy="true">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />

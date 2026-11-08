@@ -19,7 +19,10 @@ import {
 } from "@/services/auth/profile-supabase.service";
 import { usesSupabaseAuth } from "@/config/env";
 import { logger } from "@/lib/logger";
-import { ensureSubscriptionRecord } from "@/services/subscription/subscription-enforcement";
+import {
+  ensureSubscriptionRecord,
+  resetSubscriptionEnsureCache,
+} from "@/services/subscription/subscription-enforcement";
 
 const SIGNUP_TRIAL_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -59,43 +62,37 @@ async function syncAccountWithVenue(userId: string): Promise<void> {
   if (next !== venue) saveVenueData(userId, next);
 }
 
-async function afterSupabaseAuth(session: Session, venueName?: string): Promise<void> {
-  // Soft-fail each step so a missing RPC/table after DB restore does not block login.
-  const steps: Array<[string, () => Promise<void>]> = [
-    ["ensure_profile", async () => {
-      await ensureUserProfile(session.user, venueName);
-    }],
-    ["repair_signup_trial", async () => {
-      await repairSignupTrialIfNeeded(session.user);
-    }],
-    ["ensure_subscription", async () => {
-      await ensureSubscriptionRecord();
-    }],
-    ["ensure_venue", async () => {
-      await ensureVenueRecordForOwner();
-    }],
-    ["hydrate_venue", async () => {
-      await hydrateVenueForUser(
-        session.user.id,
-        venueName || (session.user.user_metadata?.venue_name as string | undefined),
-      );
-    }],
-    ["sync_account_venue", async () => {
-      await syncAccountWithVenue(session.user.id);
-    }],
-  ];
-
-  for (const [label, run] of steps) {
-    try {
-      await run();
-    } catch (error) {
-      logger.warn("auth.after_auth_step_failed", {
-        step: label,
-        userId: session.user.id,
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
+async function runAuthStep(
+  label: string,
+  userId: string,
+  run: () => Promise<void>,
+): Promise<void> {
+  try {
+    await run();
+  } catch (error) {
+    logger.warn("auth.after_auth_step_failed", {
+      step: label,
+      userId,
+      message: error instanceof Error ? error.message : String(error),
+    });
   }
+}
+
+async function afterSupabaseAuth(session: Session, venueName?: string): Promise<void> {
+  // Soft-fail — خطوات مستقلة بالتوازي لتقليل زمن الدخول
+  const userId = session.user.id;
+  const metaVenue =
+    venueName || (session.user.user_metadata?.venue_name as string | undefined);
+
+  await Promise.all([
+    runAuthStep("ensure_profile", userId, () => ensureUserProfile(session.user, venueName)),
+    runAuthStep("repair_signup_trial", userId, () => repairSignupTrialIfNeeded(session.user)),
+    runAuthStep("ensure_subscription", userId, () => ensureSubscriptionRecord(userId)),
+    runAuthStep("ensure_venue", userId, () => ensureVenueRecordForOwner()),
+  ]);
+
+  await runAuthStep("hydrate_venue", userId, () => hydrateVenueForUser(userId, metaVenue));
+  await runAuthStep("sync_account_venue", userId, () => syncAccountWithVenue(userId));
 }
 
 function mapSupabaseSession(session: Session): AuthSession {
@@ -255,6 +252,7 @@ export { usesSupabaseAuth };
 
 export async function signOut(): Promise<void> {
   logger.audit("auth.logout");
+  resetSubscriptionEnsureCache();
   if (isSupabaseConfigured()) {
     await getSupabase().auth.signOut();
   }

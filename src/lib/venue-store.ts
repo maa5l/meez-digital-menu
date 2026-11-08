@@ -200,16 +200,52 @@ export function markVenueRemoteSynced(userId: string, updatedAt: string | null):
   }
 }
 
+const pendingCloudSave = new Map<string, VenueData>();
+const cloudSaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const CLOUD_SAVE_DEBOUNCE_MS = 1500;
+
+function scheduleCloudVenueSave(userId: string, payload: VenueData): void {
+  pendingCloudSave.set(userId, payload);
+  const existing = cloudSaveTimers.get(userId);
+  if (existing) clearTimeout(existing);
+  cloudSaveTimers.set(
+    userId,
+    setTimeout(() => {
+      cloudSaveTimers.delete(userId);
+      const latest = pendingCloudSave.get(userId);
+      pendingCloudSave.delete(userId);
+      if (!latest) return;
+      void saveVenueToDatabase(userId, latest).catch((err) => {
+        logger.error("venue.cloud_save_async_failed", {
+          userId,
+          message: err instanceof Error ? err.message : String(err),
+        });
+      });
+    }, CLOUD_SAVE_DEBOUNCE_MS),
+  );
+}
+
 export function saveVenueData(userId: string, data: VenueData): void {
   const payload = saveVenueDataLocal(userId, data);
   if (shouldUseVenueDatabase()) {
-    void saveVenueToDatabase(userId, payload).catch((err) => {
-      logger.error("venue.cloud_save_async_failed", {
-        userId,
-        message: err instanceof Error ? err.message : String(err),
-      });
-    });
+    scheduleCloudVenueSave(userId, payload);
   }
+}
+
+/** تحديث محلي فقط — لا يرفع للسحابة ولا يغيّر updatedAt (لملخص الاشتراك وغيره) */
+export function patchVenueDataLocalOnly(
+  userId: string,
+  patch: (prev: VenueData) => VenueData,
+): VenueData {
+  const prev = loadVenueData(userId);
+  const next = patch(prev);
+  const payload = compactVenueForLocalStorage({
+    ...next,
+    updatedAt: prev.updatedAt,
+  });
+  const ok = setLocalJson(venueKey(userId), payload);
+  if (!ok) throw new Error("storage_quota_exceeded");
+  return payload;
 }
 
 function venueRemoteUpdatedKey(userId: string): string {

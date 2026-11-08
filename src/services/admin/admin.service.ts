@@ -46,21 +46,40 @@ function parseAdminProfile(raw: unknown): AdminProfile | null {
   };
 }
 
+let adminProfileInFlight: Promise<AdminProfile | null> | null = null;
+let adminProfileCache: { at: number; value: AdminProfile | null } | null = null;
+const ADMIN_PROFILE_TTL_MS = 60_000;
+
 export async function fetchMyAdminProfile(): Promise<AdminProfile | null> {
   if (!isSupabaseConfigured()) return null;
-  try {
-    const { data, error } = await getSupabase().rpc("get_my_admin_profile");
-    if (error) {
-      // Migration not applied yet — treat as non-admin
-      if (error.code === "PGRST202") return null;
-      logger.error("admin.profile_failed", { message: error.message, code: error.code });
-      return null;
-    }
-    return parseAdminProfile(data);
-  } catch (err) {
-    logger.error("admin.profile_network", { message: err instanceof Error ? err.message : String(err) });
-    return null;
+  if (adminProfileCache && Date.now() - adminProfileCache.at < ADMIN_PROFILE_TTL_MS) {
+    return adminProfileCache.value;
   }
+  if (adminProfileInFlight) return adminProfileInFlight;
+
+  adminProfileInFlight = (async () => {
+    try {
+      const { data, error } = await getSupabase().rpc("get_my_admin_profile");
+      if (error) {
+        // Migration not applied yet — treat as non-admin
+        if (error.code === "PGRST202") return null;
+        logger.error("admin.profile_failed", { message: error.message, code: error.code });
+        return null;
+      }
+      const profile = parseAdminProfile(data);
+      adminProfileCache = { at: Date.now(), value: profile };
+      return profile;
+    } catch (err) {
+      logger.error("admin.profile_network", {
+        message: err instanceof Error ? err.message : String(err),
+      });
+      return null;
+    } finally {
+      adminProfileInFlight = null;
+    }
+  })();
+
+  return adminProfileInFlight;
 }
 
 export async function fetchAdminDashboardStats(): Promise<AdminDashboardStats | null> {

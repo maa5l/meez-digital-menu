@@ -126,62 +126,106 @@ export type SubscriptionFetchResult =
   | { ok: true; data: OwnerSubscription }
   | { ok: false; isNetwork: boolean; code?: string; message: string };
 
+let fetchOwnerSubscriptionInFlight: Promise<SubscriptionFetchResult> | null = null;
+
 export async function fetchOwnerSubscription(): Promise<SubscriptionFetchResult> {
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
     return { ok: false, isNetwork: false, message: "supabase_not_configured" };
   }
 
-  try {
-    const { data, error } = await getSupabase().rpc("get_owner_subscription");
-    if (error) {
-      const message = error.message ?? "subscription_fetch_failed";
-      const isNetwork = /failed to fetch|networkerror|load failed/i.test(message);
-      const isReadOnlyTxn = /25006|read-only transaction/i.test(message);
-      logger.error("subscription.fetch_failed", { message, code: error.code });
+  if (fetchOwnerSubscriptionInFlight) return fetchOwnerSubscriptionInFlight;
+
+  fetchOwnerSubscriptionInFlight = (async (): Promise<SubscriptionFetchResult> => {
+    try {
+      const { data, error } = await getSupabase().rpc("get_owner_subscription");
+      if (error) {
+        const message = error.message ?? "subscription_fetch_failed";
+        const isNetwork = /failed to fetch|networkerror|load failed/i.test(message);
+        const isReadOnlyTxn = /25006|read-only transaction/i.test(message);
+        logger.error("subscription.fetch_failed", { message, code: error.code });
+        return {
+          ok: false,
+          isNetwork,
+          code: isReadOnlyTxn ? "25006" : error.code,
+          message,
+        };
+      }
+
+      if (!data || typeof data !== "object") {
+        return { ok: false, isNetwork: false, message: "invalid_subscription_response" };
+      }
+
+      const row = data as Record<string, unknown>;
+      const access = parseAccess(row.access) ?? emptyAccess("expired");
+
       return {
-        ok: false,
-        isNetwork,
-        code: isReadOnlyTxn ? "25006" : error.code,
-        message,
+        ok: true,
+        data: {
+          owner_id: String(row.owner_id ?? ""),
+          status: (row.status as SubscriptionStatus) ?? access.status,
+          screen_count: Number(row.screen_count ?? access.screen_count),
+          device_limit: Number(row.device_limit ?? row.screen_count ?? access.screen_count),
+          trial_started_at: (row.trial_started_at as string) ?? null,
+          trial_ends_at: (row.trial_ends_at as string) ?? null,
+          subscription_started_at: (row.subscription_started_at as string) ?? null,
+          subscription_ends_at: (row.subscription_ends_at as string) ?? null,
+          manual_activation: Boolean(row.manual_activation),
+          activated_at: (row.activated_at as string) ?? null,
+          notes: typeof row.notes === "string" ? row.notes : null,
+          access,
+        },
       };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const isNetwork = /failed to fetch|networkerror|load failed/i.test(message);
+      logger.error("subscription.fetch_exception", { message });
+      return { ok: false, isNetwork, message };
+    } finally {
+      fetchOwnerSubscriptionInFlight = null;
     }
+  })();
 
-    if (!data || typeof data !== "object") {
-      return { ok: false, isNetwork: false, message: "invalid_subscription_response" };
+  return fetchOwnerSubscriptionInFlight;
+}
+
+let ensureSubscriptionInFlight: Promise<void> | null = null;
+let ensureSubscriptionDoneForUser: string | null = null;
+
+/** يضمن سجل الاشتراك مرة واحدة لكل جلسة مستخدم — يمنع الطلبات المتكررة البطيئة */
+export async function ensureSubscriptionRecord(ownerId?: string | null): Promise<void> {
+  if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) return;
+
+  const userId =
+    ownerId ??
+    (await getSupabase().auth.getSession()).data.session?.user?.id ??
+    null;
+  if (!userId) return;
+  if (ensureSubscriptionDoneForUser === userId) return;
+  if (ensureSubscriptionInFlight) {
+    await ensureSubscriptionInFlight;
+    return;
+  }
+
+  ensureSubscriptionInFlight = (async () => {
+    const { error } = await getSupabase().rpc("ensure_subscription_for_owner");
+    if (error) {
+      logger.error("subscription.ensure_failed", { message: error.message });
+      return;
     }
+    ensureSubscriptionDoneForUser = userId;
+  })();
 
-    const row = data as Record<string, unknown>;
-    const access = parseAccess(row.access) ?? emptyAccess("expired");
-
-    return {
-      ok: true,
-      data: {
-        owner_id: String(row.owner_id ?? ""),
-        status: (row.status as SubscriptionStatus) ?? access.status,
-        screen_count: Number(row.screen_count ?? access.screen_count),
-        device_limit: Number(row.device_limit ?? row.screen_count ?? access.screen_count),
-        trial_started_at: (row.trial_started_at as string) ?? null,
-        trial_ends_at: (row.trial_ends_at as string) ?? null,
-        subscription_started_at: (row.subscription_started_at as string) ?? null,
-        subscription_ends_at: (row.subscription_ends_at as string) ?? null,
-        manual_activation: Boolean(row.manual_activation),
-        activated_at: (row.activated_at as string) ?? null,
-        notes: typeof row.notes === "string" ? row.notes : null,
-        access,
-      },
-    };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    const isNetwork = /failed to fetch|networkerror|load failed/i.test(message);
-    logger.error("subscription.fetch_exception", { message });
-    return { ok: false, isNetwork, message };
+  try {
+    await ensureSubscriptionInFlight;
+  } finally {
+    ensureSubscriptionInFlight = null;
   }
 }
 
-export async function ensureSubscriptionRecord(): Promise<void> {
-  if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) return;
-  const { error } = await getSupabase().rpc("ensure_subscription_for_owner");
-  if (error) logger.error("subscription.ensure_failed", { message: error.message });
+export function resetSubscriptionEnsureCache(): void {
+  ensureSubscriptionDoneForUser = null;
+  ensureSubscriptionInFlight = null;
+  fetchOwnerSubscriptionInFlight = null;
 }
 
 export async function checkKioskAccess(

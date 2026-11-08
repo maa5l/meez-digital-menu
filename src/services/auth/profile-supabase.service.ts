@@ -167,6 +167,10 @@ export async function ensureVenueRecordForOwner(): Promise<void> {
   }
 }
 
+let profileFetchInFlight: Map<string, Promise<UserProfile | null>> = new Map();
+let profileFetchCache: Map<string, { at: number; value: UserProfile | null }> = new Map();
+const PROFILE_FETCH_TTL_MS = 60_000;
+
 /** جلب ملف المستخدم من قاعدة البيانات */
 export async function fetchUserProfile(userId: string): Promise<UserProfile | null> {
   if (!shouldUseVenueDatabase()) {
@@ -183,20 +187,39 @@ export async function fetchUserProfile(userId: string): Promise<UserProfile | nu
     };
   }
 
-  const { data, error } = await getSupabase()
-    .from("profiles")
-    .select(PROFILE_SELECT)
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (error) {
-    logger.error("profile.fetch_failed", { userId, message: error.message });
-    throw new Error(profileErrorMessage(error));
+  const cached = profileFetchCache.get(userId);
+  if (cached && Date.now() - cached.at < PROFILE_FETCH_TTL_MS) {
+    return cached.value;
   }
+  const pending = profileFetchInFlight.get(userId);
+  if (pending) return pending;
 
-  if (!data) return null;
-  const phone = await readPhoneFromAuthMetadata();
-  return mapProfileRow(data, phone);
+  const promise = (async (): Promise<UserProfile | null> => {
+    const { data, error } = await getSupabase()
+      .from("profiles")
+      .select(PROFILE_SELECT)
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error) {
+      logger.error("profile.fetch_failed", { userId, message: error.message });
+      throw new Error(profileErrorMessage(error));
+    }
+
+    if (!data) {
+      profileFetchCache.set(userId, { at: Date.now(), value: null });
+      return null;
+    }
+    const phone = await readPhoneFromAuthMetadata();
+    const mapped = mapProfileRow(data, phone);
+    profileFetchCache.set(userId, { at: Date.now(), value: mapped });
+    return mapped;
+  })().finally(() => {
+    profileFetchInFlight.delete(userId);
+  });
+
+  profileFetchInFlight.set(userId, promise);
+  return promise;
 }
 
 /** تحديث التفاصيل في profiles + metadata في Auth */

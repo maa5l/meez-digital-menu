@@ -11,9 +11,11 @@ type Props = {
   children: React.ReactNode;
 };
 
+const ADMIN_CHECK_TIMEOUT_MS = 2500;
+
 /**
  * يمنع الوصول للوحة التحكم عند انتهاء التجربة/الاشتراك.
- * التحقق الحقيقي على الخادم (RPC) — هذا طبقة عرض فقط.
+ * لا يحجب الواجهة إن كان الكاش المحلي يسمح بالدخول أثناء انتظار السحابة.
  */
 export function SubscriptionGate({ children }: Props) {
   const { access, loading, loadState, refresh } = useSubscription();
@@ -25,23 +27,40 @@ export function SubscriptionGate({ children }: Props) {
       setAdminChecked(true);
       return;
     }
+
+    let cancelled = false;
+    const timeout = window.setTimeout(() => {
+      if (!cancelled) setAdminChecked(true);
+    }, ADMIN_CHECK_TIMEOUT_MS);
+
     void fetchMyAdminProfile()
       .then((p) => {
-        setIsAdmin(Boolean(p?.isAdmin));
+        if (!cancelled) setIsAdmin(Boolean(p?.isAdmin));
       })
       .catch(() => {
-        setIsAdmin(false);
+        if (!cancelled) setIsAdmin(false);
       })
       .finally(() => {
-        setAdminChecked(true);
+        if (!cancelled) {
+          setAdminChecked(true);
+          window.clearTimeout(timeout);
+        }
       });
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
   }, []);
 
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
     return <>{children}</>;
   }
 
-  if (loading || !adminChecked) {
+  // دخول تفاؤلي من الكاش المحلي — لا ننتظر 10 ثوانٍ لسبينر كامل الشاشة
+  const canEnterOptimistically = access.dashboard_allowed || isAdmin;
+
+  if (loading && !canEnterOptimistically) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background" aria-busy="true">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -49,7 +68,15 @@ export function SubscriptionGate({ children }: Props) {
     );
   }
 
-  if (loadState.kind !== "ok") {
+  if (!adminChecked && !canEnterOptimistically) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background" aria-busy="true">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!loading && loadState.kind !== "ok" && !canEnterOptimistically) {
     return <SupabaseConnectionError state={loadState} onRetry={() => void refresh()} />;
   }
 
@@ -57,7 +84,7 @@ export function SubscriptionGate({ children }: Props) {
     return <>{children}</>;
   }
 
-  if (!access.dashboard_allowed) {
+  if (!access.dashboard_allowed && adminChecked && !loading) {
     return (
       <Suspense
         fallback={

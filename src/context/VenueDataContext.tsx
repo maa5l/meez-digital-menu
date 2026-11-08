@@ -20,6 +20,7 @@ import {
   rememberOwnerUserId,
   refreshDeviceVenueSync,
   saveCurrentVenueData,
+  patchVenueDataLocalOnly,
   resolveOwnerUserId,
   syncDeviceActivationsToCloud,
 } from "@/lib/venue-store";
@@ -31,6 +32,8 @@ const VENUE_UPDATED = "meez:venue-updated";
 type VenueDataContextValue = {
   data: VenueData;
   update: (patch: Partial<VenueData> | ((prev: VenueData) => VenueData)) => void;
+  /** تحديث محلي بدون رفع سحابي (لا يغيّر updatedAt) */
+  updateLocalOnly: (patch: (prev: VenueData) => VenueData) => void;
   loading: boolean;
   refreshFromCloud: (force?: boolean) => Promise<void>;
 };
@@ -40,9 +43,8 @@ const VenueDataContext = createContext<VenueDataContextValue | null>(null);
 export function VenueDataProvider({ children }: { children: ReactNode }) {
   const userId = resolveOwnerUserId();
   const [data, setData] = useState<VenueData>(() => loadCurrentVenueData());
-  const [loading, setLoading] = useState(
-    () => Boolean(userId && isSupabaseConfigured() && !appEnv.useLocalMockAuth),
-  );
+  // ابدأ من الكاش المحلي فوراً — السحب من السحابة في الخلفية دون حجب الواجهة
+  const [loading, setLoading] = useState(false);
   const mountedRef = useRef(true);
   const initialCloudLoadDoneRef = useRef(false);
 
@@ -64,7 +66,8 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (force) invalidateOwnerVenueCache(userId);
-      const showSpinner = !initialCloudLoadDoneRef.current;
+      // سبينر فقط عند طلب صريح (force) — التحميل الأول يعتمد على الكاش المحلي
+      const showSpinner = force;
       if (showSpinner) setLoading(true);
       try {
         const venue = await pullVenueFromCloud(userId);
@@ -192,9 +195,24 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const updateLocalOnly = useCallback((patch: (prev: VenueData) => VenueData) => {
+    const ownerId = resolveOwnerUserId();
+    if (!ownerId) return;
+    try {
+      const next = patchVenueDataLocalOnly(ownerId, patch);
+      skipSelfReloadRef.current = true;
+      setData(next);
+      window.dispatchEvent(new Event(VENUE_UPDATED));
+    } catch (err) {
+      logger.error("venue.local_only_save_failed", {
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }, []);
+
   const value = useMemo(
-    () => ({ data, update, loading, refreshFromCloud }),
-    [data, update, loading, refreshFromCloud],
+    () => ({ data, update, updateLocalOnly, loading, refreshFromCloud }),
+    [data, update, updateLocalOnly, loading, refreshFromCloud],
   );
 
   return (

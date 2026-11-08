@@ -112,6 +112,15 @@ All colors MUST be HSL.
 @layer base {
   * {
     @apply border-border;
+    /* إخفاء شريط التمرير في كل المنصة مع الإبقاء على التمرير */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
   }
 
   html {
