@@ -167,8 +167,8 @@ export async function ensureVenueRecordForOwner(): Promise<void> {
   }
 }
 
-let profileFetchInFlight: Map<string, Promise<UserProfile | null>> = new Map();
-let profileFetchCache: Map<string, { at: number; value: UserProfile | null }> = new Map();
+const profileFetchInFlight: Map<string, Promise<UserProfile | null>> = new Map();
+const profileFetchCache: Map<string, { at: number; value: UserProfile | null }> = new Map();
 const PROFILE_FETCH_TTL_MS = 60_000;
 
 /** جلب ملف المستخدم من قاعدة البيانات */

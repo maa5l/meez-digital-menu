@@ -1,6 +1,5 @@
 import { Image, StyleSheet, View } from "react-native";
-
-const LOGO = require("../../assets/icon.png");
+import LOGO from "../../assets/icon.png";
 
 export function Logo({ size = 56 }: { size?: number }) {
   const width = Math.round(size * (1031 / 736));
