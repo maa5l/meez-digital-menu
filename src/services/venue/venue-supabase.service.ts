@@ -24,6 +24,8 @@ export type KioskState = {
 };
 
 const RPC_TTL_MS = 18_000;
+/** ختم updated_at قصير العمر حتى يلتقط التطبيق/الكشك تعديلات الحساب بسرعة */
+const VENUE_META_TTL_MS = 4_000;
 const lastKnownKioskState = new Map<string, KioskState>();
 
 export function shouldUseVenueDatabase(): boolean {
@@ -43,6 +45,7 @@ export function invalidateDeviceVenueCache(code: string): void {
   const norm = normalizeCode(code);
   // لا تمسح kiosk:state/access — مسحها أثناء مزامنة المنيو يسبب فصلًا خاطئًا
   invalidateCachePrefix(`venue:device:${norm}:`);
+  invalidateCacheKey(`venue:device:${norm}:updated_at_meta`);
 }
 
 export async function fetchVenueUpdatedAtForOwner(
@@ -63,7 +66,7 @@ export async function fetchVenueUpdatedAtForOwner(
 
       return typeof data === "string" ? data : null;
     },
-    RPC_TTL_MS,
+    VENUE_META_TTL_MS,
     force,
   );
 }
@@ -201,22 +204,30 @@ export async function fetchKioskState(
   );
 }
 
-/** طلب خفيف — updated_at من get_kiosk_state (لا RPC منفصل) */
+/** طلب خفيف — updated_at بـ TTL قصير حتى لا تبقى المنتجات الجديدة محتجزة خلف كاش 18ث */
 export async function fetchVenueUpdatedAtForDevice(
   code: string,
   force = false,
 ): Promise<string | null> {
-  const state = await fetchKioskState(code, force);
-  // أعد فحص البوابة فقط عند فصل صريح — لا عند اشتراك/أخطاء عابرة
-  if (
-    shouldUseVenueDatabase() &&
-    !state.rateLimited &&
-    state.reason !== "rate_limited" &&
-    (state.reason === "device_inactive" || state.reason === "device_not_registered")
-  ) {
-    dispatchKioskGateRefresh({ code, reason: state.reason });
-  }
-  return state.venue_updated_at ?? null;
+  const norm = normalizeCode(code);
+  return cachedFetch(
+    `venue:device:${norm}:updated_at_meta`,
+    async () => {
+      // force=true يتجاوز كاش البوابة الطويل لقراءة الختم فقط
+      const state = await fetchKioskState(norm, true);
+      if (
+        shouldUseVenueDatabase() &&
+        !state.rateLimited &&
+        state.reason !== "rate_limited" &&
+        (state.reason === "device_inactive" || state.reason === "device_not_registered")
+      ) {
+        dispatchKioskGateRefresh({ code: norm, reason: state.reason });
+      }
+      return state.venue_updated_at ?? null;
+    },
+    VENUE_META_TTL_MS,
+    force,
+  );
 }
 
 /** حفظ المنيو — RPC فقط (update_venue_data) مع فحص الاشتراك */

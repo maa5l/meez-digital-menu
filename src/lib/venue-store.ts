@@ -202,7 +202,54 @@ export function markVenueRemoteSynced(userId: string, updatedAt: string | null):
 
 const pendingCloudSave = new Map<string, VenueData>();
 const cloudSaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
-const CLOUD_SAVE_DEBOUNCE_MS = 1500;
+const cloudSaveInFlight = new Map<string, Promise<void>>();
+const CLOUD_SAVE_DEBOUNCE_MS = 500;
+const CLOUD_SAVE_MAX_ATTEMPTS = 3;
+let cloudFlushListenersInstalled = false;
+
+function dispatchCloudSaveFailed(userId: string, message: string): void {
+  window.dispatchEvent(
+    new CustomEvent("meez:venue-save-failed", {
+      detail: { reason: message, userId, scope: "cloud" },
+    }),
+  );
+}
+
+async function persistVenueToCloud(userId: string, payload: VenueData): Promise<void> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= CLOUD_SAVE_MAX_ATTEMPTS; attempt++) {
+    try {
+      await saveVenueToDatabase(userId, payload);
+      window.dispatchEvent(
+        new CustomEvent("meez:venue-cloud-saved", { detail: { userId } }),
+      );
+      return;
+    } catch (err) {
+      lastError = err;
+      logger.error("venue.cloud_save_async_failed", {
+        userId,
+        attempt,
+        message: err instanceof Error ? err.message : String(err),
+      });
+      if (attempt < CLOUD_SAVE_MAX_ATTEMPTS) {
+        await new Promise((r) => setTimeout(r, 400 * attempt));
+      }
+    }
+  }
+  dispatchCloudSaveFailed(
+    userId,
+    lastError instanceof Error ? lastError.message : String(lastError ?? "cloud_save_failed"),
+  );
+}
+
+function runCloudVenueSave(userId: string, payload: VenueData): Promise<void> {
+  const existing = cloudSaveInFlight.get(userId);
+  const run = (existing ?? Promise.resolve()).then(() => persistVenueToCloud(userId, payload));
+  cloudSaveInFlight.set(userId, run.finally(() => {
+    if (cloudSaveInFlight.get(userId) === run) cloudSaveInFlight.delete(userId);
+  }));
+  return run;
+}
 
 function scheduleCloudVenueSave(userId: string, payload: VenueData): void {
   pendingCloudSave.set(userId, payload);
@@ -215,19 +262,38 @@ function scheduleCloudVenueSave(userId: string, payload: VenueData): void {
       const latest = pendingCloudSave.get(userId);
       pendingCloudSave.delete(userId);
       if (!latest) return;
-      void saveVenueToDatabase(userId, latest).catch((err) => {
-        logger.error("venue.cloud_save_async_failed", {
-          userId,
-          message: err instanceof Error ? err.message : String(err),
-        });
-      });
+      void runCloudVenueSave(userId, latest);
     }, CLOUD_SAVE_DEBOUNCE_MS),
   );
+}
+
+/** تفريغ فوري لأي حفظ معلّق — يمنع بقاء التعديلات على الجهاز فقط عند إغلاق التبويب */
+export function flushPendingCloudVenueSaves(): void {
+  for (const [userId, timer] of cloudSaveTimers) {
+    clearTimeout(timer);
+    cloudSaveTimers.delete(userId);
+  }
+  for (const [userId, payload] of pendingCloudSave) {
+    pendingCloudSave.delete(userId);
+    void runCloudVenueSave(userId, payload);
+  }
+}
+
+function installCloudFlushListeners(): void {
+  if (cloudFlushListenersInstalled || typeof window === "undefined") return;
+  cloudFlushListenersInstalled = true;
+  const flush = () => flushPendingCloudVenueSaves();
+  window.addEventListener("pagehide", flush);
+  window.addEventListener("beforeunload", flush);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flush();
+  });
 }
 
 export function saveVenueData(userId: string, data: VenueData): void {
   const payload = saveVenueDataLocal(userId, data);
   if (shouldUseVenueDatabase()) {
+    installCloudFlushListeners();
     scheduleCloudVenueSave(userId, payload);
   }
 }
@@ -450,15 +516,18 @@ export async function syncVenueForDeviceIfStale(
   }
 
   try {
+    const local = loadVenueForDevice(code);
     const remoteUpdatedAt = await fetchVenueUpdatedAtForDevice(code, force);
     const cacheKey = deviceRemoteUpdatedKey(code);
     const remembered = getRememberedRemoteUpdatedAt(cacheKey);
+    // لا تتخطّ المزامنة إن كان كاش الجهاز فارغاً رغم تطابق الختم
     if (
       !force &&
       remoteUpdatedAt &&
-      remembered === remoteUpdatedAt
+      remembered === remoteUpdatedAt &&
+      !isVenueEffectivelyEmpty(local)
     ) {
-      return { venue: loadVenueForDevice(code), changed: false };
+      return { venue: local, changed: false };
     }
 
     const remote = await fetchVenueForDeviceFromDatabase(code, force);

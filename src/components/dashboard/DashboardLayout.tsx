@@ -8,6 +8,8 @@ import { signOut } from "@/services/auth/auth.service";
 import { ROUTES } from "@/config/app";
 import { useSubscription } from "@/hooks/useSubscription";
 import { SubscriptionBanner } from "@/components/subscription/SubscriptionBanner";
+import { toast } from "sonner";
+import { flushPendingCloudVenueSaves } from "@/lib/venue-store";
 
 const navItems = [
   { to: "/dashboard", label: "نظرة عامة", icon: LayoutDashboard, end: true },
@@ -78,6 +80,31 @@ const DashboardLayout = ({
   useEffect(() => {
     setMobileNavOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    const onFail = (event: Event) => {
+      const detail = (event as CustomEvent<{ reason?: string; scope?: string }>).detail;
+      const cloud = detail?.scope === "cloud";
+      toast.error(
+        cloud
+          ? "تعذّر رفع التعديلات للحساب — تحقق من الاتصال وأعد المحاولة"
+          : "تعذّر حفظ التعديلات محلياً",
+      );
+    };
+    const onHide = () => flushPendingCloudVenueSaves();
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") onHide();
+    };
+    window.addEventListener("meez:venue-save-failed", onFail);
+    window.addEventListener("pagehide", onHide);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("meez:venue-save-failed", onFail);
+      window.removeEventListener("pagehide", onHide);
+      document.removeEventListener("visibilitychange", onVisibility);
+      flushPendingCloudVenueSaves();
+    };
+  }, []);
 
   const closeMobileNav = () => setMobileNavOpen(false);
 

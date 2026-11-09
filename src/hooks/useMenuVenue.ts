@@ -227,7 +227,8 @@ export function useMenuVenue(
     };
     document.addEventListener("visibilitychange", onVisible);
 
-    const onKioskReset = () => void reloadFull(false);
+    // Soft refresh من التطبيق = إجبار سحب الختم/البيانات (لا تعتمد على كاش قديم)
+    const onKioskReset = () => void reloadFull(true);
     window.addEventListener(MENU_KIOSK_RESET_EVENT, onKioskReset);
 
     const pollMs =

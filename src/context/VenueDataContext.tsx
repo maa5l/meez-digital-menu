@@ -114,7 +114,7 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
   }, [refreshDebounced]);
 
   const refreshThrottled = useMemo(
-    () => throttle(() => void refreshFromCloud(false), 30_000),
+    () => throttle(() => void refreshFromCloud(false), 8_000),
     [refreshFromCloud],
   );
 

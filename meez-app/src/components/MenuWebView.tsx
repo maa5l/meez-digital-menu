@@ -208,6 +208,16 @@ export function MenuWebView({
     return () => sub.remove();
   }, [isLoading, loadError]);
 
+  // مزامنة دورية خفيفة حتى تظهر منتجات الحساب على الجهاز دون انتظار طويل
+  useEffect(() => {
+    if (isLoading || loadError) return;
+    const id = setInterval(() => {
+      if (AppState.currentState !== "active") return;
+      webViewRef.current?.injectJavaScript(KIOSK_SOFT_REFRESH_JS);
+    }, 12_000);
+    return () => clearInterval(id);
+  }, [isLoading, loadError]);
+
   const shouldStartLoad = useCallback<NonNullable<WebViewProps["onShouldStartLoadWithRequest"]>>(
     (request) => {
       if (isBlockedMenuUrl(request.url)) {
