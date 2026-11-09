@@ -49,6 +49,7 @@ import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
 import { notifySubscriptionUpdated } from "@/hooks/useSubscription";
 import { deviceActivationCodeSchema } from "@/validations/device.schema";
 import { getErrorMessage } from "@/lib/errors";
+import { invalidateCacheKey } from "@/lib/request-cache";
 import {
   ROUTES,
   deviceActivationCodeSuffix,
@@ -206,9 +207,18 @@ const Devices = () => {
 
       notifySubscriptionUpdated();
       await syncOwnerDevicesFromCloud(updateVenue);
-      activateDevice(parsed.data.code, { menuType });
-      linkDeviceToOwner(parsed.data.code, ownerId);
-      setDeviceMenuType(parsed.data.code, menuType);
+      const activatedCode = ensure.normalizedCode;
+      activateDevice(activatedCode, { menuType });
+      linkDeviceToOwner(activatedCode, ownerId);
+      setDeviceMenuType(activatedCode, menuType);
+      // أبطل كاش بوابة الكشك محلياً حتى يظهر التفعيل فوراً إن فُتح /pair هنا
+      {
+        const norm = activatedCode.trim().toUpperCase();
+        invalidateCacheKey(`kiosk:state:${norm}`);
+        invalidateCacheKey(`kiosk:access:${norm}`);
+        invalidateCacheKey(`kiosk:peek:${norm}`);
+        invalidateCacheKey(`venue:device:${norm}:updated_at_meta`);
+      }
 
       setName("");
       setActivationCode("");

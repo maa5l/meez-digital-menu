@@ -17,7 +17,9 @@ import {
 import { announceKioskPairingCode } from "@/services/kiosk-pairing";
 import { AppState, type AppStateStatus, type NativeEventSubscription } from "react-native";
 
-const POLL_MS = 30_000;
+/** أثناء انتظار التفعيل نفحص بسرعة وبدون كاش — وإلا يبقى الجهاز «غير مفعّل» بعد التفعيل */
+const PAIRING_POLL_MS = 2_500;
+const MENU_POLL_MS = 30_000;
 const MIN_FORCE_TICK_GAP_MS = 15_000;
 const ANNOUNCE_MS = 10 * 60 * 1000;
 const FAULT_AUTO_RETRY_MS = 8_000;
@@ -188,7 +190,17 @@ export class KioskSupervisor {
   private startPolling(): void {
     this.stopPolling();
     if (!isSupabaseConfigured()) return;
-    this.pollId = setInterval(() => void this.tick(false), POLL_MS);
+    this.pollId = setInterval(() => {
+      const pairing =
+        this.snapshot.phase === "pairing" || this.snapshot.phase === "boot";
+      if (pairing) {
+        void this.tick(true);
+        return;
+      }
+      if (Date.now() - this.lastTickAt >= MENU_POLL_MS) {
+        void this.tick(false);
+      }
+    }, PAIRING_POLL_MS);
   }
 
   private scheduleScopedRetry(retryAfterSeconds: number | undefined): void {

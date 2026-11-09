@@ -53,7 +53,7 @@ const MenuVenueHeader = ({
   return (
     <header
       className={cn(
-        "flex w-full shrink-0 flex-col overflow-hidden border-b border-black/10",
+        "flex w-full shrink-0 flex-col overflow-hidden",
         !embedded && "fixed inset-x-0 top-0 z-40",
         embedded && "relative",
         !embedded && headerHideTransition,
@@ -66,21 +66,17 @@ const MenuVenueHeader = ({
         height: headerHeight,
         background: headerBg,
         color: headerFg,
+        boxShadow: "none",
+        filter: "none",
       }}
     >
       {bannerSrc && (
-        <>
-          <img
-            src={bannerSrc}
-            alt=""
-            className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center [image-rendering:auto]"
-            decoding="async"
-          />
-          <div
-            className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/35 via-black/15 to-black/40"
-            aria-hidden
-          />
-        </>
+        <img
+          src={bannerSrc}
+          alt=""
+          className="pointer-events-none absolute inset-0 h-full w-full object-cover object-center [image-rendering:auto]"
+          decoding="async"
+        />
       )}
 
       <div

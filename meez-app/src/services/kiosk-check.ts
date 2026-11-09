@@ -21,7 +21,8 @@ export type RegistrationPeek = {
   rateLimited?: boolean;
 };
 
-const RPC_TTL_MS = 25_000;
+/** كاش قصير — أثناء pairing يتم التجاوز بـ force=true */
+const RPC_TTL_MS = 5_000;
 const lastKnownGood = new Map<string, RegistrationPeek>();
 
 function scopeKey(code: string): string {

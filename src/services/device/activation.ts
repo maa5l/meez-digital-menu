@@ -78,12 +78,14 @@ export type DeviceRegistrationStatus = "checking" | "not_registered" | "register
  */
 export async function checkDeviceRegistrationOnKiosk(
   code: string,
+  force = true,
 ): Promise<DeviceRegistrationStatus> {
   const normalized = code.trim().toUpperCase();
   if (!isValidDeviceCode(normalized)) return "not_registered";
 
   if (shouldUseVenueDatabase()) {
-    const check = await checkKioskAccess(normalized);
+    // force=true يتجاوز كاش get_kiosk_state حتى ينتقل /pair للمنيو فور التفعيل
+    const check = await checkKioskAccess(normalized, force);
     // أخطاء عابرة: لا تُعلن فصلاً (كانت تسبب تدوير الرمز بعد أول مزامنة)
     if (
       check.reason === "check_failed" ||
