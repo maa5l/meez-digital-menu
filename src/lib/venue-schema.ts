@@ -131,19 +131,34 @@ export function parseVenueDataSafe(raw: unknown): VenueData {
   const products = parseArraySafe(ProductSchema, stored.products, "products") as Product[];
   const crops = parseArraySafe(CropSchema, stored.crops, "crops") as Crop[];
 
+  let menuSettings = defaultMenuSettings;
+  try {
+    menuSettings = migrateMenuSettings({
+      ...defaultMenuSettings,
+      ...((stored.menuSettings && typeof stored.menuSettings === "object"
+        ? stored.menuSettings
+        : {}) as typeof defaultMenuSettings),
+    });
+  } catch (err) {
+    logger.warn("venue.schema_menu_settings_fallback", {
+      message: err instanceof Error ? err.message : String(err),
+    });
+  }
+
   return {
     ...empty,
-    ...stored,
     version: 1,
     categories,
     products,
     crops,
     devices: Array.isArray(stored.devices) ? (stored.devices as VenueData["devices"]) : [],
-    menuSettings: migrateMenuSettings({
-      ...defaultMenuSettings,
-      ...(stored.menuSettings ?? {}),
-    }),
-    subscription: { ...FALLBACK_SUBSCRIPTION, ...(stored.subscription ?? {}) },
+    menuSettings,
+    subscription: {
+      ...FALLBACK_SUBSCRIPTION,
+      ...(stored.subscription && typeof stored.subscription === "object"
+        ? (stored.subscription as Partial<SubscriptionInfo>)
+        : {}),
+    },
     createdAt: typeof stored.createdAt === "string" ? stored.createdAt : empty.createdAt,
     updatedAt: typeof stored.updatedAt === "string" ? stored.updatedAt : empty.updatedAt,
   };

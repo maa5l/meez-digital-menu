@@ -19,7 +19,10 @@ export type MenuLayoutMetrics = {
 const HEADER_DISPLAY_RATIO =
   HEADER_IMAGE_SPEC.displayHeight / HEADER_IMAGE_SPEC.displayWidth;
 
-const METRICS_BY_TIER: Record<MenuViewportTier, Omit<MenuLayoutMetrics, "tier">> = {
+const METRICS_BY_TIER: Record<
+  MenuViewportTier,
+  Omit<MenuLayoutMetrics, "tier" | "viewportWidth">
+> = {
   compact: {
     headerHeight: 156,
     subheaderHeight: 40,

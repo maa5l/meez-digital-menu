@@ -54,21 +54,37 @@ export function getHeaderAllergenOptions(): AllergenOption[] {
   return [...ALLERGEN_OPTIONS];
 }
 
+function coerceAllergenIdList(ids: unknown): string[] | null | undefined {
+  if (ids == null) return ids as null | undefined;
+  if (Array.isArray(ids)) {
+    return ids.map((id) => String(id ?? "").trim()).filter(Boolean);
+  }
+  if (typeof ids === "string") {
+    const parts = ids
+      .split(/[,|;\n]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return parts.length ? parts : [];
+  }
+  return undefined;
+}
+
 /**
  * undefined = كل المسببات ظاهرة (الافتراضي).
  * [] = إخفاء الأسطورة.
  * وإلا تُعرض المسببات المختارة فقط وبالترتيب الثابت.
  */
 export function resolveHeaderAllergenIds(ids?: string[] | null): string[] {
-  if (ids == null) return [...HEADER_ALLERGEN_IDS];
-  const selected = new Set(ids.filter((id) => HEADER_ALLERGEN_SET.has(id)));
+  const list = coerceAllergenIdList(ids);
+  if (list == null) return [...HEADER_ALLERGEN_IDS];
+  const selected = new Set(list.filter((id) => HEADER_ALLERGEN_SET.has(id)));
   return HEADER_ALLERGEN_IDS.filter((id) => selected.has(id));
 }
 
 export function sanitizeHeaderAllergenIds(ids?: string[] | null): string[] | undefined {
-  if (ids == null) return undefined;
-  if (!Array.isArray(ids)) return undefined;
-  return resolveHeaderAllergenIds(ids);
+  const list = coerceAllergenIdList(ids);
+  if (list == null) return undefined;
+  return resolveHeaderAllergenIds(list);
 }
 
 /** يحوّل الاختيارات إلى نص — نفس حقل `allergens` / `allergensEn` */

@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { MenuSettings } from "@/types/domain";
+import { sanitizeHeaderAllergenIds } from "@/constants/allergens";
 
 /** ألوان منيو واحد (خلفية، نص، مميّز، بطاقات) */
 export type MenuPalette = {
@@ -54,8 +55,27 @@ export function migrateMenuSettings(settings: MenuSettings): MenuSettings {
     !settings.cropsColors &&
     Boolean(settings.bgColor || settings.textColor || settings.accentColor);
 
+  const cropsHeader = settings.cropsHeader
+    ? {
+        ...settings.cropsHeader,
+        headerAllergens: sanitizeHeaderAllergenIds(settings.cropsHeader.headerAllergens),
+      }
+    : settings.cropsHeader;
+
   return {
     ...settings,
+    productTemplate:
+      settings.productTemplate === "detail"
+        ? "detail"
+        : settings.productTemplate === "featured"
+          ? "featured"
+          : String(settings.productTemplate ?? "") === "split"
+            ? "detail"
+            : "featured",
+    cropsTemplate:
+      settings.cropsTemplate === "pureshelf" ? "pureshelf" : "molo",
+    headerAllergens: sanitizeHeaderAllergenIds(settings.headerAllergens),
+    cropsHeader,
     productsColors: {
       ...defaultProductsPalette,
       ...(hadLegacyOnly ? legacy : {}),

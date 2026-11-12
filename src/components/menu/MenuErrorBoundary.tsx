@@ -36,10 +36,15 @@ export class MenuErrorBoundary extends Component<Props, State> {
 
   render(): ReactNode {
     if (this.state.error) {
-      const detail = classifyUserFacingError(this.state.error, { faultCode: "SCHEMA" });
+      // لا نفرض SCHEMA دائماً — بعض الأعطال عابرة (شبكة/كاش) وتُصنَّف أفضل تلقائياً
+      const detail = classifyUserFacingError(this.state.error);
+      const panel =
+        detail.category === "unknown"
+          ? classifyUserFacingError(this.state.error, { faultCode: "SCHEMA" })
+          : detail;
       return (
         <div className="flex h-screen flex-col items-center justify-center" style={{ background: "#1a1510", color: "#f8f1e4" }}>
-          <UserErrorPanel error={detail} onRetry={this.handleRetry} className="text-[#f8f1e4]" />
+          <UserErrorPanel error={panel} onRetry={this.handleRetry} className="text-[#f8f1e4]" />
         </div>
       );
     }

@@ -113,7 +113,12 @@ export function localizeBrewing(brewing: CropBrewingInfo | undefined, lang: Menu
 }
 
 /** تحويل نوتات التذوق إلى شرائح — يدعم الفواصل الشائعة */
-export function parseFlavorNotes(notes: string): string[] {
-  if (!notes.trim()) return [];
-  return [...new Set(notes.split(/[,·|;/\n]+/).map((s) => s.trim()).filter(Boolean))];
+export function parseFlavorNotes(notes: unknown): string[] {
+  if (notes == null) return [];
+  if (Array.isArray(notes)) {
+    return [...new Set(notes.map((n) => String(n ?? "").trim()).filter(Boolean))];
+  }
+  const text = String(notes).trim();
+  if (!text) return [];
+  return [...new Set(text.split(/[,·|;/\n]+/).map((s) => s.trim()).filter(Boolean))];
 }
