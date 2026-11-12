@@ -94,7 +94,11 @@ const TemplateProductsDetail = ({ settings, categories, products }: Props) => {
   useEffect(() => {
     const root = listRef.current;
     if (!root || !selected) return;
-    const el = root.querySelector<HTMLElement>(`[data-product-id="${selected.id}"]`);
+    const safeId =
+      typeof CSS !== "undefined" && typeof CSS.escape === "function"
+        ? CSS.escape(String(selected.id))
+        : String(selected.id).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    const el = root.querySelector<HTMLElement>(`[data-product-id="${safeId}"]`);
     el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [selected?.id]);
 

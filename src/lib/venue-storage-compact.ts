@@ -50,9 +50,11 @@ function compactCrop(c: Crop): Crop {
 
 /** يقلّل حجم JSON قبل localStorage — إزالة حقول الصور المكررة */
 export function compactVenueForLocalStorage(data: VenueData): VenueData {
+  const products = Array.isArray(data.products) ? data.products : [];
+  const crops = Array.isArray(data.crops) ? data.crops : [];
   return {
     ...data,
-    products: data.products.map(compactProduct),
-    crops: data.crops.map(compactCrop),
+    products: products.map(compactProduct),
+    crops: crops.map(compactCrop),
   };
 }

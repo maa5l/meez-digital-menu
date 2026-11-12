@@ -43,12 +43,41 @@ const coerceString = (fallback = "") =>
     return String(v);
   });
 
+const optionalCoerceString = z
+  .union([z.string(), z.number(), z.null(), z.undefined()])
+  .transform((v) => {
+    if (v == null) return undefined;
+    const s = String(v).trim();
+    return s || undefined;
+  })
+  .optional()
+  .catch(undefined);
+
+const CropInfoSchema = z
+  .object({
+    beanName: coerceString(),
+    country: coerceString(),
+    process: coerceString(),
+    variety: coerceString(),
+    altitude: coerceString(),
+    notes: coerceString(),
+  })
+  .passthrough()
+  .catch({
+    beanName: "",
+    country: "",
+    process: "",
+    variety: "",
+    altitude: "",
+    notes: "",
+  });
+
 const CategorySchema = z
   .object({
     id: coerceString(),
     name: coerceString("—"),
-    nameEn: z.string().optional().catch(undefined),
-    icon: z.string().optional().catch(undefined),
+    nameEn: optionalCoerceString,
+    icon: optionalCoerceString,
     sortOrder: z.number().finite().optional().catch(undefined),
   })
   .passthrough();
@@ -58,20 +87,21 @@ const ProductSchema = z
     id: coerceString(),
     categoryId: coerceString(),
     name: coerceString("—"),
-    nameEn: z.string().optional().catch(undefined),
+    nameEn: optionalCoerceString,
     description: coerceString(),
-    descriptionEn: z.string().optional().catch(undefined),
+    descriptionEn: optionalCoerceString,
     price: coerceFiniteNumber(0),
     calories: coerceFiniteNumber(0),
     image: z.string().nullish().catch(undefined).transform((v) => v ?? undefined),
     imageLandscape: z.string().nullish().catch(undefined).transform((v) => v ?? undefined),
     imagePortrait: z.string().nullish().catch(undefined).transform((v) => v ?? undefined),
-    allergens: z.string().optional().catch(undefined),
-    allergensEn: z.string().optional().catch(undefined),
-    badgeText: z.string().optional().catch(undefined),
-    badgeTextEn: z.string().optional().catch(undefined),
-    badgeColor: z.string().optional().catch(undefined),
-    cropId: z.string().optional().catch(undefined),
+    allergens: optionalCoerceString,
+    allergensEn: optionalCoerceString,
+    badgeText: optionalCoerceString,
+    badgeTextEn: optionalCoerceString,
+    badgeColor: optionalCoerceString,
+    cropId: optionalCoerceString,
+    cropInfo: CropInfoSchema.optional().catch(undefined),
     sortOrder: z.number().finite().optional().catch(undefined),
   })
   .passthrough();

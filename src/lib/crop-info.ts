@@ -18,6 +18,11 @@ export function cropSelectLabel(crop: Crop): string {
 
 /** سطر عرض المحصول — دائماً بالعربية حتى في وضع الإنجليزية */
 export function cropDisplayLine(info: CropInfo | undefined | null): string | null {
-  if (!info?.beanName?.trim()) return null;
-  return [info.beanName, info.country, info.process].filter(Boolean).join(" · ");
+  if (!info) return null;
+  const beanName = String(info.beanName ?? "").trim();
+  if (!beanName) return null;
+  return [beanName, info.country, info.process]
+    .map((v) => String(v ?? "").trim())
+    .filter(Boolean)
+    .join(" · ");
 }

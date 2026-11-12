@@ -605,7 +605,8 @@ export const ProductModalDetails = ({
           <div className={cn("mb-2.5 font-bold opacity-50", labelCls)}>{t.crop}</div>
           <div className="grid grid-cols-2 gap-x-6 gap-y-3 md:gap-x-8 md:gap-y-3.5">
             {cropModalFields.map(([key, labelKey]) => {
-              const value = product.cropInfo![key]?.trim();
+              const raw = product.cropInfo?.[key];
+              const value = raw == null ? "" : String(raw).trim();
               if (!value) return null;
               return (
                 <InfoRow

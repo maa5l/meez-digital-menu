@@ -47,43 +47,60 @@ function legacyPalette(settings: MenuSettings): MenuPalette {
   };
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
 /** يطبّق ترحيل الألوان القديمة إلى حزمتين منفصلتين */
 export function migrateMenuSettings(settings: MenuSettings): MenuSettings {
-  const legacy = legacyPalette(settings);
+  const safeSettings = isPlainObject(settings) ? settings : ({} as MenuSettings);
+  const legacy = legacyPalette(safeSettings);
   const hadLegacyOnly =
-    !settings.productsColors &&
-    !settings.cropsColors &&
-    Boolean(settings.bgColor || settings.textColor || settings.accentColor);
+    !safeSettings.productsColors &&
+    !safeSettings.cropsColors &&
+    Boolean(safeSettings.bgColor || safeSettings.textColor || safeSettings.accentColor);
 
-  const cropsHeader = settings.cropsHeader
+  const cropsHeaderRaw = isPlainObject(safeSettings.cropsHeader)
+    ? safeSettings.cropsHeader
+    : undefined;
+  const cropsHeader = cropsHeaderRaw
     ? {
-        ...settings.cropsHeader,
-        headerAllergens: sanitizeHeaderAllergenIds(settings.cropsHeader.headerAllergens),
+        ...cropsHeaderRaw,
+        headerAllergens: sanitizeHeaderAllergenIds(
+          cropsHeaderRaw.headerAllergens as string[] | null | undefined,
+        ),
       }
-    : settings.cropsHeader;
+    : undefined;
+
+  const productsColors = isPlainObject(safeSettings.productsColors)
+    ? safeSettings.productsColors
+    : {};
+  const cropsColors = isPlainObject(safeSettings.cropsColors)
+    ? safeSettings.cropsColors
+    : {};
 
   return {
-    ...settings,
+    ...safeSettings,
     productTemplate:
-      settings.productTemplate === "detail"
+      safeSettings.productTemplate === "detail"
         ? "detail"
-        : settings.productTemplate === "featured"
+        : safeSettings.productTemplate === "featured"
           ? "featured"
-          : String(settings.productTemplate ?? "") === "split"
+          : String(safeSettings.productTemplate ?? "") === "split"
             ? "detail"
             : "featured",
     cropsTemplate:
-      settings.cropsTemplate === "pureshelf" ? "pureshelf" : "molo",
-    headerAllergens: sanitizeHeaderAllergenIds(settings.headerAllergens),
+      safeSettings.cropsTemplate === "pureshelf" ? "pureshelf" : "molo",
+    headerAllergens: sanitizeHeaderAllergenIds(safeSettings.headerAllergens),
     cropsHeader,
     productsColors: {
       ...defaultProductsPalette,
       ...(hadLegacyOnly ? legacy : {}),
-      ...settings.productsColors,
+      ...productsColors,
     },
     cropsColors: {
       ...defaultCropsPalette,
-      ...settings.cropsColors,
+      ...cropsColors,
     },
   };
 }
