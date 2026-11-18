@@ -12,8 +12,6 @@ type Props = {
   customization: MenuHeaderCustomization;
   palette: MenuPalette;
   lang: "ar" | "en";
-  defaultTitleAr: string;
-  defaultTitleEn: string;
   embedded?: boolean;
   visible?: boolean;
   /** @deprecated استخدم chromeTrailing */
@@ -28,8 +26,6 @@ const MenuVenueHeader = ({
   customization,
   palette,
   lang,
-  defaultTitleAr,
-  defaultTitleEn,
   embedded = false,
   visible = true,
   headerTrailing,
@@ -41,8 +37,6 @@ const MenuVenueHeader = ({
   const headerFg = customization.headerTextColor ?? palette.textColor;
   const bannerHasDesign = Boolean(customization.headerImage?.trim());
   const headerHeight = getEffectiveHeaderHeight(layout, customization);
-  const title =
-    customization.featuredTitle || (lang === "ar" ? defaultTitleAr : defaultTitleEn);
   const bannerSrc = bannerHasDesign
     ? customization.headerImage
     : customization.featuredImage || undefined;
@@ -98,30 +92,18 @@ const MenuVenueHeader = ({
           />
         </div>
 
-        {!bannerHasDesign && (
+        {!bannerHasDesign && customization.featuredSubtitle?.trim() && (
           <div className={cn("shrink-0 max-w-full overflow-hidden px-2 text-center", bannerSrc && "pointer-events-auto")}>
-            <h1
+            <p
               className={cn(
-                "font-display mx-auto max-w-full break-words font-black leading-tight line-clamp-2",
+                "mx-auto max-w-full break-words line-clamp-2 font-bold",
                 bannerSrc
-                  ? "text-[11px] text-white sm:text-xs md:text-sm ipad-lg:text-base"
-                  : "text-sm md:text-lg ipad-lg:text-xl",
+                  ? "text-[9px] text-white/90 sm:text-[10px] md:text-xs"
+                  : "text-[9px] opacity-70 md:text-[10px]",
               )}
             >
-              {title}
-            </h1>
-            {customization.featuredSubtitle && (
-              <p
-                className={cn(
-                  "mx-auto mt-0.5 max-w-full break-words line-clamp-2 font-bold",
-                  bannerSrc
-                    ? "text-[9px] text-white/90 sm:text-[10px] md:text-xs"
-                    : "text-[9px] opacity-70 md:text-[10px]",
-                )}
-              >
-                {customization.featuredSubtitle}
-              </p>
-            )}
+              {customization.featuredSubtitle}
+            </p>
           </div>
         )}
       </div>

@@ -53,8 +53,15 @@ const MenuHeaderChromeRow = ({
   className,
   trailing,
 }: Props) => {
+  /** موضع ثابت على الشاشة — لا يتأثر بتبديل اللغة */
+  const logoOnRight = (customization.logoSide ?? "right") === "right";
   const calories = (
-    <MenuCalorieDisclaimer lang={lang} textColor={textColor} merged />
+    <MenuCalorieDisclaimer
+      lang={lang}
+      textColor={textColor}
+      merged
+      align={logoOnRight ? "left" : "right"}
+    />
   );
 
   const logo = (
@@ -71,8 +78,6 @@ const MenuHeaderChromeRow = ({
 
   const allergenColor =
     customization.headerAllergenColor?.trim() || textColor;
-  /** موضع ثابت على الشاشة — لا يتأثر بتبديل اللغة */
-  const logoOnRight = (customization.logoSide ?? "right") === "right";
 
   return (
     <div

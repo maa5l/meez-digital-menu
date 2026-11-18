@@ -20,8 +20,6 @@ const MenuProductHeader = ({
     customization={getProductsHeaderCustomization(settings)}
     palette={getProductsPalette(settings)}
     lang={lang}
-    defaultTitleAr="منتج او مشروب الشهر"
-    defaultTitleEn="Product or Drink of the Month"
     embedded={embedded}
     visible={visible}
   />

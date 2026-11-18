@@ -10,7 +10,6 @@ import {
 import { ThemePreviewFrame, ThemePreviewOrientationToggle, type PreviewOrientation } from "@/components/dashboard/theme/ThemePreviewFrame";
 import { ThemeCard, ThemeFieldGroup, ThemeSectionPanel } from "@/components/dashboard/theme/ThemeSectionPanel";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { SubscriptionGuard } from "@/components/subscription/SubscriptionGuard";
 import {
   getCropsHeaderCustomization,
@@ -245,10 +244,9 @@ function ThemeSectionContent({
       return (
         <HeaderSection
           title="هيدر المنتجات"
-          description="البانر، الشعار، والعنوان الظاهر أعلى منيو المنتجات"
+          description="البانر والشعار أعلى منيو المنتجات"
           header={productsHeader}
           textColorFallback={productsColors.textColor}
-          titlePlaceholder="مثال: مشروب الصيف"
           onPatch={editor.patchProductsHeader}
           onLogoUpload={editor.onUploadProductsImage("logoImage")}
           onHeaderImageUpload={editor.onUploadProductsImage("headerImage")}
@@ -333,7 +331,6 @@ function ThemeSectionContent({
           description="بانر وشعار منيو محاصيل البن"
           header={cropsHeader}
           textColorFallback={cropsColors.textColor}
-          titlePlaceholder="مثال: محصول إثيوبيا"
           onPatch={editor.patchCropsHeader}
           onLogoUpload={editor.onUploadCropsImage("logoImage")}
           onHeaderImageUpload={editor.onUploadCropsImage("headerImage")}
@@ -473,7 +470,6 @@ function HeaderSection({
   description,
   header,
   textColorFallback,
-  titlePlaceholder,
   onPatch,
   onLogoUpload,
   onHeaderImageUpload,
@@ -482,7 +478,6 @@ function HeaderSection({
   description: string;
   header: ReturnType<typeof getProductsHeaderCustomization>;
   textColorFallback: string;
-  titlePlaceholder: string;
   onPatch: (patch: Partial<typeof header>) => void;
   onLogoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onHeaderImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -537,21 +532,6 @@ function HeaderSection({
             />
           </div>
         </div>
-      </ThemeCard>
-
-      <ThemeCard>
-        <ThemeFieldGroup
-          label="عنوان الهيدر"
-          hint={header.headerImage ? "معطّل — البانر يحتوي نصاً جاهزاً" : "يظهر عند عدم وجود بانر"}
-        >
-          <Input
-            value={header.featuredTitle || ""}
-            onChange={(e) => onPatch({ featuredTitle: e.target.value || undefined })}
-            placeholder={titlePlaceholder}
-            disabled={Boolean(header.headerImage)}
-            className="h-10"
-          />
-        </ThemeFieldGroup>
       </ThemeCard>
 
       <ThemeCard>

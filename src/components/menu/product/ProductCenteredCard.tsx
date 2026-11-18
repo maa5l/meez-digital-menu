@@ -2,7 +2,7 @@ import { Riyal } from "@/components/Brand";
 import AllergenIcons from "@/components/menu/AllergenIcons";
 import MenuProductImage from "@/components/menu/MenuProductImage";
 import { localizeProduct, type MenuLang } from "@/lib/product-i18n";
-import { cropDisplayLine } from "@/lib/crop-info";
+import { ScriptAlignedText } from "@/components/menu/ScriptAlignedText";
 import { getProductLandscapeImage, getProductPortraitImage } from "@/lib/product-spec";
 import type { Product } from "@/types/domain";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,9 @@ const labels = {
     calories: "السعرات",
     allergens: "مسببات الحساسية",
     description: "الوصف",
-    crop: "المحصول",
+    cropBean: "اسم المحصول",
+    cropVariety: "السلالة",
+    cropProcess: "المعالجة",
   },
   en: {
     name: "Name",
@@ -22,7 +24,9 @@ const labels = {
     calories: "Calories",
     allergens: "Allergens",
     description: "Description",
-    crop: "Crop",
+    cropBean: "Bean",
+    cropVariety: "Variety",
+    cropProcess: "Process",
   },
 } as const;
 
@@ -41,10 +45,6 @@ function PriceWithRiyal({
       <span className="truncate">{price}</span>
     </span>
   );
-}
-
-function cropSummary(product: Product): string | null {
-  return cropDisplayLine(product.cropInfo);
 }
 
 type Props = {
@@ -66,7 +66,17 @@ const ProductCenteredCard = ({
   const t = labels[lang];
   const localized = localizeProduct(product, lang);
   const isEn = lang === "en";
-  const cropLine = cropSummary(product);
+  const textFallback = isEn ? "left" : "right";
+  const basicCrop = (
+    [
+      ["bean", t.cropBean, product.cropInfo?.beanName],
+      ["variety", t.cropVariety, product.cropInfo?.variety],
+      ["process", t.cropProcess, product.cropInfo?.process],
+    ] as const
+  ).flatMap(([key, label, raw]) => {
+    const value = String(raw ?? "").trim();
+    return value ? [{ key, label, value }] : [];
+  });
   const heroImage = getProductLandscapeImage(product) || getProductPortraitImage(product);
 
   const labelCls = "text-[10px] font-bold leading-none opacity-55 md:text-[11px]";
@@ -116,9 +126,11 @@ const ProductCenteredCard = ({
 
             <div className="col-start-2 row-start-1 min-w-0 text-right">
               <div className={labelCls}>{t.name}</div>
-              <div className={cn(valueCls, "line-clamp-2")} dir={lang === "ar" ? "rtl" : "ltr"}>
-                {localized.name}
-              </div>
+              <ScriptAlignedText
+                value={localized.name}
+                fallback="right"
+                className={cn(valueCls, "line-clamp-2")}
+              />
             </div>
 
             <div className="col-start-1 row-start-2 min-w-0 text-left">
@@ -144,27 +156,29 @@ const ProductCenteredCard = ({
           {localized.description?.trim() && (
             <div className="mt-2 border-t border-black/10 pt-2">
               <div className={cn(labelCls, isEn ? "text-left" : "text-right")}>{t.description}</div>
-              <p
-                dir={isEn ? "ltr" : "rtl"}
-                className={cn(
-                  "mt-0.5 line-clamp-2 text-xs font-semibold leading-snug text-[#1a1a1a]/85 md:text-sm",
-                  isEn ? "text-left" : "text-right",
-                )}
-              >
-                {localized.description}
-              </p>
+              <ScriptAlignedText
+                value={localized.description}
+                fallback={textFallback}
+                className="mt-0.5 line-clamp-2 text-xs font-semibold leading-snug text-[#1a1a1a]/85 md:text-sm"
+              />
             </div>
           )}
 
-          {cropLine && (
-            <div className="mt-2 border-t border-black/10 pt-2 text-right">
-              <div className={labelCls}>{t.crop}</div>
-              <p
-                dir="rtl"
-                className="mt-0.5 line-clamp-1 text-xs font-semibold leading-snug opacity-85 md:text-sm"
-              >
-                {cropLine}
-              </p>
+          {basicCrop.length > 0 && (
+            <div
+              className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-black/10 pt-2"
+              dir={isEn ? "ltr" : "rtl"}
+            >
+              {basicCrop.map((field) => (
+                <div key={field.key} className={cn("min-w-0", isEn ? "text-left" : "text-right")}>
+                  <div className={labelCls}>{field.label}</div>
+                  <ScriptAlignedText
+                    value={field.value}
+                    fallback={textFallback}
+                    className={cn(valueCls, "line-clamp-2")}
+                  />
+                </div>
+              ))}
             </div>
           )}
         </div>

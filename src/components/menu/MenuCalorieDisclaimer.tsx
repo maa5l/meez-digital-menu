@@ -7,6 +7,8 @@ type Props = {
   lang: "ar" | "en";
   textColor: string;
   className?: string;
+  /** جهة الإفصاح على الشاشة — عكس الشعار، ولا تتبدل مع اللغة */
+  align?: "left" | "right";
   /** داخل هيدر المنتجات — بدون خلفية أو حدود منفصلة */
   embedded?: boolean;
   /** مدمج بالكامل مع خلفية الهيدر (لا فصل بصري) */
@@ -68,11 +70,13 @@ const MenuCalorieDisclaimer = ({
   lang,
   textColor,
   className = "",
+  align = "left",
   embedded = false,
   merged = false,
 }: Props) => {
   const L = copy[lang];
   const compact = embedded || merged;
+  const onRight = align === "right";
   const textSize = compact
     ? "text-[8px] leading-tight md:text-[9px]"
     : "text-[9px] leading-snug md:text-[11px]";
@@ -84,7 +88,7 @@ const MenuCalorieDisclaimer = ({
         "flex w-full flex-col",
         menuChromeMotion,
         compact ? "gap-0.5" : "gap-1 md:gap-1.5",
-        menuCalorieAlignClass(lang),
+        menuCalorieAlignClass(align),
         className,
       )}
       dir="ltr"
@@ -94,7 +98,7 @@ const MenuCalorieDisclaimer = ({
           key={id}
           className={cn(
             "flex max-w-full items-center gap-1.5 md:gap-2",
-            lang === "ar" ? "justify-start text-left" : "justify-end text-right",
+            onRight ? "justify-end text-right" : "justify-start text-left",
           )}
           aria-label={label}
         >

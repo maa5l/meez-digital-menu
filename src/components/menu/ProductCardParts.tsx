@@ -11,6 +11,8 @@ import {
 } from "@/lib/product-card-spec";
 import { cropDisplayLine } from "@/lib/crop-info";
 import { menuChromeMotion } from "@/lib/menu-header";
+import { textBlockSide } from "@/lib/text-side";
+import { ScriptAlignedText } from "@/components/menu/ScriptAlignedText";
 import { getProductCardImage, getProductLandscapeImage } from "@/lib/product-spec";
 import type { Product } from "@/types/domain";
 import { Flame } from "lucide-react";
@@ -96,7 +98,6 @@ const InfoRow = ({
   clamp,
   align,
   valueAlign,
-  rtl,
   size = "card",
 }: {
   label: string;
@@ -104,41 +105,59 @@ const InfoRow = ({
   bold?: boolean;
   clamp?: boolean;
   align: "right" | "left";
-  /** محاذاة القيمة — افتراضياً نفس `align` */
+  /** محاذاة القيمة عندما لا تكون نصاً — افتراضياً نفس `align` */
   valueAlign?: "right" | "left";
-  rtl?: boolean;
   size?: "card" | "modal" | "modalCompact";
 }) => {
-  const valueSide = valueAlign ?? align;
+  const fallbackSide = valueAlign ?? align;
+  const valueText = typeof value === "string" ? value : null;
+  const valueSide = valueText ? textBlockSide(valueText, fallbackSide) : fallbackSide;
   const labelCls =
     size === "modalCompact"
       ? "text-[10px]"
       : size === "modal"
         ? "text-xs"
         : "text-[9px] md:text-[10px]";
+  const valueSizeCls =
+    size === "modalCompact"
+      ? bold
+        ? "text-base font-black"
+        : "text-sm font-semibold"
+      : size === "modal"
+        ? bold
+          ? "text-xl font-black md:text-2xl"
+          : "text-lg font-semibold md:text-xl"
+        : bold
+          ? "text-xs font-black md:text-sm"
+          : "text-[10px] font-semibold md:text-xs";
   return (
-    <div className={`space-y-0.5 ${align === "right" ? "text-right" : "text-left"}`}>
-      <div className={cn("font-bold leading-none opacity-55", labelCls)}>{label}</div>
-      <div
-        dir={rtl ? "rtl" : undefined}
-        className={cn(
-          "menu-text text-[#1a1a1a] leading-snug",
-          size === "modalCompact"
-            ? bold
-              ? "text-base font-black"
-              : "text-sm font-semibold"
-            : size === "modal"
-              ? bold
-                ? "text-xl font-black md:text-2xl"
-                : "text-lg font-semibold md:text-xl"
-              : bold
-                ? "text-xs font-black md:text-sm"
-                : "text-[10px] font-semibold md:text-xs",
-          clamp && "line-clamp-3 opacity-85",
-          valueSide === "right" ? "text-right flex flex-col items-end" : "text-left flex flex-col items-start",
+    <div className="space-y-0.5">
+      <div className={cn("font-bold leading-none opacity-55", labelCls, align === "right" ? "text-right" : "text-left")}>
+        {label}
+      </div>
+      <div dir="ltr" className="w-full">
+        {valueText ? (
+          <ScriptAlignedText
+            value={valueText}
+            fallback={fallbackSide}
+            className={cn(
+              "menu-text text-[#1a1a1a] leading-snug",
+              valueSizeCls,
+              clamp && "line-clamp-3 opacity-85",
+            )}
+          />
+        ) : (
+          <div
+            className={cn(
+              "menu-text flex w-full text-[#1a1a1a] leading-snug",
+              valueSizeCls,
+              clamp && "line-clamp-3 opacity-85",
+              valueSide === "right" ? "justify-end text-right" : "justify-start text-left",
+            )}
+          >
+            {value}
+          </div>
         )}
-      >
-        {value}
       </div>
     </div>
   );
@@ -196,9 +215,11 @@ function ProductCardFooterCompact({
   const nameCell = (
     <>
       <div className={labelCls}>{t.name}</div>
-      <div className={nameValueCls} dir={isEn ? "ltr" : "rtl"}>
-        {localized.name}
-      </div>
+      <ScriptAlignedText
+        value={localized.name}
+        fallback={isEn ? "left" : "right"}
+        className={nameValueCls}
+      />
     </>
   );
 
@@ -319,11 +340,26 @@ export const ProductCardFooter = ({
       align: "left" | "right",
       bold = false,
     ) => (
-      <div className={cn("min-w-0 w-full", align === "left" ? "text-left" : "text-right")}>
-        <div className={labelCls}>{label}</div>
-        <div className={cn(bold ? valueCls : secondaryCls)} dir={isEn ? "ltr" : "rtl"}>
-          {value}
-        </div>
+      <div className="min-w-0 w-full">
+        <div className={cn(labelCls, align === "left" ? "text-left" : "text-right")}>{label}</div>
+        {typeof value === "string" ? (
+          <ScriptAlignedText
+            value={value}
+            fallback={align}
+            className={bold ? valueCls : secondaryCls}
+          />
+        ) : (
+          <div
+            dir="ltr"
+            className={cn(
+              "flex w-full",
+              bold ? valueCls : secondaryCls,
+              align === "left" ? "justify-start text-left" : "justify-end text-right",
+            )}
+          >
+            {value}
+          </div>
+        )}
       </div>
     );
 
@@ -433,7 +469,7 @@ export const ProductCardFooter = ({
               }
               bold
             />
-            <InfoRow align="right" label={t.name} value={localized.name} bold rtl />
+            <InfoRow align="right" label={t.name} value={localized.name} bold />
             <InfoRow
               align="left"
               valueAlign="left"
@@ -453,7 +489,6 @@ export const ProductCardFooter = ({
           <div className="col-span-2 w-full pt-2 mt-0.5 border-t border-black/10">
             <InfoRow
               align={isEn ? "left" : "right"}
-              rtl={!isEn}
               label={t.description}
               value={localized.description}
               clamp
@@ -522,7 +557,9 @@ export const ProductModalDetails = ({
           <>
             <div className={cell("start")}>
               <div className={labelCls}>{t.name}</div>
-              <h2 className={nameCls}>{localized.name}</h2>
+              <h2 className={cn(nameCls, "w-full")}>
+                <ScriptAlignedText value={localized.name} fallback="left" />
+              </h2>
             </div>
             <div className={cell("end")}>
               <div className={labelCls}>{t.price}</div>
@@ -561,8 +598,8 @@ export const ProductModalDetails = ({
             </div>
             <div className={cell("end")}>
               <div className={labelCls}>{t.name}</div>
-              <h2 className={cn(nameCls, "text-right")} dir="rtl">
-                {localized.name}
+              <h2 className={cn(nameCls, "w-full")}>
+                <ScriptAlignedText value={localized.name} fallback="right" />
               </h2>
             </div>
             <div className={cell("start")}>
@@ -588,12 +625,11 @@ export const ProductModalDetails = ({
           <div className={cn("mb-1.5 font-bold opacity-50", labelCls, isEn ? "text-left" : "text-right")}>
             {t.description}
           </div>
-          <p
-            dir={isEn ? "ltr" : "rtl"}
-            className={cn(bodyCls, isEn ? "text-left" : "text-right")}
-          >
-            {localized.description}
-          </p>
+          <ScriptAlignedText
+            value={localized.description}
+            fallback={isEn ? "left" : "right"}
+            className={bodyCls}
+          />
         </div>
       )}
 
@@ -615,7 +651,6 @@ export const ProductModalDetails = ({
                   align={isEn ? "left" : "right"}
                   label={t[labelKey]}
                   value={value}
-                  rtl={!isEn}
                 />
               );
             })}

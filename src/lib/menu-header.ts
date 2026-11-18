@@ -34,10 +34,8 @@ export function getEffectiveHeaderHeight(
 ): number {
   const hasBannerImage = Boolean(customization?.headerImage?.trim());
   if (!hasBannerImage) {
-    const hasTitle =
-      Boolean(customization?.featuredTitle?.trim()) ||
-      Boolean(customization?.featuredSubtitle?.trim());
-    return metrics.compactTopHeight + (hasTitle ? COMPACT_TITLE_BLOCK_PX : 0);
+    const hasSubtitle = Boolean(customization?.featuredSubtitle?.trim());
+    return metrics.compactTopHeight + (hasSubtitle ? COMPACT_TITLE_BLOCK_PX : 0);
   }
 
   const aspect = customization?.headerImageAspectRatio;
@@ -133,9 +131,9 @@ export const menuChromeMotion =
 export const menuContentEnter =
   "animate-in fade-in slide-in-from-bottom-2 duration-300 fill-mode-both motion-reduce:animate-none";
 
-/** محاذاة إفصاح السعرات */
-export function menuCalorieAlignClass(lang: "ar" | "en"): string {
-  return lang === "ar" ? "items-start" : "items-end";
+/** محاذاة إفصاح السعرات — الجهة المقابلة للشعار، ثابتة مع اللغة */
+export function menuCalorieAlignClass(side: "left" | "right"): string {
+  return side === "right" ? "items-end" : "items-start";
 }
 
 /** محاذاة الشعار — عكس إفصاح السعرات */
