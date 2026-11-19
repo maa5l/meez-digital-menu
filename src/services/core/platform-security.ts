@@ -44,6 +44,12 @@ export async function updateVenueDataRpc(
     return { ok: false, error: "busy", busy: true, updatedAt };
   }
 
+  // ok:true + skipped:stale = لم تُكتب المنتجات — لا تعتبره نجاح رفع
+  if (row.skipped === "stale") {
+    logger.warn("core.venue_update_skipped_stale", { updatedAt });
+    return { ok: false, error: "stale_skipped", updatedAt };
+  }
+
   const userId = getSession()?.userId;
   if (userId) invalidateOwnerVenueCache(userId);
 

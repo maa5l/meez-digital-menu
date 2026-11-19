@@ -204,7 +204,7 @@ const pendingCloudSave = new Map<string, VenueData>();
 const cloudSaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const cloudSaveInFlight = new Map<string, Promise<void>>();
 const CLOUD_SAVE_DEBOUNCE_MS = 1000;
-const CLOUD_SAVE_MAX_ATTEMPTS = 2;
+const CLOUD_SAVE_MAX_ATTEMPTS = 3;
 /** أطول من مهلة Postgres (60s) بقليل — المنيو الكبير يحتاج وقت نقل */
 const CLOUD_SAVE_TIMEOUT_MS = 70_000;
 
@@ -241,7 +241,9 @@ function takePendingVenue(userId: string, fallback: VenueData): VenueData {
 }
 
 function isTransientCloudSaveError(message: string): boolean {
-  return /timeout|busy|57014|canceling statement|cloud_save_timeout/i.test(message);
+  return /timeout|busy|57014|canceling statement|cloud_save_timeout|stale_skipped/i.test(
+    message,
+  );
 }
 
 async function persistVenueToCloud(userId: string, payload: VenueData): Promise<void> {
@@ -269,13 +271,18 @@ async function persistVenueToCloud(userId: string, payload: VenueData): Promise<
       });
       // busy/timeout: أعد للطابور بدل إعادة ضرب القفل فوراً
       if (isTransientCloudSaveError(message)) {
-        pendingCloudSave.set(userId, takePendingVenue(userId, current));
+        let retryPayload = takePendingVenue(userId, current);
+        // stale: ارفع updatedAt ثم أعد المحاولة حتى تُكتب المنتجات فعلاً
+        if (/stale_skipped/i.test(message) && !isVenueEffectivelyEmpty(retryPayload)) {
+          retryPayload = saveVenueDataLocal(userId, retryPayload);
+        }
+        pendingCloudSave.set(userId, retryPayload);
         if (attempt < CLOUD_SAVE_MAX_ATTEMPTS) {
           await new Promise((r) => setTimeout(r, 1200 * attempt));
           continue;
         }
         // اتركه معلّقاً ليُفرَّغ لاحقاً بدل إشعار فشل مزعج
-        scheduleCloudVenueSave(userId, pendingCloudSave.get(userId) ?? current);
+        scheduleCloudVenueSave(userId, pendingCloudSave.get(userId) ?? retryPayload);
         return;
       }
       if (attempt < CLOUD_SAVE_MAX_ATTEMPTS) {
@@ -521,8 +528,10 @@ export async function pullVenueFromCloudDetailed(
 /** رفع فوري للمحتوى المحلي إن وُجد — لربط الجوال بنفس منتجات البي سي */
 export async function ensureLocalVenueUploadedToCloud(userId: string): Promise<boolean> {
   if (!shouldUseVenueDatabase()) return false;
-  const local = readLatestLocalVenue(userId);
+  let local = readLatestLocalVenue(userId);
   if (isVenueEffectivelyEmpty(local)) return false;
+  // جدّد updatedAt حتى لا يُرفض الرفع كـ stale أمام سحابة فارغة أحدث
+  local = saveVenueDataLocal(userId, local);
   pendingCloudSave.set(userId, local);
   const timer = cloudSaveTimers.get(userId);
   if (timer) {
