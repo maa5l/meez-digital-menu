@@ -93,6 +93,23 @@ export function isVenueEffectivelyEmpty(data: VenueData): boolean {
   );
 }
 
+function productHasImage(p: { image?: string; imageLandscape?: string; imagePortrait?: string }): boolean {
+  for (const value of [p.imageLandscape, p.imagePortrait, p.image]) {
+    if (typeof value === "string" && value.trim().length > 8) {
+      const v = value.trim();
+      if (v.startsWith("data:image") || v.startsWith("http://") || v.startsWith("https://") || v.startsWith("blob:")) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/** عدد المنتجات التي لها صورة — لمنع رفع نسخة localStorage المجرّدة فوق السحابة */
+export function countVenueProductImages(data: VenueData): number {
+  return (data.products ?? []).filter(productHasImage).length;
+}
+
 function venueKey(userId: string): string {
   return `${VENUE_PREFIX}${userId}`;
 }
@@ -123,11 +140,20 @@ export function loadVenueData(userId: string): VenueData {
   const storedNorm =
     stored?.version === 1 ? compactVenueForLocalStorage(normalizeVenue(stored)) : null;
 
-  // الذاكرة تفوز إذا فيها محتوى أكثر (بعد سحب سحابي فشل حفظه في localStorage)
-  if (venueContentScore(memory) > venueContentScore(storedNorm)) {
+  // الذاكرة تفوز إذا فيها محتوى/صور أكثر (بعد سحب سحابي فشل حفظه في localStorage)
+  if (
+    venueContentScore(memory) > venueContentScore(storedNorm) ||
+    (memory &&
+      storedNorm &&
+      countVenueProductImages(memory) > countVenueProductImages(storedNorm))
+  ) {
     return memory!;
   }
   if (storedNorm) {
+    // لا تستبدل ذاكرة فيها صور بنسخة localStorage مجرّدة
+    if (memory && countVenueProductImages(memory) > countVenueProductImages(storedNorm)) {
+      return memory;
+    }
     rememberVenueInMemory(userId, storedNorm);
     return storedNorm;
   }
@@ -231,11 +257,14 @@ function saveVenueDataLocal(userId: string, data: VenueData): VenueData {
 /** بعد الدخول على الجوال: إن كان localStorage فارغ اسحب من IndexedDB */
 export async function hydrateVenueFromIdbIfNeeded(userId: string): Promise<VenueData> {
   const current = loadVenueData(userId);
-  if (!isVenueEffectivelyEmpty(current)) return current;
   const fromIdb = await idbGetVenue(userId);
   if (!fromIdb || fromIdb.version !== 1 || isVenueEffectivelyEmpty(fromIdb)) {
     return current;
   }
+  // استرجع من IDB إذا المحلي فارغ أو بلا صور بينما IDB فيه صور
+  const idbHasRicherImages =
+    countVenueProductImages(fromIdb) > countVenueProductImages(current);
+  if (!isVenueEffectivelyEmpty(current) && !idbHasRicherImages) return current;
   const normalized = normalizeVenue(fromIdb);
   rememberVenueInMemory(userId, normalized);
   // حاول إعادة التعبئة في localStorage (قد تفشل بسبب الحجم — لا مشكلة)
@@ -375,6 +404,14 @@ function scheduleCloudVenueSave(userId: string, payload: VenueData): void {
     logger.warn("venue.skip_empty_cloud_save", { userId });
     return;
   }
+  // لا ترفع منيو فيها منتجات بلا صور (نسخة ضغط الجوال) — كانت تمسح صور السحابة
+  if (payload.products.length > 0 && countVenueProductImages(payload) === 0) {
+    logger.warn("venue.skip_imageless_cloud_save", {
+      userId,
+      products: payload.products.length,
+    });
+    return;
+  }
   pendingCloudSave.set(userId, payload);
   const existing = cloudSaveTimers.get(userId);
   if (existing) clearTimeout(existing);
@@ -466,15 +503,29 @@ function shouldKeepLocalOverRemote(local: VenueData, remote: VenueData): boolean
   // محلي فارغ (غالباً بعد مسح الكاش أو أول تحميل) لا يفوز على سحابة فيها بيانات
   // حتى لو كان updatedAt أحدث — وإلا يُتجاهل السحب وتختفي التصنيفات/المنتجات بعد إعادة الدخول
   if (isVenueEffectivelyEmpty(local) && !isVenueEffectivelyEmpty(remote)) return false;
+  const localImages = countVenueProductImages(local);
+  const remoteImages = countVenueProductImages(remote);
+  // نسخة الجوال بدون صور لا تفوز على سحابة فيها صور
+  if (localImages === 0 && remoteImages > 0) return false;
   if (isLocalVenueNewer(local, remote)) return true;
   if (!isVenueEffectivelyEmpty(local) && isVenueEffectivelyEmpty(remote)) return true;
+  if (localImages > remoteImages) return true;
   return false;
 }
 
 async function pushLocalVenueIfNeeded(userId: string, local: VenueData): Promise<void> {
   if (isVenueEffectivelyEmpty(local)) return;
+  if (local.products.length > 0 && countVenueProductImages(local) === 0) {
+    logger.warn("venue.skip_imageless_push", { userId, products: local.products.length });
+    return;
+  }
   const latest = readLatestLocalVenue(userId);
-  pendingCloudSave.set(userId, isLocalVenueNewer(latest, local) ? latest : local);
+  const candidate = isLocalVenueNewer(latest, local) ? latest : local;
+  if (candidate.products.length > 0 && countVenueProductImages(candidate) === 0) {
+    logger.warn("venue.skip_imageless_push_latest", { userId });
+    return;
+  }
+  pendingCloudSave.set(userId, candidate);
   try {
     await pumpCloudVenueSave(userId);
   } catch (err) {
@@ -591,6 +642,13 @@ export async function ensureLocalVenueUploadedToCloud(userId: string): Promise<b
   if (!shouldUseVenueDatabase()) return false;
   let local = readLatestLocalVenue(userId);
   if (isVenueEffectivelyEmpty(local)) return false;
+  if (local.products.length > 0 && countVenueProductImages(local) === 0) {
+    logger.warn("venue.ensure_upload_skipped_imageless", {
+      userId,
+      products: local.products.length,
+    });
+    return false;
+  }
   // جدّد updatedAt حتى لا يُرفض الرفع كـ stale أمام سحابة فارغة أحدث
   local = saveVenueDataLocal(userId, local);
   pendingCloudSave.set(userId, local);
