@@ -14,6 +14,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { debounce, throttle } from "@/lib/throttle";
 import { logger } from "@/lib/logger";
 import {
+  ensureLocalVenueUploadedToCloud,
   getCurrentUserId,
   loadCurrentVenueData,
   pullVenueFromCloud,
@@ -136,15 +137,22 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
     void (async () => {
       await refreshFromCloud(true);
       if (cancelled || !mountedRef.current) return;
-      // إن بقي المحلي فارغاً بعد الدخول أعد السحب مرة — غالباً timeout سابق
       const local = loadCurrentVenueData();
       const empty =
         local.products.length === 0 &&
         local.categories.length === 0 &&
         local.crops.length === 0;
       if (empty) {
-        await new Promise((r) => setTimeout(r, 1000));
-        if (!cancelled) await refreshFromCloud(true);
+        // جهاز جديد/جوال: أعد السحب بعد جاهزية الجلسة
+        await new Promise((r) => setTimeout(r, 1200));
+        if (cancelled || !mountedRef.current) return;
+        await refreshFromCloud(true);
+        if (cancelled || !mountedRef.current) return;
+        await new Promise((r) => setTimeout(r, 2000));
+        if (!cancelled && mountedRef.current) await refreshFromCloud(true);
+      } else {
+        // جهاز فيه منتجات (غالباً البي سي): ارفعها فوراً لتظهر على الجوال
+        await ensureLocalVenueUploadedToCloud(userId);
       }
     })();
     return () => {

@@ -91,15 +91,26 @@ const DashboardLayout = ({
           : "تعذّر حفظ التعديلات محلياً",
       );
     };
+    const onSaved = () => {
+      const key = "meez:told-cloud-synced";
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+      toast.success("تم رفع المنتجات للحساب — افتح الجوال وحدّث الصفحة", {
+        id: "venue-cloud-synced",
+        duration: 6000,
+      });
+    };
     const onHide = () => flushPendingCloudVenueSaves();
     const onVisibility = () => {
       if (document.visibilityState === "hidden") onHide();
     };
     window.addEventListener("meez:venue-save-failed", onFail);
+    window.addEventListener("meez:venue-cloud-saved", onSaved);
     window.addEventListener("pagehide", onHide);
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.removeEventListener("meez:venue-save-failed", onFail);
+      window.removeEventListener("meez:venue-cloud-saved", onSaved);
       window.removeEventListener("pagehide", onHide);
       document.removeEventListener("visibilitychange", onVisibility);
       flushPendingCloudVenueSaves();

@@ -507,11 +507,37 @@ export async function pullVenueFromCloudDetailed(
       userId,
       message: err instanceof Error ? err.message : String(err),
     });
+    // فشل السحب لا يمنع رفع المحلي — وإلا المنتجات تبقى على البي سي فقط والجوال فارغ
+    const localOnFail = readLatestLocalVenue(userId);
+    await pushLocalVenueIfNeeded(userId, localOnFail);
     return {
-      venue: readLatestLocalVenue(userId),
+      venue: localOnFail,
       pullFailed: true,
       remoteUpdatedAt: null,
     };
+  }
+}
+
+/** رفع فوري للمحتوى المحلي إن وُجد — لربط الجوال بنفس منتجات البي سي */
+export async function ensureLocalVenueUploadedToCloud(userId: string): Promise<boolean> {
+  if (!shouldUseVenueDatabase()) return false;
+  const local = readLatestLocalVenue(userId);
+  if (isVenueEffectivelyEmpty(local)) return false;
+  pendingCloudSave.set(userId, local);
+  const timer = cloudSaveTimers.get(userId);
+  if (timer) {
+    clearTimeout(timer);
+    cloudSaveTimers.delete(userId);
+  }
+  try {
+    await pumpCloudVenueSave(userId);
+    return true;
+  } catch (err) {
+    logger.error("venue.ensure_upload_failed", {
+      userId,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return false;
   }
 }
 
