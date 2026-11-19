@@ -7,7 +7,6 @@ import {
   initializeVenueForUser,
   isVenueEffectivelyEmpty,
   loadVenueData,
-  pullVenueFromCloud,
   saveVenueData,
   syncVenueNameFromProfile,
 } from "@/lib/venue-store";
@@ -42,13 +41,22 @@ async function repairSignupTrialIfNeeded(user: User): Promise<void> {
 
 async function hydrateVenueForUser(userId: string, venueName?: string): Promise<void> {
   if (shouldUseVenueDatabase()) {
-    const venue = await pullVenueFromCloud(userId);
-    // لا تُنشئ منشأة فارغة وتُحفظ للسحابة إلا إن كانت السحابة فعلاً بلا صف محتوى
-    if (isVenueEffectivelyEmpty(venue)) {
-      const existing = loadVenueData(userId);
-      if (existing.version === 1 && !isVenueEffectivelyEmpty(existing)) return;
-      initializeVenueForUser(userId, venueName);
+    const { pullVenueFromCloudDetailed } = await import("@/lib/venue-store");
+    // محاولة أولى + إعادة عند فشل السحب (timeout) — بدون إنشاء منيو فارغ يُرفع فوق البيانات
+    let outcome = await pullVenueFromCloudDetailed(userId, true);
+    if (outcome.pullFailed || (isVenueEffectivelyEmpty(outcome.venue) && outcome.remoteUpdatedAt)) {
+      await new Promise((r) => setTimeout(r, 800));
+      outcome = await pullVenueFromCloudDetailed(userId, true);
     }
+    if (!isVenueEffectivelyEmpty(outcome.venue)) return;
+
+    // سحابة موجودة لكن السحب فشل: لا تلمس شيئاً ولا تُنشئ فارغاً
+    if (outcome.pullFailed || outcome.remoteUpdatedAt) return;
+
+    const existing = loadVenueData(userId);
+    if (existing.version === 1 && !isVenueEffectivelyEmpty(existing)) return;
+    // حساب جديد فعلاً بلا صف سحابي — محلي فقط
+    initializeVenueForUser(userId, venueName);
     return;
   }
   initializeVenueForUser(userId, venueName);

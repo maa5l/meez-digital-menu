@@ -131,7 +131,25 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
   }, [userId, reloadLocal]);
 
   useEffect(() => {
-    void refreshFromCloud(false);
+    if (!userId) return;
+    let cancelled = false;
+    void (async () => {
+      await refreshFromCloud(true);
+      if (cancelled || !mountedRef.current) return;
+      // إن بقي المحلي فارغاً بعد الدخول أعد السحب مرة — غالباً timeout سابق
+      const local = loadCurrentVenueData();
+      const empty =
+        local.products.length === 0 &&
+        local.categories.length === 0 &&
+        local.crops.length === 0;
+      if (empty) {
+        await new Promise((r) => setTimeout(r, 1000));
+        if (!cancelled) await refreshFromCloud(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps -- مرة عند تغيّر المستخدم فقط
 
   useEffect(() => {

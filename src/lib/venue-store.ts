@@ -305,6 +305,11 @@ function pumpCloudVenueSave(userId: string): Promise<void> {
 }
 
 function scheduleCloudVenueSave(userId: string, payload: VenueData): void {
+  // لا ترفع منشأة فارغة أبداً — كانت تمسح منتجات السحابة بعد دخول من جهاز جديد وفشل السحب
+  if (isVenueEffectivelyEmpty(payload)) {
+    logger.warn("venue.skip_empty_cloud_save", { userId });
+    return;
+  }
   pendingCloudSave.set(userId, payload);
   const existing = cloudSaveTimers.get(userId);
   if (existing) clearTimeout(existing);
@@ -415,31 +420,56 @@ async function pushLocalVenueIfNeeded(userId: string, local: VenueData): Promise
   }
 }
 
+export type PullVenueOutcome = {
+  venue: VenueData;
+  /** true إذا فشل الطلب الشبكي/الـ RPC (ليس مجرد سحابة فارغة) */
+  pullFailed: boolean;
+  remoteUpdatedAt: string | null;
+};
+
 /** مزامنة من السحابة — يجلب JSON كاملاً فقط عند تغيّر updated_at */
-export async function pullVenueFromCloud(userId: string): Promise<VenueData> {
-  if (!shouldUseVenueDatabase()) return loadVenueData(userId);
+export async function pullVenueFromCloudDetailed(
+  userId: string,
+  force = false,
+): Promise<PullVenueOutcome> {
+  if (!shouldUseVenueDatabase()) {
+    return {
+      venue: loadVenueData(userId),
+      pullFailed: false,
+      remoteUpdatedAt: null,
+    };
+  }
 
   try {
-    const remoteUpdatedAt = await fetchVenueUpdatedAtForOwner(userId);
+    const remoteUpdatedAt = await fetchVenueUpdatedAtForOwner(userId, force);
     const cacheKey = venueRemoteUpdatedKey(userId);
     const known = getRememberedRemoteUpdatedAt(cacheKey);
     const localAfterMeta = readLatestLocalVenue(userId);
 
     if (
+      !force &&
       remoteUpdatedAt &&
       known === remoteUpdatedAt &&
       localAfterMeta.version === 1 &&
       !isVenueEffectivelyEmpty(localAfterMeta)
     ) {
-      return readLatestLocalVenue(userId);
+      return {
+        venue: readLatestLocalVenue(userId),
+        pullFailed: false,
+        remoteUpdatedAt,
+      };
     }
 
-    const remote = await fetchVenueFromDatabase(userId);
+    const remote = await fetchVenueFromDatabase(userId, force);
     const latestLocal = readLatestLocalVenue(userId);
 
     if (!remote || remote.version !== 1) {
       await pushLocalVenueIfNeeded(userId, latestLocal);
-      return readLatestLocalVenue(userId);
+      return {
+        venue: readLatestLocalVenue(userId),
+        pullFailed: false,
+        remoteUpdatedAt,
+      };
     }
 
     const remoteNorm = normalizeVenue(remote);
@@ -447,29 +477,50 @@ export async function pullVenueFromCloud(userId: string): Promise<VenueData> {
     // لا تستبدل محلياً أحدث (يشمل التصنيفات/المنتجات المضافة أثناء السحب)
     if (shouldKeepLocalOverRemote(latestLocal, remoteNorm)) {
       await pushLocalVenueIfNeeded(userId, latestLocal);
-      return readLatestLocalVenue(userId);
+      return {
+        venue: readLatestLocalVenue(userId),
+        pullFailed: false,
+        remoteUpdatedAt,
+      };
     }
 
     // قبل الكتابة فوق التخزين — تحقق مرة أخيرة من تعديلات متزامنة
     const finalLocal = readLatestLocalVenue(userId);
     if (shouldKeepLocalOverRemote(finalLocal, remoteNorm)) {
       await pushLocalVenueIfNeeded(userId, finalLocal);
-      return readLatestLocalVenue(userId);
+      return {
+        venue: readLatestLocalVenue(userId),
+        pullFailed: false,
+        remoteUpdatedAt,
+      };
     }
 
     saveVenueDataLocal(userId, remoteNorm);
     rememberRemoteUpdatedAt(cacheKey, remoteUpdatedAt);
-    return readLatestLocalVenue(userId);
+    return {
+      venue: readLatestLocalVenue(userId),
+      pullFailed: false,
+      remoteUpdatedAt,
+    };
   } catch (err) {
     logger.error("venue.cloud_pull_failed", {
       userId,
       message: err instanceof Error ? err.message : String(err),
     });
-    return readLatestLocalVenue(userId);
+    return {
+      venue: readLatestLocalVenue(userId),
+      pullFailed: true,
+      remoteUpdatedAt: null,
+    };
   }
 }
 
-/** ينشئ منشأة فارغة عند أول تسجيل — لا بيانات ولا صور */
+export async function pullVenueFromCloud(userId: string): Promise<VenueData> {
+  const result = await pullVenueFromCloudDetailed(userId);
+  return result.venue;
+}
+
+/** ينشئ منشأة فارغة محلياً فقط — بدون رفع للسحابة */
 export function initializeVenueForUser(userId: string, venueName?: string): VenueData {
   const existing = getLocalJson<VenueData | null>(venueKey(userId), null);
   if (existing?.version === 1) {
@@ -483,8 +534,9 @@ export function initializeVenueForUser(userId: string, venueName?: string): Venu
       featuredTitle: venueName,
     };
   }
-  saveVenueData(userId, empty);
-  logger.audit("venue.initialized_empty", { userId });
+  // محلي فقط — رفع فارغ كان يمحو منيو السحابة عند فشل السحب بعد تسجيل الدخول
+  saveVenueDataLocal(userId, empty);
+  logger.audit("venue.initialized_empty_local", { userId });
   return empty;
 }
 
