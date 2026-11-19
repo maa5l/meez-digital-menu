@@ -50,14 +50,28 @@ export function invalidateDeviceVenueCache(code: string): void {
 
 async function waitForOwnerAuthSession(
   ownerId: string,
-  timeoutMs = 8_000,
+  timeoutMs = 15_000,
 ): Promise<boolean> {
+  const supabase = getSupabase();
   const started = Date.now();
+  let triedRefresh = false;
   while (Date.now() - started < timeoutMs) {
-    const { data } = await getSupabase().auth.getSession();
+    const { data } = await supabase.auth.getSession();
     const uid = data.session?.user?.id;
     if (uid === ownerId && data.session?.access_token) return true;
-    await new Promise((r) => setTimeout(r, 150));
+
+    // جلسة التطبيق موجودة لكن JWT ضائع/منتهي — حاول refresh مرة
+    if (!triedRefresh) {
+      triedRefresh = true;
+      try {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        const refreshedUid = refreshed.session?.user?.id;
+        if (refreshedUid === ownerId && refreshed.session?.access_token) return true;
+      } catch {
+        /* انتظر الحلقة */
+      }
+    }
+    await new Promise((r) => setTimeout(r, 200));
   }
   return false;
 }

@@ -8,13 +8,19 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useVenueData } from "@/hooks/useVenueData";
 import { useUserProfile, notifyProfileUpdated } from "@/hooks/useUserProfile";
-import { getCurrentUserId, syncVenueNameFromProfile } from "@/lib/venue-store";
+import {
+  ensureLocalVenueUploadedToCloud,
+  getCurrentUserId,
+  loadCurrentVenueData,
+  syncVenueNameFromProfile,
+} from "@/lib/venue-store";
 import { updateUserProfile } from "@/services/auth/profile-supabase.service";
 import { usesSupabaseAuth } from "@/config/env";
 import { getErrorMessage } from "@/lib/errors";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
 import { ROUTES } from "@/config/app";
-import { Shield } from "lucide-react";
+import { CloudUpload, Shield } from "lucide-react";
+import { getSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
 
 const Settings = () => {
   const { profile, loading: profileLoading, refresh } = useUserProfile();
@@ -24,8 +30,52 @@ const Settings = () => {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const supabaseLinked = usesSupabaseAuth();
   const { profile: adminProfile } = useAdminProfile();
+
+  const downloadVenueBackup = () => {
+    const data = loadCurrentVenueData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `meez-venue-backup-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast.success(
+      `تم تنزيل النسخة: ${data.products.length} منتج / ${data.categories.length} تصنيف`,
+    );
+  };
+
+  const forceUploadVenue = async () => {
+    const userId = getCurrentUserId();
+    if (!userId) {
+      toast.error("سجّل الدخول أولاً");
+      return;
+    }
+    const local = loadCurrentVenueData();
+    if (local.products.length === 0 && local.categories.length === 0) {
+      toast.error("لا توجد منتجات محلياً على هذا المتصفح");
+      return;
+    }
+    setSyncing(true);
+    try {
+      if (isSupabaseConfigured()) {
+        await getSupabase().auth.refreshSession();
+      }
+      downloadVenueBackup();
+      const ok = await ensureLocalVenueUploadedToCloud(userId);
+      if (ok) {
+        toast.success("تم رفع المنتجات للحساب — حدّث الجوال بعد التحقق من SQL");
+      } else {
+        toast.error("تعذّر الرفع — أعد تسجيل الدخول من البي سي ثم حاول مرة أخرى");
+      }
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
     if (!profile) return;
@@ -148,6 +198,38 @@ const Settings = () => {
               </Button>
             </div>
           )}
+        </div>
+
+        <div className="bg-card rounded-3xl border border-border p-6">
+          <h3 className="font-display font-bold text-xl text-primary mb-1">نسخ احتياطي ومزامنة</h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            احفظ نسخة من المنيو على جهازك ثم ارفعها للحساب ليظهر على الجوال. لا يحذف شيئاً.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button type="button" variant="outline" onClick={downloadVenueBackup}>
+              تنزيل نسخة JSON
+            </Button>
+            {supabaseLinked && (
+              <Button
+                type="button"
+                variant="hero"
+                disabled={syncing}
+                onClick={() => void forceUploadVenue()}
+              >
+                {syncing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    جاري الرفع...
+                  </>
+                ) : (
+                  <>
+                    <CloudUpload className="w-4 h-4" />
+                    رفع إجباري للحساب
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
 
         <Link

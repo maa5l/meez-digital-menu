@@ -241,7 +241,7 @@ function takePendingVenue(userId: string, fallback: VenueData): VenueData {
 }
 
 function isTransientCloudSaveError(message: string): boolean {
-  return /timeout|busy|57014|canceling statement|cloud_save_timeout|stale_skipped/i.test(
+  return /timeout|busy|57014|canceling statement|cloud_save_timeout|stale_skipped|not_authenticated/i.test(
     message,
   );
 }
