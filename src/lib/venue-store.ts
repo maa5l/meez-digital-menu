@@ -205,6 +205,24 @@ const cloudSaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const cloudSaveInFlight = new Map<string, Promise<void>>();
 const CLOUD_SAVE_DEBOUNCE_MS = 500;
 const CLOUD_SAVE_MAX_ATTEMPTS = 3;
+/** لا يعلق طابور الحفظ إن توقف طلب الاستضافة */
+const CLOUD_SAVE_TIMEOUT_MS = 20_000;
+
+function withTimeout<T>(work: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(label)), ms);
+    work.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
 let cloudFlushListenersInstalled = false;
 
 function dispatchCloudSaveFailed(userId: string, message: string): void {
@@ -215,11 +233,24 @@ function dispatchCloudSaveFailed(userId: string, message: string): void {
   );
 }
 
+function takePendingVenue(userId: string, fallback: VenueData): VenueData {
+  const latest = pendingCloudSave.get(userId);
+  if (!latest) return fallback;
+  pendingCloudSave.delete(userId);
+  return latest;
+}
+
 async function persistVenueToCloud(userId: string, payload: VenueData): Promise<void> {
+  let current = payload;
   let lastError: unknown;
   for (let attempt = 1; attempt <= CLOUD_SAVE_MAX_ATTEMPTS; attempt++) {
+    current = takePendingVenue(userId, current);
     try {
-      await saveVenueToDatabase(userId, payload);
+      await withTimeout(
+        saveVenueToDatabase(userId, current),
+        CLOUD_SAVE_TIMEOUT_MS,
+        "cloud_save_timeout",
+      );
       window.dispatchEvent(
         new CustomEvent("meez:venue-cloud-saved", { detail: { userId } }),
       );
@@ -242,12 +273,18 @@ async function persistVenueToCloud(userId: string, payload: VenueData): Promise<
   );
 }
 
-function runCloudVenueSave(userId: string, payload: VenueData): Promise<void> {
+/** طلب سحابي واحد لكل حساب. أي تعديل أثناء الطلب يُحفظ بعده، ولا يُعلَّق خلف طلب متوقف. */
+function pumpCloudVenueSave(userId: string): Promise<void> {
   const existing = cloudSaveInFlight.get(userId);
-  const run = (existing ?? Promise.resolve()).then(() => persistVenueToCloud(userId, payload));
-  cloudSaveInFlight.set(userId, run.finally(() => {
+  if (existing) return existing;
+  const payload = pendingCloudSave.get(userId);
+  if (!payload) return Promise.resolve();
+  pendingCloudSave.delete(userId);
+  const run = persistVenueToCloud(userId, payload).finally(() => {
     if (cloudSaveInFlight.get(userId) === run) cloudSaveInFlight.delete(userId);
-  }));
+    if (pendingCloudSave.has(userId)) pumpCloudVenueSave(userId);
+  });
+  cloudSaveInFlight.set(userId, run);
   return run;
 }
 
@@ -259,10 +296,7 @@ function scheduleCloudVenueSave(userId: string, payload: VenueData): void {
     userId,
     setTimeout(() => {
       cloudSaveTimers.delete(userId);
-      const latest = pendingCloudSave.get(userId);
-      pendingCloudSave.delete(userId);
-      if (!latest) return;
-      void runCloudVenueSave(userId, latest);
+      void pumpCloudVenueSave(userId);
     }, CLOUD_SAVE_DEBOUNCE_MS),
   );
 }
@@ -273,9 +307,8 @@ export function flushPendingCloudVenueSaves(): void {
     clearTimeout(timer);
     cloudSaveTimers.delete(userId);
   }
-  for (const [userId, payload] of pendingCloudSave) {
-    pendingCloudSave.delete(userId);
-    void runCloudVenueSave(userId, payload);
+  for (const userId of [...pendingCloudSave.keys()]) {
+    void pumpCloudVenueSave(userId);
   }
 }
 
@@ -354,8 +387,10 @@ function shouldKeepLocalOverRemote(local: VenueData, remote: VenueData): boolean
 
 async function pushLocalVenueIfNeeded(userId: string, local: VenueData): Promise<void> {
   if (isVenueEffectivelyEmpty(local)) return;
+  const latest = readLatestLocalVenue(userId);
+  pendingCloudSave.set(userId, isLocalVenueNewer(latest, local) ? latest : local);
   try {
-    await saveVenueToDatabase(userId, local);
+    await pumpCloudVenueSave(userId);
   } catch (err) {
     logger.error("venue.push_newer_local_failed", {
       userId,

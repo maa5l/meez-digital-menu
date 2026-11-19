@@ -234,7 +234,12 @@ export async function fetchVenueUpdatedAtForDevice(
 export async function saveVenueToDatabase(ownerId: string, venue: VenueData): Promise<void> {
   if (!shouldUseVenueDatabase()) return;
 
-  const session = await getSupabase().auth.getSession();
+  const session = await Promise.race([
+    getSupabase().auth.getSession(),
+    new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("auth_session_timeout")), 8_000);
+    }),
+  ]);
   if (session.data.session?.user?.id !== ownerId) {
     throw new Error("owner_mismatch");
   }
