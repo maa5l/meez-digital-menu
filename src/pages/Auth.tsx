@@ -3,17 +3,11 @@ import { Link, useNavigate, useLocation, useSearchParams } from "react-router-do
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Sparkles, Loader2 } from "lucide-react";
 import { Logo } from "@/components/Brand";
+import { loginEmailSchema, loginSchema, signupSchema } from "@/validations/auth.schema";
 import {
-  loginEmailSchema,
-  loginSchema,
-  resetPasswordSchema,
-  signupSchema,
-} from "@/validations/auth.schema";
-import {
-  confirmPasswordReset,
-  sendPasswordResetOtp,
+  sendPasswordResetEmail,
   signInWithPassword,
   signUp,
   usesSupabaseAuth,
@@ -26,10 +20,10 @@ import { ROUTES } from "@/config/app";
 import { SUBSCRIPTION } from "@/config/subscription";
 import { toast } from "sonner";
 
-type AuthMode = "login" | "signup" | "forgot" | "reset";
+type AuthMode = "login" | "signup" | "forgot";
 
 function modeFromSearch(raw: string | null): AuthMode {
-  if (raw === "signup" || raw === "forgot" || raw === "reset") return raw;
+  if (raw === "signup" || raw === "forgot") return raw;
   return "login";
 }
 
@@ -43,11 +37,12 @@ const Auth = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [otp, setOtp] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [venueName, setVenueName] = useState("");
   const [phone, setPhone] = useState("");
   const [fieldError, setFieldError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = (location.state as { from?: string } | null)?.from ?? ROUTES.dashboard;
@@ -57,7 +52,8 @@ const Auth = () => {
     setMode(next);
     setFieldError("");
     setPassword("");
-    setOtp("");
+    setShowPassword(false);
+    setResetSent(false);
     if (next === "signup" || next === "login") {
       setVenueName("");
       setPhone("");
@@ -157,9 +153,9 @@ const Auth = () => {
 
     setLoading(true);
     try {
-      await sendPasswordResetOtp(parsed.data.email);
-      toast.success("أرسلنا رمز إعادة التعيين إلى بريدك");
-      goMode("reset");
+      await sendPasswordResetEmail(parsed.data.email);
+      setResetSent(true);
+      toast.success("أرسلنا رابط التعيين إلى بريدك");
     } catch (error) {
       setFieldError(getAuthFormErrorMessage(error));
     } finally {
@@ -167,33 +163,34 @@ const Auth = () => {
     }
   };
 
-  const onReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFieldError("");
-
-    const rate = checkRateLimit("auth:reset-confirm", 8, 60_000);
-    if (!rate.allowed) {
-      setFieldError(new RateLimitError(rate.retryAfterMs).message);
-      return;
-    }
-
-    const parsed = resetPasswordSchema.safeParse({ email, otp, password });
-    if (!parsed.success) {
-      setFieldError(parsed.error.errors[0]?.message ?? "بيانات غير صالحة");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await confirmPasswordReset(parsed.data.email, parsed.data.otp, parsed.data.password);
-      toast.success("تم تعيين كلمة المرور الجديدة");
-      await afterAuthNavigate();
-    } catch (error) {
-      setFieldError(getAuthFormErrorMessage(error));
-    } finally {
-      setLoading(false);
-    }
-  };
+  const passwordField = (
+    id: string,
+    autoComplete: string,
+    required = true,
+  ) => (
+    <div className="relative">
+      <Input
+        id={id}
+        name={autoComplete === "current-password" ? "password" : "new-password"}
+        type={showPassword ? "text" : "password"}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="••••••••"
+        required={required}
+        minLength={8}
+        className="h-12 rounded-xl pe-12"
+        autoComplete={autoComplete}
+      />
+      <button
+        type="button"
+        className="absolute inset-y-0 left-0 px-3 text-muted-foreground hover:text-primary"
+        onClick={() => setShowPassword((v) => !v)}
+        aria-label={showPassword ? "إخفاء كلمة المرور" : "عرض كلمة المرور"}
+      >
+        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+      </button>
+    </div>
+  );
 
   const loginForm = (
     <form
@@ -233,18 +230,7 @@ const Auth = () => {
             نسيت كلمة المرور؟
           </button>
         </div>
-        <Input
-          id="login-password"
-          name="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          required
-          minLength={8}
-          className="h-12 rounded-xl"
-          autoComplete="current-password"
-        />
+        {passwordField("login-password", "current-password")}
       </div>
       {fieldError && <p className="text-destructive text-sm font-semibold">{fieldError}</p>}
       <Button type="submit" variant="hero" size="xl" className="w-full" disabled={loading}>
@@ -260,7 +246,26 @@ const Auth = () => {
     </form>
   );
 
-  const forgotForm = (
+  const forgotForm = resetSent ? (
+    <div className="space-y-5 rounded-2xl border border-border bg-secondary/30 p-5">
+      <p className="text-sm leading-7 text-foreground">
+        أرسلنا رابط تعيين كلمة المرور إلى <span className="font-bold" dir="ltr">{email}</span>.
+      </p>
+      <p className="text-sm leading-7 text-muted-foreground">
+        افتح بريدك واضغط «تعيين كلمة المرور» للانتقال إلى صفحة التعيين.
+      </p>
+      <Button type="button" variant="hero" className="w-full" onClick={() => goMode("login")}>
+        العودة لتسجيل الدخول
+      </Button>
+      <button
+        type="button"
+        onClick={() => setResetSent(false)}
+        className="w-full text-sm font-semibold text-muted-foreground hover:text-accent"
+      >
+        إرسال الرابط مرة أخرى
+      </button>
+    </div>
+  ) : (
     <form key="forgot" onSubmit={onForgot} className="space-y-5" noValidate>
       <div className="space-y-2">
         <Label htmlFor="forgot-email">البريد الإلكتروني</Label>
@@ -288,7 +293,7 @@ const Auth = () => {
             جاري الإرسال...
           </>
         ) : (
-          "أرسل رمز إعادة التعيين"
+          "أرسل رابط التعيين"
         )}
       </Button>
       <button
@@ -301,93 +306,15 @@ const Auth = () => {
     </form>
   );
 
-  const resetForm = (
-    <form key="reset" onSubmit={onReset} className="space-y-5" noValidate>
-      <div className="space-y-2">
-        <Label htmlFor="reset-email">البريد الإلكتروني</Label>
-        <Input
-          id="reset-email"
-          name="email"
-          type="email"
-          inputMode="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          required
-          className="h-12 rounded-xl"
-          autoComplete="email"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="reset-otp">رمز التحقق — 6 أرقام</Label>
-        <Input
-          id="reset-otp"
-          name="otp"
-          type="text"
-          inputMode="numeric"
-          dir="ltr"
-          value={otp}
-          onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-          placeholder="000000"
-          required
-          maxLength={6}
-          className="h-12 rounded-xl text-left tracking-[0.35em] font-bold"
-          autoComplete="one-time-code"
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="reset-password">كلمة المرور الجديدة</Label>
-        <Input
-          id="reset-password"
-          name="new-password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          required
-          minLength={8}
-          className="h-12 rounded-xl"
-          autoComplete="new-password"
-        />
-      </div>
-      {fieldError && <p className="text-destructive text-sm font-semibold">{fieldError}</p>}
-      <Button type="submit" variant="hero" size="xl" className="w-full" disabled={loading}>
-        {loading ? (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin" />
-            جاري التعيين...
-          </>
-        ) : (
-          "تعيين كلمة المرور"
-        )}
-      </Button>
-      <button
-        type="button"
-        onClick={() => goMode("forgot")}
-        className="w-full text-sm font-semibold text-muted-foreground hover:text-accent"
-      >
-        إعادة إرسال الرمز
-      </button>
-    </form>
-  );
-
   const title =
-    mode === "signup"
-      ? "ابدأ تجربتك المجانية"
-      : mode === "forgot"
-        ? "استعادة الحساب"
-        : mode === "reset"
-          ? "تعيين كلمة مرور جديدة"
-          : "أهلًا بعودتك";
+    mode === "signup" ? "ابدأ تجربتك المجانية" : mode === "forgot" ? "استعادة الحساب" : "أهلًا بعودتك";
 
   const subtitle =
     mode === "signup"
       ? `${SUBSCRIPTION.trialDays} أيام بدون بطاقة ائتمان`
       : mode === "forgot"
-        ? "أدخل بريدك وسنرسل رمز تحقق من bymeez"
-        : mode === "reset"
-          ? "أدخل الرمز الذي وصلك ثم كلمة المرور الجديدة"
-          : "أدخل بريدك وكلمة المرور";
+        ? "أدخل بريدك وسنرسل رابط تعيين كلمة المرور"
+        : "أدخل بريدك وكلمة المرور";
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background" dir="rtl">
@@ -485,18 +412,7 @@ const Auth = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="signup-password">كلمة المرور</Label>
-                <Input
-                  id="signup-password"
-                  name="new-password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  minLength={8}
-                  className="h-12 rounded-xl"
-                  autoComplete="new-password"
-                />
+                {passwordField("signup-password", "new-password")}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="signup-phone">رقم الجوال</Label>
@@ -541,8 +457,6 @@ const Auth = () => {
             </form>
           ) : mode === "forgot" ? (
             forgotForm
-          ) : mode === "reset" ? (
-            resetForm
           ) : (
             loginForm
           )}

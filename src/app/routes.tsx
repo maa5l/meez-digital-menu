@@ -8,6 +8,7 @@ import { AdminProtectedRoute } from "@/middleware/AdminProtectedRoute";
 
 const Index = lazy(() => import("@/pages/Index"));
 const Auth = lazy(() => import("@/pages/Auth"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const DeviceCode = lazy(() => import("@/pages/DeviceCode"));
 const DevicePairing = lazy(() => import("@/pages/DevicePairing"));
 const MenuDisplay = lazy(() => import("@/pages/MenuDisplay"));
@@ -71,7 +72,9 @@ function FullPlatformRoutes() {
           </PublicOnlyRoute>
         }
       />
+      <Route path={ROUTES.resetPassword} element={<ResetPassword />} />
       <Route path="/auth" element={<Navigate to={ROUTES.auth} replace />} />
+      <Route path="/auth/reset" element={<Navigate to={ROUTES.resetPassword} replace />} />
       <Route path="/display" element={<DeviceCode />} />
       <Route path="/pair" element={<DevicePairing />} />
       <Route path="/menu" element={<MenuDisplay />} />

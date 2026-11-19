@@ -1,6 +1,6 @@
 /**
- * يرسل رمز إعادة التعيين عبر Brevo API (يتجاوز SMTP الخاص بـ Auth عند فشله).
- * POST { email }
+ * يرسل رابط إعادة تعيين كلمة المرور عبر Brevo API.
+ * POST { email, redirectTo? }
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.105.4";
 
@@ -16,7 +16,7 @@ function json(status: number, body: Record<string, unknown>) {
   });
 }
 
-function buildRecoveryHtml(otp: string, email: string): string {
+function buildRecoveryHtml(actionLink: string, email: string): string {
   return `<!doctype html>
 <html lang="ar" dir="rtl">
   <body dir="rtl" style="margin:0;padding:0;background:#f7f3ec;font-family:Tahoma,Arial,sans-serif;direction:rtl;text-align:right;">
@@ -30,9 +30,11 @@ function buildRecoveryHtml(otp: string, email: string): string {
                   <span style="display:inline-block;padding:8px 14px;border-radius:999px;background:#f1e7da;color:#9b6a2f;font-size:13px;font-weight:700;">Meez</span>
                 </div>
                 <h2 dir="rtl" style="margin:0 0 12px;font-size:22px;direction:rtl;">إعادة تعيين كلمة المرور</h2>
-                <p dir="rtl" style="margin:0 0 20px;color:#6b6259;line-height:1.8;direction:rtl;">طلبت إعادة تعيين كلمة المرور لحساب ${email}. استخدم الرمز التالي:</p>
-                <div style="direction:ltr;letter-spacing:10px;font-size:36px;font-weight:800;color:#9b6a2f;margin:18px 0;">${otp}</div>
-                <p dir="rtl" style="margin:20px 0 0;color:#8a8178;font-size:13px;direction:rtl;">إذا لم تطلب ذلك، تجاهل الرسالة. الرمز ينتهي خلال دقائق.</p>
+                <p dir="rtl" style="margin:0 0 20px;color:#6b6259;line-height:1.8;direction:rtl;">طلبت إعادة تعيين كلمة المرور لحساب ${email}. اضغط الزر أدناه لفتح صفحة التعيين:</p>
+                <div style="margin:22px 0;">
+                  <a href="${actionLink}" style="display:inline-block;background:#9b6a2f;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:700;">تعيين كلمة المرور</a>
+                </div>
+                <p dir="rtl" style="margin:20px 0 0;color:#8a8178;font-size:13px;direction:rtl;">إذا لم تطلب ذلك، تجاهل الرسالة. الرابط ينتهي خلال دقائق.</p>
               </td>
             </tr>
           </table>
@@ -60,12 +62,13 @@ Deno.serve(async (req) => {
       return json(400, { ok: false, error: "invalid_email" });
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? Deno.env.get("SB_URL") ?? "";
-    const serviceKey =
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SB_SERVICE_ROLE_KEY") ?? "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const brevoKey = Deno.env.get("BREVO_API_KEY") ?? "";
     const senderEmail = Deno.env.get("BREVO_SENDER_EMAIL") ?? "notification@bymeez.com";
     const senderName = Deno.env.get("BREVO_SENDER_NAME") ?? "bymeez";
+    const appUrl = (Deno.env.get("APP_URL") ?? "https://bymeez.com").replace(/\/$/, "");
+    const redirectTo = String(payload?.redirectTo ?? `${appUrl}/reset-password`).trim();
 
     if (!supabaseUrl || !serviceKey) {
       return json(503, { ok: false, error: "supabase_not_configured" });
@@ -81,17 +84,17 @@ Deno.serve(async (req) => {
     const { data, error } = await admin.auth.admin.generateLink({
       type: "recovery",
       email,
+      options: { redirectTo },
     });
     if (error) {
-      // لا نفضح وجود/عدم وجود الحساب
       console.error("generateLink", error.message);
       return json(200, { ok: true });
     }
 
-    const otp = data?.properties?.email_otp;
-    if (!otp) {
-      console.error("missing_email_otp");
-      return json(500, { ok: false, error: "otp_missing" });
+    const actionLink = data?.properties?.action_link;
+    if (!actionLink) {
+      console.error("missing_action_link");
+      return json(500, { ok: false, error: "link_missing" });
     }
 
     const brevoRes = await fetch("https://api.brevo.com/v3/smtp/email", {
@@ -104,9 +107,9 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         sender: { email: senderEmail, name: senderName },
         to: [{ email }],
-        subject: `${otp} هو رمز إعادة تعيين كلمة المرور`,
-        htmlContent: buildRecoveryHtml(String(otp), email),
-        tags: ["password_reset", "recovery"],
+        subject: "تعيين كلمة مرور جديدة — Meez",
+        htmlContent: buildRecoveryHtml(String(actionLink), email),
+        tags: ["password_reset", "recovery_link"],
       }),
     });
 

@@ -409,69 +409,53 @@ export async function signUp(
 
 export { usesSupabaseAuth };
 
-/** يرسل رمز إعادة تعيين كلمة المرور (6 أرقام) عبر Brevo Edge Function */
-export async function sendPasswordResetOtp(email: string): Promise<void> {
+/** يرسل رابط إعادة تعيين كلمة المرور إلى البريد عبر Brevo */
+export async function sendPasswordResetEmail(email: string): Promise<void> {
   const normalizedEmail = email.trim().toLowerCase();
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
     throw new Error("إعادة التعيين غير متاحة حالياً. تواصل مع الدعم.");
   }
 
+  const redirectTo = `${resolveAppOrigin()}/reset-password`;
   const supabase = getSupabase();
   const { data, error } = await supabase.functions.invoke("send-recovery-otp", {
-    body: { email: normalizedEmail },
+    body: { email: normalizedEmail, redirectTo },
   });
 
   if (error) {
-    // Fallback: محاولة مسار Auth الافتراضي إن كانت الدالة غير منشورة بعد
     const { error: recoverError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-      redirectTo: `${resolveAppOrigin()}/auth?mode=reset`,
+      redirectTo,
     });
     if (recoverError) {
-      throw new Error("تعذّر إرسال رمز التحقق. حاول بعد قليل أو تواصل مع الدعم.");
+      throw new Error("تعذّر إرسال رابط إعادة التعيين. حاول بعد قليل أو تواصل مع الدعم.");
     }
   } else if (data && typeof data === "object" && (data as { ok?: boolean }).ok === false) {
-    throw new Error("تعذّر إرسال رمز التحقق. حاول بعد قليل أو تواصل مع الدعم.");
+    throw new Error("تعذّر إرسال رابط إعادة التعيين. حاول بعد قليل أو تواصل مع الدعم.");
   }
 
   logger.audit("auth.password_reset_requested", { email: normalizedEmail });
 }
 
-/** التحقق من رمز الاستعادة وتعيين كلمة مرور جديدة */
-export async function confirmPasswordReset(
-  email: string,
-  otp: string,
-  newPassword: string,
-): Promise<void> {
-  const normalizedEmail = email.trim().toLowerCase();
-  const token = otp.trim();
-
+/** تعيين كلمة مرور جديدة بعد فتح رابط البريد */
+export async function completePasswordReset(newPassword: string): Promise<void> {
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
     throw new Error("إعادة التعيين غير متاحة حالياً. تواصل مع الدعم.");
   }
 
   const supabase = getSupabase();
-  const { data, error } = await supabase.auth.verifyOtp({
-    email: normalizedEmail,
-    token,
-    type: "recovery",
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) {
+    throw new Error("افتح رابط إعادة التعيين من بريدك أولاً.");
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw mapPasswordAuthError(error);
+
+  syncSessionFromSupabase(sessionData.session);
+  await afterSupabaseAuth(sessionData.session);
+  logger.audit("auth.password_reset_completed", {
+    email: sessionData.session.user.email ?? "",
   });
-  if (error) {
-    const msg = error.message?.toLowerCase() ?? "";
-    if (msg.includes("token") || msg.includes("otp") || msg.includes("expired")) {
-      throw new Error("رمز التحقق غير صحيح أو منتهي. اطلب رمزاً جديداً.");
-    }
-    throw mapPasswordAuthError(error);
-  }
-  if (!data.session) {
-    throw new Error("تعذّر التحقق من الرمز. حاول مرة أخرى.");
-  }
-
-  const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
-  if (updateError) throw mapPasswordAuthError(updateError);
-
-  syncSessionFromSupabase(data.session);
-  await afterSupabaseAuth(data.session);
-  logger.audit("auth.password_reset_completed", { email: normalizedEmail });
 }
 
 export async function signOut(): Promise<void> {

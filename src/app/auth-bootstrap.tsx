@@ -47,7 +47,10 @@ export function AuthBootstrap() {
 
       if (
         session &&
-        (event === "SIGNED_IN" || event === "INITIAL_SESSION")
+        (event === "SIGNED_IN" ||
+          event === "INITIAL_SESSION" ||
+          event === "PASSWORD_RECOVERY" ||
+          event === "TOKEN_REFRESHED")
       ) {
         syncSessionFromSupabase(session);
         void getActiveSession()
