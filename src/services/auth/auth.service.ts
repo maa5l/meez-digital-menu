@@ -114,15 +114,83 @@ export function syncSessionFromSupabase(session: Session | null): AuthSession | 
   return mapped;
 }
 
+function isInvalidRefreshTokenError(error: unknown): boolean {
+  const msg =
+    error && typeof error === "object" && "message" in error
+      ? String((error as { message?: string }).message)
+      : String(error ?? "");
+  const code =
+    error && typeof error === "object" && "code" in error
+      ? String((error as { code?: string }).code)
+      : "";
+  return (
+    code === "refresh_token_not_found" ||
+    /refresh.?token.*(not found|invalid)/i.test(msg)
+  );
+}
+
+/** يمسح جلسة محلية فاسدة بعد إعادة تعيين كلمة المرور أو انتهاء refresh token */
+export async function recoverInvalidRefreshSession(): Promise<boolean> {
+  if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) return false;
+  const supabase = getSupabase();
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error && isInvalidRefreshTokenError(error)) {
+      await supabase.auth.signOut({ scope: "local" });
+      clearSession();
+      logger.warn("auth.refresh_token_cleared", { reason: "get_session" });
+      return true;
+    }
+
+    const session = data.session;
+    if (!session?.refresh_token) return false;
+
+    const expiresAtMs = session.expires_at ? session.expires_at * 1000 : 0;
+    // فقط عندما قربت الصلاحية — تجنب refresh على كل تحميل
+    if (expiresAtMs && expiresAtMs > Date.now() + 90_000) return false;
+
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError && isInvalidRefreshTokenError(refreshError)) {
+      await supabase.auth.signOut({ scope: "local" });
+      clearSession();
+      logger.warn("auth.refresh_token_cleared", { reason: "refresh_session" });
+      return true;
+    }
+  } catch (err) {
+    if (isInvalidRefreshTokenError(err)) {
+      try {
+        await getSupabase().auth.signOut({ scope: "local" });
+      } catch {
+        /* ignore */
+      }
+      clearSession();
+      return true;
+    }
+  }
+  return false;
+}
+
 export async function getActiveSession(): Promise<AuthSession | null> {
   if (isSupabaseConfigured() && !appEnv.useLocalMockAuth) {
+    await recoverInvalidRefreshSession();
     const { data, error } = await getSupabase().auth.getSession();
-    if (error) throw error;
+    if (error) {
+      if (isInvalidRefreshTokenError(error)) {
+        await getSupabase().auth.signOut({ scope: "local" });
+        clearSession();
+        return null;
+      }
+      throw error;
+    }
     if (data.session) {
+      const userId = data.session.user.id;
       const venueName =
         (data.session.user.user_metadata?.venue_name as string | undefined) ?? "";
-      await hydrateVenueForUser(data.session.user.id, venueName || undefined);
-      await syncAccountWithVenue(data.session.user.id);
+      // لا تُفشل الجلسة بسبب hydrate — وإلا تبقى /admin عالقة على شاشة فارغة
+      await runAuthStep("hydrate_venue", userId, () =>
+        hydrateVenueForUser(userId, venueName || undefined),
+      );
+      await runAuthStep("sync_account_venue", userId, () => syncAccountWithVenue(userId));
     }
     return syncSessionFromSupabase(data.session);
   }
@@ -156,6 +224,11 @@ function mapPasswordAuthError(error: unknown): Error {
   }
   if (msg.includes("invalid login credentials") || msg.includes("invalid credentials")) {
     return new Error("البريد أو كلمة المرور غير صحيحة.");
+  }
+  if (/database error querying schema/i.test(msg)) {
+    return new Error(
+      "تعذّر التحقق من الحساب في قاعدة البيانات. حاول لاحقاً أو تواصل مع الدعم.",
+    );
   }
   if (/failed to fetch|networkerror|load failed/i.test(msg)) {
     return new Error(
@@ -198,6 +271,12 @@ export async function signInWithPassword(email: string, password: string): Promi
   syncSessionFromSupabase(data.session);
   await afterSupabaseAuth(data.session);
   logger.audit("auth.password_login", { email: normalizedEmail });
+  try {
+    const { writeClientAuditLog } = await import("@/services/core/platform-security");
+    await writeClientAuditLog("auth.login", { email: normalizedEmail });
+  } catch {
+    /* ignore audit transport failures */
+  }
 }
 
 export async function signUp(
@@ -233,7 +312,17 @@ export async function signUp(
   if (data.session) {
     syncSessionFromSupabase(data.session);
     await afterSupabaseAuth(data.session, venueName);
-    logger.audit("auth.register", { email: normalizedEmail });
+    logger.audit("auth.register", { email: normalizedEmail, venueName: venueName ?? "" });
+    try {
+      const { writeClientAuditLog } = await import("@/services/core/platform-security");
+      await writeClientAuditLog("auth.register", {
+        email: normalizedEmail,
+        venue_name: venueName ?? "",
+        source: "client_signup",
+      });
+    } catch {
+      /* ignore audit transport failures */
+    }
     return { needsEmailConfirmation: false };
   }
 

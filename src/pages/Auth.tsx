@@ -11,7 +11,7 @@ import { resolvePostAuthRoute } from "@/services/admin/admin.service";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { appEnv } from "@/config/env";
 import { checkRateLimit } from "@/security/rate-limit";
-import { RateLimitError, getErrorMessage } from "@/lib/errors";
+import { RateLimitError, getAuthFormErrorMessage } from "@/lib/errors";
 import { ROUTES } from "@/config/app";
 import { SUBSCRIPTION } from "@/config/subscription";
 import { toast } from "sonner";
@@ -67,9 +67,15 @@ const Auth = () => {
     try {
       await signInWithPassword(parsed.data.email, parsed.data.password);
       toast.success("مرحبًا بعودتك");
-      navigate(await resolvePostAuthRoute(redirectTo), { replace: true });
+      let destination = redirectTo;
+      try {
+        destination = await resolvePostAuthRoute(redirectTo);
+      } catch {
+        destination = redirectTo;
+      }
+      navigate(destination, { replace: true });
     } catch (error) {
-      setFieldError(getErrorMessage(error));
+      setFieldError(getAuthFormErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -100,9 +106,15 @@ const Auth = () => {
         parsed.data.phone,
       );
       toast.success("تم إنشاء الحساب — مرحباً بك");
-      navigate(await resolvePostAuthRoute(redirectTo), { replace: true });
+      let destination = redirectTo;
+      try {
+        destination = await resolvePostAuthRoute(redirectTo);
+      } catch {
+        destination = redirectTo;
+      }
+      navigate(destination, { replace: true });
     } catch (error) {
-      setFieldError(getErrorMessage(error));
+      setFieldError(getAuthFormErrorMessage(error));
     } finally {
       setLoading(false);
     }

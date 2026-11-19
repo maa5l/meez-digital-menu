@@ -324,6 +324,24 @@ export async function activateDeviceWithLicense(
   }
 
   const row = data as Record<string, unknown>;
+  if (row.ok) {
+    logger.audit("device.activated", {
+      code: typeof row.code === "string" ? row.code : code.trim().toUpperCase(),
+      menuType: menuType ?? null,
+    });
+    void import("@/services/core/platform-security")
+      .then(({ writeClientAuditLog }) =>
+        writeClientAuditLog("device.activated", {
+          code: typeof row.code === "string" ? row.code : code.trim().toUpperCase(),
+          menu_type: menuType ?? null,
+          device_name: deviceName ?? null,
+          source: "activate_device_with_license",
+        }),
+      )
+      .catch(() => {
+        /* ignore */
+      });
+  }
   return {
     ok: Boolean(row.ok),
     code: typeof row.code === "string" ? row.code : undefined,

@@ -106,7 +106,14 @@ const RPC_PATTERNS = [
   /invalid_response/i,
 ];
 
-const SCHEMA_PATTERNS = [/schema/i, /pgrst202/i];
+/** لا تطابق "schema cache" من PostgREST — هذه أعطال RPC وليست انهيار منيو */
+const SCHEMA_PATTERNS = [
+  /بنية البيانات/,
+  /invalid venue/i,
+  /venue\.schema/i,
+  /zoderror/i,
+  /cannot read properties.*trim/i,
+];
 
 function base(partial: UserFacingError): UserFacingError {
   return partial;

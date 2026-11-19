@@ -203,10 +203,10 @@ export function markVenueRemoteSynced(userId: string, updatedAt: string | null):
 const pendingCloudSave = new Map<string, VenueData>();
 const cloudSaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const cloudSaveInFlight = new Map<string, Promise<void>>();
-const CLOUD_SAVE_DEBOUNCE_MS = 500;
-const CLOUD_SAVE_MAX_ATTEMPTS = 3;
-/** لا يعلق طابور الحفظ إن توقف طلب الاستضافة */
-const CLOUD_SAVE_TIMEOUT_MS = 20_000;
+const CLOUD_SAVE_DEBOUNCE_MS = 800;
+const CLOUD_SAVE_MAX_ATTEMPTS = 2;
+/** أقصر من السابق حتى لا تتكدّس طلبات تتنافس على قفل venues */
+const CLOUD_SAVE_TIMEOUT_MS = 12_000;
 
 function withTimeout<T>(work: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -240,6 +240,10 @@ function takePendingVenue(userId: string, fallback: VenueData): VenueData {
   return latest;
 }
 
+function isTransientCloudSaveError(message: string): boolean {
+  return /timeout|busy|57014|canceling statement|cloud_save_timeout/i.test(message);
+}
+
 async function persistVenueToCloud(userId: string, payload: VenueData): Promise<void> {
   let current = payload;
   let lastError: unknown;
@@ -257,13 +261,25 @@ async function persistVenueToCloud(userId: string, payload: VenueData): Promise<
       return;
     } catch (err) {
       lastError = err;
+      const message = err instanceof Error ? err.message : String(err);
       logger.error("venue.cloud_save_async_failed", {
         userId,
         attempt,
-        message: err instanceof Error ? err.message : String(err),
+        message,
       });
+      // busy/timeout: أعد للطابور بدل إعادة ضرب القفل فوراً
+      if (isTransientCloudSaveError(message)) {
+        pendingCloudSave.set(userId, takePendingVenue(userId, current));
+        if (attempt < CLOUD_SAVE_MAX_ATTEMPTS) {
+          await new Promise((r) => setTimeout(r, 1200 * attempt));
+          continue;
+        }
+        // اتركه معلّقاً ليُفرَّغ لاحقاً بدل إشعار فشل مزعج
+        scheduleCloudVenueSave(userId, pendingCloudSave.get(userId) ?? current);
+        return;
+      }
       if (attempt < CLOUD_SAVE_MAX_ATTEMPTS) {
-        await new Promise((r) => setTimeout(r, 400 * attempt));
+        await new Promise((r) => setTimeout(r, 600 * attempt));
       }
     }
   }

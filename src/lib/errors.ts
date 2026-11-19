@@ -98,3 +98,34 @@ export function getErrorMessage(error: unknown): string {
   }
   return getClassifiedErrorMessage(error);
 }
+
+/** رسائل نموذج تسجيل الدخول/التسجيل — بدون تصنيف أعطال المنيو */
+export function getAuthFormErrorMessage(error: unknown): string {
+  if (error instanceof AppError) return error.message;
+  const direct = extractMessage(error)?.trim() ?? "";
+  if (!direct) return "تعذّر تسجيل الدخول. حاول مرة أخرى.";
+
+  if (/invalid login credentials|invalid credentials/i.test(direct)) {
+    return "البريد أو كلمة المرور غير صحيحة.";
+  }
+  if (/email not confirmed|email_not_confirmed/i.test(direct)) {
+    return "البريد الإلكتروني غير مؤكد. تحقق من بريدك أو تواصل مع الدعم.";
+  }
+  if (/database error querying schema/i.test(direct)) {
+    return "تعذّر التحقق من الحساب في قاعدة البيانات. حاول لاحقاً أو تواصل مع الدعم.";
+  }
+  if (/PGRST202|Could not find the function|schema cache/i.test(direct)) {
+    return "قاعدة البيانات تحتاج تحديث. نفّذ: npm run supabase:db:push";
+  }
+  if (/failed to fetch|networkerror|load failed|offline/i.test(direct)) {
+    return "تعذّر الاتصال. تحقق من الإنترنت ثم حاول مرة أخرى.";
+  }
+  // رسائل عربية مُجهَّزة مسبقاً (مثل mapPasswordAuthError) — لكن ليس نسخ المنيو
+  if (/[\u0600-\u06FF]/.test(direct)) {
+    if (/المنيو|بنية البيانات|إعادة تحميل المنيو/.test(direct)) {
+      return "تعذّر إكمال تسجيل الدخول. حاول مرة أخرى.";
+    }
+    return direct;
+  }
+  return direct.length <= 160 ? direct : "تعذّر تسجيل الدخول. حاول مرة أخرى.";
+}

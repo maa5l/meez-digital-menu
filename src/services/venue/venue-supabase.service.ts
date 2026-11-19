@@ -250,6 +250,9 @@ export async function saveVenueToDatabase(ownerId: string, venue: VenueData): Pr
 
   if (!result.ok) {
     const msg = result.error ?? "venue_update_denied";
+    if (result.busy || msg === "busy" || msg === "timeout") {
+      throw new Error(msg === "timeout" ? "timeout" : "busy");
+    }
     logger.error("venue.save_failed", { ownerId, message: msg });
     throw new Error(msg);
   }

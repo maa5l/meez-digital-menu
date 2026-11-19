@@ -28,6 +28,9 @@ function emit(level: LogLevel, event: string, meta?: Record<string, unknown>): v
     console.error(JSON.stringify(payload));
   } else if (level === "warn") {
     console.warn(JSON.stringify(payload));
+  } else if (level === "audit") {
+    // أحداث التدقيق (تفعيل/تسجيل) تُطبع دائماً — ليست للتشخيص فقط
+    console.info(JSON.stringify(payload));
   } else if (appEnv.isDev) {
     console.log(JSON.stringify(payload));
   }

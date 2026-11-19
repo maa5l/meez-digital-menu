@@ -126,4 +126,15 @@ export function activateDevice(
   }
 
   logger.audit("device.activated", { code: normalized, linked: !!ownerId });
+  void import("@/services/core/platform-security")
+    .then(({ writeClientAuditLog }) =>
+      writeClientAuditLog("device.activated", {
+        code: normalized,
+        linked: Boolean(ownerId),
+        menu_type: options?.menuType ?? null,
+      }),
+    )
+    .catch(() => {
+      /* ignore audit transport failures */
+    });
 }
