@@ -92,6 +92,19 @@ async function afterSupabaseAuth(session: Session, venueName?: string): Promise<
   const metaVenue =
     venueName || (session.user.user_metadata?.venue_name as string | undefined);
 
+  // ثبّت الجلسة على العميل قبل أي RPC — يمنع not_authenticated المتوازي بعد الدخول
+  const supabase = getSupabase();
+  await supabase.auth.setSession({
+    access_token: session.access_token,
+    refresh_token: session.refresh_token,
+  });
+  const started = Date.now();
+  while (Date.now() - started < 5_000) {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.user?.id === userId && data.session.access_token) break;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+
   await Promise.all([
     runAuthStep("ensure_profile", userId, () => ensureUserProfile(session.user, venueName)),
     runAuthStep("repair_signup_trial", userId, () => repairSignupTrialIfNeeded(session.user)),

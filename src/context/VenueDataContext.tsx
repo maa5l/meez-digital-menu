@@ -42,7 +42,9 @@ type VenueDataContextValue = {
 const VenueDataContext = createContext<VenueDataContextValue | null>(null);
 
 export function VenueDataProvider({ children }: { children: ReactNode }) {
-  const userId = resolveOwnerUserId();
+  // للسحب/الرفع السحابي: جلسة الدخول فقط — لا LAST_VENUE_OWNER (كان يطلق RPC بدون JWT)
+  const authUserId = getCurrentUserId();
+  const userId = authUserId ?? resolveOwnerUserId();
   const [data, setData] = useState<VenueData>(() => loadCurrentVenueData());
   // ابدأ من الكاش المحلي فوراً — السحب من السحابة في الخلفية دون حجب الواجهة
   const [loading, setLoading] = useState(false);
@@ -62,16 +64,17 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
 
   const refreshFromCloud = useCallback(
     async (force = false) => {
-      if (!userId || !isSupabaseConfigured() || appEnv.useLocalMockAuth) {
+      // بدون جلسة دخول حقيقية لا تستدعِ RPC — يمنع not_authenticated في اللوقات
+      if (!authUserId || !isSupabaseConfigured() || appEnv.useLocalMockAuth) {
         reloadLocal();
         return;
       }
-      if (force) invalidateOwnerVenueCache(userId);
+      if (force) invalidateOwnerVenueCache(authUserId);
       // سبينر فقط عند طلب صريح (force) — التحميل الأول يعتمد على الكاش المحلي
       const showSpinner = force;
       if (showSpinner) setLoading(true);
       try {
-        const venue = await pullVenueFromCloud(userId);
+        const venue = await pullVenueFromCloud(authUserId);
         if (mountedRef.current) {
           // لا تمسح تعديلات الواجهة (مثل إضافة تصنيف) التي حدثت أثناء السحب
           const latestLocal = loadCurrentVenueData();
@@ -100,7 +103,7 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [userId, reloadLocal],
+    [authUserId, reloadLocal],
   );
 
   const refreshDebounced = useMemo(
@@ -132,9 +135,20 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
   }, [userId, reloadLocal]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!authUserId) return;
     let cancelled = false;
     void (async () => {
+      // انتظر جاهزية JWT قبل أول سحب — يقلل not_authenticated بعد الدخول مباشرة
+      if (isSupabaseConfigured() && !appEnv.useLocalMockAuth) {
+        const { getSupabase } = await import("@/lib/supabase/client");
+        const started = Date.now();
+        while (Date.now() - started < 8_000) {
+          const { data } = await getSupabase().auth.getSession();
+          if (data.session?.user?.id === authUserId && data.session.access_token) break;
+          await new Promise((r) => setTimeout(r, 150));
+        }
+      }
+      if (cancelled || !mountedRef.current) return;
       await refreshFromCloud(true);
       if (cancelled || !mountedRef.current) return;
       const local = loadCurrentVenueData();
@@ -152,13 +166,13 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
         if (!cancelled && mountedRef.current) await refreshFromCloud(true);
       } else {
         // جهاز فيه منتجات (غالباً البي سي): ارفعها فوراً لتظهر على الجوال
-        await ensureLocalVenueUploadedToCloud(userId);
+        await ensureLocalVenueUploadedToCloud(authUserId);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps -- مرة عند تغيّر المستخدم فقط
+  }, [authUserId]); // eslint-disable-line react-hooks/exhaustive-deps -- مرة عند تغيّر المستخدم فقط
 
   useEffect(() => {
     const ownerId = getCurrentUserId();
