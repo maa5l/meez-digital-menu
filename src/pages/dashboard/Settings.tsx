@@ -66,9 +66,9 @@ const Settings = () => {
       downloadVenueBackup();
       const ok = await ensureLocalVenueUploadedToCloud(userId);
       if (ok) {
-        toast.success("تم رفع المنتجات للحساب — حدّث الجوال بعد التحقق من SQL");
+        toast.success("تم رفع المنتجات للحساب — حدّث صفحة الجوال");
       } else {
-        toast.error("تعذّر الرفع — أعد تسجيل الدخول من البي سي ثم حاول مرة أخرى");
+        toast.error("تعذّر الرفع — أعد تسجيل الدخول ثم حاول مرة أخرى");
       }
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -108,7 +108,7 @@ const Settings = () => {
 
       notifyProfileUpdated();
       window.dispatchEvent(new Event("meez:venue-updated"));
-      toast.success(supabaseLinked ? "تم الحفظ في قاعدة البيانات" : "تم الحفظ محلياً");
+      toast.success(supabaseLinked ? "تم حفظ التغييرات" : "تم الحفظ على هذا الجهاز");
       await refresh();
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -124,8 +124,8 @@ const Settings = () => {
       title="الإعدادات"
       subtitle={
         supabaseLinked
-          ? "معلومات حسابك ومنشأتك — مرتبطة بـ Supabase"
-          : "معلومات المنشأة — وضع تجريبي محلي"
+          ? "معلومات حسابك ومنشأتك"
+          : "معلومات المنشأة"
       }
     >
       <div className="grid lg:grid-cols-2 gap-6">
@@ -133,8 +133,8 @@ const Settings = () => {
           <h3 className="font-display font-bold text-xl text-primary mb-1">معلومات المنشأة والحساب</h3>
           <p className="text-xs text-muted-foreground mb-4">
             {supabaseLinked
-              ? "تُحفظ في جدول profiles وتُزامَن مع بيانات المنيو (venues)"
-              : "تُحفظ في المتصفح فقط — فعّل Supabase للمزامنة السحابية"}
+              ? "تُحفظ في حسابك وتظهر على جميع أجهزتك"
+              : "تُحفظ على هذا الجهاز فقط حتى تتصل بالإنترنت وتسجّل الدخول"}
           </p>
 
           {loading ? (
@@ -173,7 +173,7 @@ const Settings = () => {
                   className="h-12 rounded-xl bg-secondary/60"
                   dir="ltr"
                 />
-                <p className="text-[11px] text-muted-foreground">البريد مرتبط بحساب Supabase ولا يُغيَّر من هنا</p>
+                <p className="text-[11px] text-muted-foreground">البريد مرتبط بحسابك ولا يُغيَّر من هنا</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">رقم الجوال</Label>
@@ -203,11 +203,11 @@ const Settings = () => {
         <div className="bg-card rounded-3xl border border-border p-6">
           <h3 className="font-display font-bold text-xl text-primary mb-1">نسخ احتياطي ومزامنة</h3>
           <p className="text-xs text-muted-foreground mb-4">
-            احفظ نسخة من المنيو على جهازك ثم ارفعها للحساب ليظهر على الجوال. لا يحذف شيئاً.
+            احفظ نسخة من المنيو على جهازك أو ارفعها لحسابك ليظهر على الجوال. لا يحذف شيئاً.
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
             <Button type="button" variant="outline" onClick={downloadVenueBackup}>
-              تنزيل نسخة JSON
+              تنزيل نسخة احتياطية
             </Button>
             {supabaseLinked && (
               <Button
@@ -219,12 +219,12 @@ const Settings = () => {
                 {syncing ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    جاري الرفع...
+                    جاري المزامنة...
                   </>
                 ) : (
                   <>
                     <CloudUpload className="w-4 h-4" />
-                    رفع إجباري للحساب
+                    مزامنة مع الحساب
                   </>
                 )}
               </Button>

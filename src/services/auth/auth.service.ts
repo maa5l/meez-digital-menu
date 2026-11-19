@@ -297,12 +297,12 @@ function mapPasswordAuthError(error: unknown): Error {
   }
   if (/database error querying schema/i.test(msg)) {
     return new Error(
-      "تعذّر التحقق من الحساب في قاعدة البيانات. حاول لاحقاً أو تواصل مع الدعم.",
+      "تعذّر التحقق من الحساب. حاول لاحقاً أو تواصل مع الدعم.",
     );
   }
   if (/failed to fetch|networkerror|load failed/i.test(msg)) {
     return new Error(
-      "تعذّر الاتصال بـ Supabase. تحقق من الإنترنت و VITE_SUPABASE_URL في .env.local",
+      "تعذّر الاتصال بالخدمة. تحقق من الإنترنت ثم حاول مرة أخرى.",
     );
   }
   return error instanceof Error ? error : new Error(String((error as { message?: string }).message));
@@ -313,7 +313,7 @@ export async function signInWithPassword(email: string, password: string): Promi
 
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
     if (!appEnv.enableMockAuth && appEnv.isProd) {
-      throw new Error("المصادقة غير متاحة. اضبط Supabase في البيئة.");
+      throw new Error("تسجيل الدخول غير متاح حالياً. تواصل مع الدعم.");
     }
     const session = createMockSession(normalizedEmail);
     setSession(session);
@@ -334,7 +334,7 @@ export async function signInWithPassword(email: string, password: string): Promi
 
   if (error) throw mapPasswordAuthError(error);
   if (!data.session) {
-    throw new Error("لم يتم إنشاء جلسة. تحقق من إعدادات Supabase Auth.");
+    throw new Error("لم يتم إنشاء الجلسة. حاول مرة أخرى.");
   }
 
   // Establish app session first; cloud hydration must not cancel a successful login.
@@ -413,7 +413,7 @@ export { usesSupabaseAuth };
 export async function sendPasswordResetOtp(email: string): Promise<void> {
   const normalizedEmail = email.trim().toLowerCase();
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
-    throw new Error("إعادة التعيين تتطلب Supabase Auth مفعّلاً.");
+    throw new Error("إعادة التعيين غير متاحة حالياً. تواصل مع الدعم.");
   }
 
   const { error } = await getSupabase().auth.resetPasswordForEmail(normalizedEmail, {
@@ -433,7 +433,7 @@ export async function confirmPasswordReset(
   const token = otp.trim();
 
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
-    throw new Error("إعادة التعيين تتطلب Supabase Auth مفعّلاً.");
+    throw new Error("إعادة التعيين غير متاحة حالياً. تواصل مع الدعم.");
   }
 
   const supabase = getSupabase();

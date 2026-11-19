@@ -20,7 +20,6 @@ import {
 } from "@/services/auth/auth.service";
 import { resolvePostAuthRoute } from "@/services/admin/admin.service";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { appEnv } from "@/config/env";
 import { checkRateLimit } from "@/security/rate-limit";
 import { RateLimitError, getAuthFormErrorMessage } from "@/lib/errors";
 import { ROUTES } from "@/config/app";
@@ -456,14 +455,11 @@ const Auth = () => {
 
           {!isSupabaseConfigured() ? (
             <p className="mb-4 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
-              {appEnv.isProd
-                ? "Supabase غير مضبوط على Vercel — أضف VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY (مفتاح eyJ…) ثم Redeploy."
-                : "Supabase غير مضبوط — أضف VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY في .env.local"}
+              خدمة الحسابات غير جاهزة حالياً. حاول لاحقاً أو تواصل مع الدعم.
             </p>
           ) : !supabaseAuth ? (
             <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-900">
-              وضع تجريبي محلي: الحساب يُحفظ في المتصفح فقط. لإيقافه:{" "}
-              <code className="text-xs">VITE_USE_LOCAL_MOCK_AUTH=false</code>
+              وضع تجريبي: الحساب يُحفظ على هذا الجهاز فقط ولن يُزامَن مع الجوال.
             </p>
           ) : null}
 
