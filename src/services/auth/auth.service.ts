@@ -409,17 +409,30 @@ export async function signUp(
 
 export { usesSupabaseAuth };
 
-/** يرسل رمز إعادة تعيين كلمة المرور (6 أرقام) عبر بريد Auth/Brevo */
+/** يرسل رمز إعادة تعيين كلمة المرور (6 أرقام) عبر Brevo Edge Function */
 export async function sendPasswordResetOtp(email: string): Promise<void> {
   const normalizedEmail = email.trim().toLowerCase();
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
     throw new Error("إعادة التعيين غير متاحة حالياً. تواصل مع الدعم.");
   }
 
-  const { error } = await getSupabase().auth.resetPasswordForEmail(normalizedEmail, {
-    redirectTo: `${resolveAppOrigin()}/auth?mode=reset`,
+  const supabase = getSupabase();
+  const { data, error } = await supabase.functions.invoke("send-recovery-otp", {
+    body: { email: normalizedEmail },
   });
-  if (error) throw mapPasswordAuthError(error);
+
+  if (error) {
+    // Fallback: محاولة مسار Auth الافتراضي إن كانت الدالة غير منشورة بعد
+    const { error: recoverError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo: `${resolveAppOrigin()}/auth?mode=reset`,
+    });
+    if (recoverError) {
+      throw new Error("تعذّر إرسال رمز التحقق. حاول بعد قليل أو تواصل مع الدعم.");
+    }
+  } else if (data && typeof data === "object" && (data as { ok?: boolean }).ok === false) {
+    throw new Error("تعذّر إرسال رمز التحقق. حاول بعد قليل أو تواصل مع الدعم.");
+  }
+
   logger.audit("auth.password_reset_requested", { email: normalizedEmail });
 }
 
