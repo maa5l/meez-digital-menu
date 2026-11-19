@@ -19,6 +19,8 @@ export function cachedFetch<T>(
     }
   } else {
     cache.delete(key);
+    // لا تعِد استخدام طلب قديم فاشل/بدون JWT عند force
+    inFlight.delete(key);
   }
 
   const pending = inFlight.get(key);

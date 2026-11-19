@@ -41,7 +41,10 @@ async function repairSignupTrialIfNeeded(user: User): Promise<void> {
 
 async function hydrateVenueForUser(userId: string, venueName?: string): Promise<void> {
   if (shouldUseVenueDatabase()) {
-    const { pullVenueFromCloudDetailed } = await import("@/lib/venue-store");
+    const { hydrateVenueFromIdbIfNeeded, pullVenueFromCloudDetailed } = await import(
+      "@/lib/venue-store"
+    );
+    await hydrateVenueFromIdbIfNeeded(userId);
     // محاولة أولى + إعادة عند فشل السحب (timeout) — بدون إنشاء منيو فارغ يُرفع فوق البيانات
     let outcome = await pullVenueFromCloudDetailed(userId, true);
     if (outcome.pullFailed || (isVenueEffectivelyEmpty(outcome.venue) && outcome.remoteUpdatedAt)) {

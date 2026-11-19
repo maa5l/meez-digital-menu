@@ -16,7 +16,27 @@ import {
   shouldUseVenueDatabase,
 } from "@/services/venue/venue-supabase.service";
 import { parseVenueDataSafe } from "@/lib/venue-schema";
-import { compactVenueForLocalStorage } from "@/lib/venue-storage-compact";
+import {
+  compactVenueForLocalStorage,
+  stripVenueImagesForStorage,
+} from "@/lib/venue-storage-compact";
+import { idbGetVenue, idbSetVenue } from "@/lib/venue-idb";
+
+/** كاش جلسة — يمنع فقدان المنيو على الجوال إذا فشل localStorage (حجم الصور) */
+const venueMemoryCache = new Map<string, VenueData>();
+
+function rememberVenueInMemory(userId: string, data: VenueData): void {
+  venueMemoryCache.set(userId, data);
+}
+
+function readVenueFromMemory(userId: string): VenueData | null {
+  return venueMemoryCache.get(userId) ?? null;
+}
+
+function venueContentScore(data: VenueData | null | undefined): number {
+  if (!data || data.version !== 1) return 0;
+  return data.products.length + data.categories.length + data.crops.length;
+}
 
 const VENUE_PREFIX = "meez:venue:";
 const DEVICE_OWNER_PREFIX = STORAGE_KEYS.DEVICE_OWNER_PREFIX;
@@ -98,14 +118,21 @@ export function loadVenueData(userId: string): VenueData {
     freeLocalStorageFromHeavyDeviceSnapshots();
     deviceSnapshotCleanupDone = true;
   }
+  const memory = readVenueFromMemory(userId);
   const stored = getLocalJson<VenueData | null>(venueKey(userId), null);
-  if (!stored || stored.version !== 1) {
-    return createEmptyVenueData();
+  const storedNorm =
+    stored?.version === 1 ? compactVenueForLocalStorage(normalizeVenue(stored)) : null;
+
+  // الذاكرة تفوز إذا فيها محتوى أكثر (بعد سحب سحابي فشل حفظه في localStorage)
+  if (venueContentScore(memory) > venueContentScore(storedNorm)) {
+    return memory!;
   }
-  const normalized = normalizeVenue(stored);
-  const compact = compactVenueForLocalStorage(normalized);
-  setLocalJson(venueKey(userId), compact);
-  return compact;
+  if (storedNorm) {
+    rememberVenueInMemory(userId, storedNorm);
+    return storedNorm;
+  }
+  if (memory?.version === 1) return memory;
+  return createEmptyVenueData();
 }
 
 export function setDeviceMenuType(deviceCode: string, menuType: "products" | "crops"): void {
@@ -176,17 +203,48 @@ function saveVenueDataLocal(userId: string, data: VenueData): VenueData {
     ...data,
     updatedAt: new Date().toISOString(),
   });
+  rememberVenueInMemory(userId, payload);
+  void idbSetVenue(userId, payload);
+
   let ok = setLocalJson(venueKey(userId), payload);
   if (!ok) {
     freeLocalStorageFromHeavyDeviceSnapshots();
     ok = setLocalJson(venueKey(userId), payload);
   }
   if (!ok) {
-    throw new Error("storage_quota_exceeded");
+    // الجوال غالباً يمتلئ بسبب Base64 — احفظ نسخة خفيفة حتى لا تختفي الأسماء
+    const light = stripVenueImagesForStorage(payload);
+    ok = setLocalJson(venueKey(userId), light);
+    if (!ok) {
+      logger.warn("venue.storage_quota_memory_only", {
+        userId,
+        products: payload.products.length,
+      });
+      // لا ترمِ خطأ — المنتجات تبقى في الذاكرة + IndexedDB لهذه الجلسة
+    }
   }
   rememberOwnerUserId(userId);
   syncAllDeviceVenueSnapshots(userId, payload);
   return payload;
+}
+
+/** بعد الدخول على الجوال: إن كان localStorage فارغ اسحب من IndexedDB */
+export async function hydrateVenueFromIdbIfNeeded(userId: string): Promise<VenueData> {
+  const current = loadVenueData(userId);
+  if (!isVenueEffectivelyEmpty(current)) return current;
+  const fromIdb = await idbGetVenue(userId);
+  if (!fromIdb || fromIdb.version !== 1 || isVenueEffectivelyEmpty(fromIdb)) {
+    return current;
+  }
+  const normalized = normalizeVenue(fromIdb);
+  rememberVenueInMemory(userId, normalized);
+  // حاول إعادة التعبئة في localStorage (قد تفشل بسبب الحجم — لا مشكلة)
+  try {
+    saveVenueDataLocal(userId, normalized);
+  } catch {
+    rememberVenueInMemory(userId, normalized);
+  }
+  return loadVenueData(userId);
 }
 
 /** بعد حفظ سحابي ناجح — يمنع إعادة جلب JSON كاملاً دون داعٍ */
@@ -446,6 +504,9 @@ export async function pullVenueFromCloudDetailed(
       remoteUpdatedAt: null,
     };
   }
+
+  // جوال: استرجع من IndexedDB قبل السحب إن المحلي فارغ
+  await hydrateVenueFromIdbIfNeeded(userId);
 
   try {
     const remoteUpdatedAt = await fetchVenueUpdatedAtForOwner(userId, force);

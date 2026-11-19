@@ -16,6 +16,7 @@ import { logger } from "@/lib/logger";
 import {
   ensureLocalVenueUploadedToCloud,
   getCurrentUserId,
+  hydrateVenueFromIdbIfNeeded,
   loadCurrentVenueData,
   pullVenueFromCloud,
   rememberOwnerUserId,
@@ -149,10 +150,12 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
         }
       }
       if (cancelled || !mountedRef.current) return;
+      await hydrateVenueFromIdbIfNeeded(authUserId);
+      if (mountedRef.current) setData(loadCurrentVenueData());
       await refreshFromCloud(true);
       if (cancelled || !mountedRef.current) return;
-      const local = loadCurrentVenueData();
-      const empty =
+      let local = loadCurrentVenueData();
+      let empty =
         local.products.length === 0 &&
         local.categories.length === 0 &&
         local.crops.length === 0;
@@ -162,8 +165,15 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
         if (cancelled || !mountedRef.current) return;
         await refreshFromCloud(true);
         if (cancelled || !mountedRef.current) return;
-        await new Promise((r) => setTimeout(r, 2000));
-        if (!cancelled && mountedRef.current) await refreshFromCloud(true);
+        local = loadCurrentVenueData();
+        empty =
+          local.products.length === 0 &&
+          local.categories.length === 0 &&
+          local.crops.length === 0;
+        if (empty) {
+          await new Promise((r) => setTimeout(r, 2000));
+          if (!cancelled && mountedRef.current) await refreshFromCloud(true);
+        }
       } else {
         // جهاز فيه منتجات (غالباً البي سي): ارفعها فوراً لتظهر على الجوال
         await ensureLocalVenueUploadedToCloud(authUserId);
