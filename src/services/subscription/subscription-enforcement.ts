@@ -137,6 +137,10 @@ export async function fetchOwnerSubscription(): Promise<SubscriptionFetchResult>
 
   fetchOwnerSubscriptionInFlight = (async (): Promise<SubscriptionFetchResult> => {
     try {
+      const { data: authData } = await getSupabase().auth.getSession();
+      if (!authData.session?.access_token) {
+        return { ok: false, isNetwork: false, message: "not_authenticated" };
+      }
       const { data, error } = await getSupabase().rpc("get_owner_subscription");
       if (error) {
         const message = error.message ?? "subscription_fetch_failed";
@@ -207,6 +211,11 @@ export async function ensureSubscriptionRecord(ownerId?: string | null): Promise
   }
 
   ensureSubscriptionInFlight = (async () => {
+    const { data: authData } = await getSupabase().auth.getSession();
+    if (!authData.session?.access_token) {
+      logger.warn("subscription.ensure_skipped_no_session");
+      return;
+    }
     const { error } = await getSupabase().rpc("ensure_subscription_for_owner");
     if (error) {
       logger.error("subscription.ensure_failed", { message: error.message });

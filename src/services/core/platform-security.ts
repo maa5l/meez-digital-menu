@@ -16,6 +16,11 @@ export async function updateVenueDataRpc(
     return { ok: true };
   }
 
+  const { data: authData } = await getSupabase().auth.getSession();
+  if (!authData.session?.access_token) {
+    return { ok: false, error: "not_authenticated" };
+  }
+
   const { data, error } = await getSupabase().rpc("update_venue_data", {
     p_data: venue as unknown as Record<string, unknown>,
   });

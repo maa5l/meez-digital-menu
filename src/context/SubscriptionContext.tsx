@@ -83,10 +83,10 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const sessionUserId = getSession()?.userId ?? null;
         const { data: authData } = await getSupabase().auth.getSession();
-        const userId = authData.session?.user?.id ?? sessionUserId;
-        if (!userId) {
+        // لازم JWT حقيقي — جلسة sessionStorage وحدها تسبب not_authenticated كـ anon
+        const userId = authData.session?.user?.id ?? null;
+        if (!userId || !authData.session?.access_token) {
           setSubscription(null);
           setLoadState({ kind: "ok" });
           setLoading(false);
