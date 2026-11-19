@@ -3,7 +3,9 @@ import helmet from "helmet";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { healthRouter } from "./routes/health.js";
+import { notificationsRouter } from "./routes/notifications.js";
 import { errorHandler } from "./middleware/errorHandler.js";
+import { isBrevoConfigured } from "./services/brevo.js";
 
 const app = express();
 const port = Number(process.env.PORT) || 3001;
@@ -30,9 +32,16 @@ app.use(
 );
 
 app.use("/api/v1/health", healthRouter);
+app.use("/api/v1/notifications", notificationsRouter);
 
 app.use(errorHandler);
 
 app.listen(port, () => {
-  console.log(JSON.stringify({ event: "server.started", port }));
+  console.log(
+    JSON.stringify({
+      event: "server.started",
+      port,
+      brevo: isBrevoConfigured(),
+    }),
+  );
 });

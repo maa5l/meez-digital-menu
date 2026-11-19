@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head><meta charset="utf-8" /></head>
+  <body dir="rtl" style="margin:0;padding:0;background:#f4f1ec;font-family:Tahoma,Arial,sans-serif;color:#1f1a16;direction:rtl;text-align:right;">
+    <table role="presentation" dir="rtl" width="100%" cellpadding="0" cellspacing="0" border="0" style="direction:rtl;background:#f4f1ec;">
+      <tr>
+        <td align="center" dir="rtl" style="padding:24px;direction:rtl;">
+          <table role="presentation" dir="rtl" width="600" cellpadding="0" cellspacing="0" border="0" style="direction:rtl;max-width:600px;width:100%;background:#ffffff;border-radius:18px;">
+            <tr>
+              <td dir="rtl" style="padding:26px;direction:rtl;text-align:right;">
+                <div style="text-align:center;margin-bottom:14px;">
+                  <span style="display:inline-block;padding:7px 12px;border-radius:999px;background:#1f1a16;color:#f7f3ec;font-size:12px;font-weight:700;">Meez Admin</span>
+                </div>
+                <h2 dir="rtl" style="margin:0 0 6px;font-size:22px;text-align:center;direction:rtl;">تقرير المنصة الدوري</h2>
+                <p dir="rtl" style="margin:0 0 18px;color:#6b6259;font-size:13px;text-align:center;direction:rtl;">آخر {{params.hours}} ساعة · {{params.generated_at}}</p>
+
+                <table role="presentation" dir="rtl" width="100%" cellpadding="0" cellspacing="0" border="0" style="direction:rtl;margin:0 0 18px;">
+                  <tr>
+                    <td dir="rtl" width="25%" style="padding:10px;background:#f7f3ec;border-radius:12px;text-align:center;">
+                      <div style="font-size:22px;font-weight:800;color:#9b6a2f;">{{params.new_registrations}}</div>
+                      <div style="font-size:11px;color:#6b6259;">تسجيل جديد</div>
+                    </td>
+                    <td width="8"></td>
+                    <td dir="rtl" width="25%" style="padding:10px;background:#f7f3ec;border-radius:12px;text-align:center;">
+                      <div style="font-size:22px;font-weight:800;color:#9b6a2f;">{{params.expiring_soon}}</div>
+                      <div style="font-size:11px;color:#6b6259;">قرب الانتهاء</div>
+                    </td>
+                    <td width="8"></td>
+                    <td dir="rtl" width="25%" style="padding:10px;background:#f7f3ec;border-radius:12px;text-align:center;">
+                      <div style="font-size:22px;font-weight:800;color:#9b6a2f;">{{params.expired_or_stopped}}</div>
+                      <div style="font-size:11px;color:#6b6259;">منتهي/موقوف</div>
+                    </td>
+                    <td width="8"></td>
+                    <td dir="rtl" width="25%" style="padding:10px;background:#f7f3ec;border-radius:12px;text-align:center;">
+                      <div style="font-size:22px;font-weight:800;color:#9b6a2f;">{{params.renewal_events}}</div>
+                      <div style="font-size:11px;color:#6b6259;">تجديد/تمديد</div>
+                    </td>
+                  </tr>
+                </table>
+
+                <h3 dir="rtl" style="margin:0 0 8px;font-size:15px;direction:rtl;text-align:right;">التسجيلات الجديدة</h3>
+                <div dir="rtl" style="margin:0 0 16px;padding:12px 14px;background:#faf7f2;border-radius:12px;direction:rtl;text-align:right;line-height:1.8;font-size:13px;">{{params.registrations_html}}</div>
+
+                <h3 dir="rtl" style="margin:0 0 8px;font-size:15px;direction:rtl;text-align:right;">تنبيهات وتوقف المنصة</h3>
+                <div dir="rtl" style="margin:0 0 16px;padding:12px 14px;background:#faf7f2;border-radius:12px;direction:rtl;text-align:right;line-height:1.8;font-size:13px;">{{params.alerts_html}}</div>
+
+                <h3 dir="rtl" style="margin:0 0 8px;font-size:15px;direction:rtl;text-align:right;">طلبات/عمليات التجديد</h3>
+                <div dir="rtl" style="margin:0 0 16px;padding:12px 14px;background:#faf7f2;border-radius:12px;direction:rtl;text-align:right;line-height:1.8;font-size:13px;">{{params.renewals_html}}</div>
+
+                <div style="text-align:center;margin:20px 0 0;">
+                  <a href="{{params.admin_url}}" style="display:inline-block;background:#9b6a2f;color:#fff;text-decoration:none;padding:11px 20px;border-radius:999px;font-weight:700;">فتح لوحة الإدارة</a>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

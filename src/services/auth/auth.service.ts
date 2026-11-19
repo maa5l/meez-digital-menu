@@ -16,7 +16,7 @@ import {
   ensureVenueRecordForOwner,
   fetchUserProfile,
 } from "@/services/auth/profile-supabase.service";
-import { usesSupabaseAuth } from "@/config/env";
+import { resolveAppOrigin, usesSupabaseAuth } from "@/config/env";
 import { logger } from "@/lib/logger";
 import {
   ensureSubscriptionRecord,
@@ -408,6 +408,58 @@ export async function signUp(
 }
 
 export { usesSupabaseAuth };
+
+/** يرسل رمز إعادة تعيين كلمة المرور (6 أرقام) عبر بريد Auth/Brevo */
+export async function sendPasswordResetOtp(email: string): Promise<void> {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
+    throw new Error("إعادة التعيين تتطلب Supabase Auth مفعّلاً.");
+  }
+
+  const { error } = await getSupabase().auth.resetPasswordForEmail(normalizedEmail, {
+    redirectTo: `${resolveAppOrigin()}/auth?mode=reset`,
+  });
+  if (error) throw mapPasswordAuthError(error);
+  logger.audit("auth.password_reset_requested", { email: normalizedEmail });
+}
+
+/** التحقق من رمز الاستعادة وتعيين كلمة مرور جديدة */
+export async function confirmPasswordReset(
+  email: string,
+  otp: string,
+  newPassword: string,
+): Promise<void> {
+  const normalizedEmail = email.trim().toLowerCase();
+  const token = otp.trim();
+
+  if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
+    throw new Error("إعادة التعيين تتطلب Supabase Auth مفعّلاً.");
+  }
+
+  const supabase = getSupabase();
+  const { data, error } = await supabase.auth.verifyOtp({
+    email: normalizedEmail,
+    token,
+    type: "recovery",
+  });
+  if (error) {
+    const msg = error.message?.toLowerCase() ?? "";
+    if (msg.includes("token") || msg.includes("otp") || msg.includes("expired")) {
+      throw new Error("رمز التحقق غير صحيح أو منتهي. اطلب رمزاً جديداً.");
+    }
+    throw mapPasswordAuthError(error);
+  }
+  if (!data.session) {
+    throw new Error("تعذّر التحقق من الرمز. حاول مرة أخرى.");
+  }
+
+  const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+  if (updateError) throw mapPasswordAuthError(updateError);
+
+  syncSessionFromSupabase(data.session);
+  await afterSupabaseAuth(data.session);
+  logger.audit("auth.password_reset_completed", { email: normalizedEmail });
+}
 
 export async function signOut(): Promise<void> {
   logger.audit("auth.logout");
