@@ -39,30 +39,75 @@ async function repairSignupTrialIfNeeded(user: User): Promise<void> {
   }
 }
 
-async function hydrateVenueForUser(userId: string, venueName?: string): Promise<void> {
-  if (shouldUseVenueDatabase()) {
-    const { hydrateVenueFromIdbIfNeeded, pullVenueFromCloudDetailed } = await import(
-      "@/lib/venue-store"
-    );
-    await hydrateVenueFromIdbIfNeeded(userId);
-    // محاولة أولى + إعادة عند فشل السحب (timeout) — بدون إنشاء منيو فارغ يُرفع فوق البيانات
-    let outcome = await pullVenueFromCloudDetailed(userId, true);
-    if (outcome.pullFailed || (isVenueEffectivelyEmpty(outcome.venue) && outcome.remoteUpdatedAt)) {
-      await new Promise((r) => setTimeout(r, 800));
-      outcome = await pullVenueFromCloudDetailed(userId, true);
-    }
-    if (!isVenueEffectivelyEmpty(outcome.venue)) return;
+const hydrateVenueInFlight = new Map<string, Promise<void>>();
+const hydrateVenueDoneAt = new Map<string, number>();
+const HYDRATE_COOLDOWN_MS = 45_000;
 
-    // سحابة موجودة لكن السحب فشل: لا تلمس شيئاً ولا تُنشئ فارغاً
-    if (outcome.pullFailed || outcome.remoteUpdatedAt) return;
-
-    const existing = loadVenueData(userId);
-    if (existing.version === 1 && !isVenueEffectivelyEmpty(existing)) return;
-    // حساب جديد فعلاً بلا صف سحابي — محلي فقط
-    initializeVenueForUser(userId, venueName);
+async function hydrateVenueForUser(
+  userId: string,
+  venueName?: string,
+  opts?: { force?: boolean },
+): Promise<void> {
+  const force = opts?.force === true;
+  const recent = hydrateVenueDoneAt.get(userId) ?? 0;
+  if (!force && Date.now() - recent < HYDRATE_COOLDOWN_MS) {
     return;
   }
-  initializeVenueForUser(userId, venueName);
+
+  const existingRun = hydrateVenueInFlight.get(userId);
+  if (existingRun) {
+    await existingRun;
+    return;
+  }
+
+  const run = (async () => {
+    if (shouldUseVenueDatabase()) {
+      const {
+        countVenueProductImages,
+        hydrateVenueFromIdbIfNeeded,
+        pullVenueFromCloudDetailed,
+      } = await import("@/lib/venue-store");
+      await hydrateVenueFromIdbIfNeeded(userId);
+
+      const local = loadVenueData(userId);
+      const localReady =
+        !isVenueEffectivelyEmpty(local) &&
+        (local.products.length === 0 || countVenueProductImages(local) > 0);
+
+      // إذا المحلي جاهز: سحب خفيف يعتمد على updated_at بدل إعادة تنزيل 3MB
+      let outcome = await pullVenueFromCloudDetailed(userId, force || !localReady);
+      if (
+        outcome.pullFailed ||
+        (isVenueEffectivelyEmpty(outcome.venue) && outcome.remoteUpdatedAt)
+      ) {
+        await new Promise((r) => setTimeout(r, 800));
+        outcome = await pullVenueFromCloudDetailed(userId, true);
+      }
+      if (!isVenueEffectivelyEmpty(outcome.venue)) {
+        hydrateVenueDoneAt.set(userId, Date.now());
+        return;
+      }
+
+      // سحابة موجودة لكن السحب فشل: لا تلمس شيئاً ولا تُنشئ فارغاً
+      if (outcome.pullFailed || outcome.remoteUpdatedAt) return;
+
+      const existing = loadVenueData(userId);
+      if (existing.version === 1 && !isVenueEffectivelyEmpty(existing)) return;
+      // حساب جديد فعلاً بلا صف سحابي — محلي فقط
+      initializeVenueForUser(userId, venueName);
+      return;
+    }
+    initializeVenueForUser(userId, venueName);
+  })();
+
+  hydrateVenueInFlight.set(userId, run);
+  try {
+    await run;
+  } finally {
+    if (hydrateVenueInFlight.get(userId) === run) {
+      hydrateVenueInFlight.delete(userId);
+    }
+  }
 }
 
 async function syncAccountWithVenue(userId: string): Promise<void> {
@@ -115,7 +160,9 @@ async function afterSupabaseAuth(session: Session, venueName?: string): Promise<
     runAuthStep("ensure_venue", userId, () => ensureVenueRecordForOwner()),
   ]);
 
-  await runAuthStep("hydrate_venue", userId, () => hydrateVenueForUser(userId, metaVenue));
+  await runAuthStep("hydrate_venue", userId, () =>
+    hydrateVenueForUser(userId, metaVenue, { force: true }),
+  );
   await runAuthStep("sync_account_venue", userId, () => syncAccountWithVenue(userId));
 }
 
@@ -210,11 +257,10 @@ export async function getActiveSession(): Promise<AuthSession | null> {
       const userId = data.session.user.id;
       const venueName =
         (data.session.user.user_metadata?.venue_name as string | undefined) ?? "";
-      // لا تُفشل الجلسة بسبب hydrate — وإلا تبقى /admin عالقة على شاشة فارغة
+      // سحب خفيف فقط عند استعادة الجلسة — تجنّب إعادة تنزيل المنيو الثقيلة في كل تنقّل
       await runAuthStep("hydrate_venue", userId, () =>
-        hydrateVenueForUser(userId, venueName || undefined),
+        hydrateVenueForUser(userId, venueName || undefined, { force: false }),
       );
-      await runAuthStep("sync_account_venue", userId, () => syncAccountWithVenue(userId));
     }
     return syncSessionFromSupabase(data.session);
   }

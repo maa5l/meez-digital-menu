@@ -14,7 +14,6 @@ import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { debounce, throttle } from "@/lib/throttle";
 import { logger } from "@/lib/logger";
 import {
-  ensureLocalVenueUploadedToCloud,
   getCurrentUserId,
   hydrateVenueFromIdbIfNeeded,
   loadCurrentVenueData,
@@ -152,10 +151,16 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
       if (cancelled || !mountedRef.current) return;
       await hydrateVenueFromIdbIfNeeded(authUserId);
       if (mountedRef.current) setData(loadCurrentVenueData());
-      await refreshFromCloud(true);
-      if (cancelled || !mountedRef.current) return;
       let local = loadCurrentVenueData();
       let empty =
+        local.products.length === 0 &&
+        local.categories.length === 0 &&
+        local.crops.length === 0;
+      // محلي جاهز: سحب خلفي بدون force (يعتمد updated_at) بدل إعادة تنزيل 3MB
+      await refreshFromCloud(!empty ? false : true);
+      if (cancelled || !mountedRef.current) return;
+      local = loadCurrentVenueData();
+      empty =
         local.products.length === 0 &&
         local.categories.length === 0 &&
         local.crops.length === 0;
@@ -164,19 +169,6 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
         await new Promise((r) => setTimeout(r, 1200));
         if (cancelled || !mountedRef.current) return;
         await refreshFromCloud(true);
-        if (cancelled || !mountedRef.current) return;
-        local = loadCurrentVenueData();
-        empty =
-          local.products.length === 0 &&
-          local.categories.length === 0 &&
-          local.crops.length === 0;
-        if (empty) {
-          await new Promise((r) => setTimeout(r, 2000));
-          if (!cancelled && mountedRef.current) await refreshFromCloud(true);
-        }
-      } else {
-        // جهاز فيه منتجات (غالباً البي سي): ارفعها فوراً لتظهر على الجوال
-        await ensureLocalVenueUploadedToCloud(authUserId);
       }
     })();
     return () => {
