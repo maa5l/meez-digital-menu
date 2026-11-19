@@ -203,10 +203,10 @@ export function markVenueRemoteSynced(userId: string, updatedAt: string | null):
 const pendingCloudSave = new Map<string, VenueData>();
 const cloudSaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const cloudSaveInFlight = new Map<string, Promise<void>>();
-const CLOUD_SAVE_DEBOUNCE_MS = 800;
+const CLOUD_SAVE_DEBOUNCE_MS = 1000;
 const CLOUD_SAVE_MAX_ATTEMPTS = 2;
-/** أقصر من السابق حتى لا تتكدّس طلبات تتنافس على قفل venues */
-const CLOUD_SAVE_TIMEOUT_MS = 12_000;
+/** أطول من مهلة Postgres (60s) بقليل — المنيو الكبير يحتاج وقت نقل */
+const CLOUD_SAVE_TIMEOUT_MS = 70_000;
 
 function withTimeout<T>(work: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
