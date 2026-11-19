@@ -11,6 +11,7 @@ type Props = {
   lang: MenuLang;
   accentColor: string;
   fallbackTextColor: string;
+  themeCardColor?: string;
   featured?: boolean;
   onClose: () => void;
 };
@@ -21,6 +22,7 @@ const CropCardPopup = ({
   lang,
   accentColor,
   fallbackTextColor,
+  themeCardColor,
   featured,
   onClose,
 }: Props) => {
@@ -75,6 +77,7 @@ const CropCardPopup = ({
           lang={lang}
           accentColor={accentColor}
           fallbackTextColor={fallbackTextColor}
+          themeCardColor={themeCardColor}
           featured={featured}
           variant="popup"
           className="aspect-[3/4] max-h-[min(78dvh,560px)] w-full shadow-2xl"

@@ -141,7 +141,7 @@ const InfoRow = ({
             value={valueText}
             fallback={fallbackSide}
             className={cn(
-              "menu-text text-[#1a1a1a] leading-snug",
+              "menu-text text-[color:var(--menu-ink,#1a1a1a)] leading-snug",
               valueSizeCls,
               clamp && "line-clamp-3 opacity-85",
             )}
@@ -149,7 +149,7 @@ const InfoRow = ({
         ) : (
           <div
             className={cn(
-              "menu-text flex w-full text-[#1a1a1a] leading-snug",
+              "menu-text flex w-full text-[color:var(--menu-ink,#1a1a1a)] leading-snug",
               valueSizeCls,
               clamp && "line-clamp-3 opacity-85",
               valueSide === "right" ? "justify-end text-right" : "justify-start text-left",
@@ -200,11 +200,11 @@ function ProductCardFooterCompact({
   const localized = localizeProduct(product, lang);
   const isEn = lang === "en";
 
-  const labelCls = "text-[8px] font-bold leading-none tracking-wide text-[#1a1a1a]/50";
+  const labelCls = "text-[8px] font-bold leading-none tracking-wide text-[color:color-mix(in_srgb,var(--menu-ink,#1a1a1a)_50%,transparent)]";
   const nameValueCls =
-    "block w-full min-w-0 text-[11px] font-bold leading-snug text-[#1a1a1a] line-clamp-2 break-words";
-  const primaryCls = "min-h-[1.15rem] text-[11px] font-black leading-none text-[#1a1a1a]";
-  const secondaryCls = "text-[10px] font-bold leading-snug text-[#1a1a1a]";
+    "block w-full min-w-0 text-[11px] font-bold leading-snug text-[color:var(--menu-ink,#1a1a1a)] line-clamp-2 break-words";
+  const primaryCls = "min-h-[1.15rem] text-[11px] font-black leading-none text-[color:var(--menu-ink,#1a1a1a)]";
+  const secondaryCls = "text-[10px] font-bold leading-snug text-[color:var(--menu-ink,#1a1a1a)]";
 
   const cellCls = (side: "right" | "left") =>
     cn(
@@ -331,8 +331,8 @@ export const ProductCardFooter = ({
 
   if (layout === "panel") {
     const labelCls = "text-[9px] font-bold leading-none opacity-55 md:text-[10px]";
-    const valueCls = "mt-0.5 text-xs font-black leading-snug text-[#1a1a1a] md:text-sm";
-    const secondaryCls = "mt-0.5 text-[10px] font-semibold leading-snug text-[#1a1a1a] md:text-xs";
+    const valueCls = "mt-0.5 text-xs font-black leading-snug text-[color:var(--menu-ink,#1a1a1a)] md:text-sm";
+    const secondaryCls = "mt-0.5 text-[10px] font-semibold leading-snug text-[color:var(--menu-ink,#1a1a1a)] md:text-xs";
 
     const panelField = (
       label: string,
@@ -364,7 +364,7 @@ export const ProductCardFooter = ({
     );
 
     return (
-      <div className="px-3 pb-3 pt-2 md:px-4 md:pb-4" style={{ background: cardBg, color: "#1a1a1a" }}>
+      <div className="px-3 pb-3 pt-2 md:px-4 md:pb-4" style={{ background: cardBg, color: "var(--menu-ink, #1a1a1a)" }}>
         <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 md:gap-x-4" dir="ltr">
           {isEn ? (
             <>
@@ -432,7 +432,7 @@ export const ProductCardFooter = ({
   }
 
   return (
-    <div className="px-3 md:px-4 pb-3 md:pb-4 pt-1.5" style={{ background: cardBg, color: "#1a1a1a" }}>
+    <div className="px-3 md:px-4 pb-3 md:pb-4 pt-1.5" style={{ background: cardBg, color: "var(--menu-ink, #1a1a1a)" }}>
       <div className="grid grid-cols-2 gap-x-3 gap-y-2.5" dir="ltr">
         {isEn ? (
           <>
@@ -528,15 +528,15 @@ export const ProductModalDetails = ({
   const isEn = lang === "en";
 
   const labelCls =
-    "menu-text text-xs font-bold leading-normal text-[#1a1a1a]/55 md:text-sm";
+    "menu-text text-xs font-bold leading-normal text-[color:color-mix(in_srgb,var(--menu-ink,#1a1a1a)_55%,transparent)] md:text-sm";
   const nameCls =
-    "menu-text font-display text-base font-black leading-tight text-[#1a1a1a] md:text-lg";
+    "menu-text font-display text-base font-black leading-tight text-[color:var(--menu-ink,#1a1a1a)] md:text-lg";
   const valueCls =
-    "menu-text text-lg font-black leading-tight text-[#1a1a1a] md:text-xl";
+    "menu-text text-lg font-black leading-tight text-[color:var(--menu-ink,#1a1a1a)] md:text-xl";
   const secondaryCls =
-    "menu-text text-base font-bold leading-normal text-[#1a1a1a] md:text-lg";
+    "menu-text text-base font-bold leading-normal text-[color:var(--menu-ink,#1a1a1a)] md:text-lg";
   const bodyCls =
-    "menu-text text-base leading-relaxed text-[#1a1a1a]/85 md:text-[16px] md:leading-relaxed";
+    "menu-text text-base leading-relaxed text-[color:color-mix(in_srgb,var(--menu-ink,#1a1a1a)_85%,transparent)] md:text-[16px] md:leading-relaxed";
   const sectionMt = dense
     ? "mt-3.5 border-t border-black/10 pt-3.5 md:mt-4 md:pt-4"
     : "mt-4 border-t border-black/10 pt-4 md:mt-5 md:pt-5";
@@ -551,7 +551,7 @@ export const ProductModalDetails = ({
     );
 
   return (
-    <div className="text-[#1a1a1a]" dir={isEn ? "ltr" : "rtl"}>
+    <div className="text-[color:var(--menu-ink,#1a1a1a)]" dir={isEn ? "ltr" : "rtl"}>
       <div className={cn("grid grid-cols-2", gridGap)} dir="ltr">
         {isEn ? (
           <>
@@ -760,18 +760,18 @@ export const ProductListCard = ({
   const infoBlock = (
     <div className="flex min-h-[80px] min-w-0 flex-1 flex-col justify-center py-0.5">
       <div className="grid w-full grid-cols-2 grid-rows-2 gap-x-2 gap-y-2" dir="ltr">
-        <h3 className="menu-text col-start-1 row-start-1 line-clamp-2 self-start text-left font-black text-sm leading-tight text-[#1a1a1a]">
+        <h3 className="menu-text col-start-1 row-start-1 line-clamp-2 self-start text-left font-black text-sm leading-tight text-[color:var(--menu-ink,#1a1a1a)]">
           {localized.name}
         </h3>
         <div className="col-start-2 row-start-1 flex justify-end self-start">
           <PriceWithRiyal
             price={product.price}
-            className="menu-text font-black text-sm text-[#1a1a1a]"
+            className="menu-text font-black text-sm text-[color:var(--menu-ink,#1a1a1a)]"
             riyalClassName="h-3.5 w-3.5"
           />
         </div>
         <div className="col-start-1 row-start-2 flex items-end justify-start self-end">
-          <span className="menu-text inline-flex items-center gap-1 font-bold text-sm text-[#1a1a1a]/85">
+          <span className="menu-text inline-flex items-center gap-1 font-bold text-sm text-[color:color-mix(in_srgb,var(--menu-ink,#1a1a1a)_85%,transparent)]">
             <Flame className="h-3.5 w-3.5 shrink-0 text-orange-500" />
             {product.calories}
           </span>
@@ -782,7 +782,7 @@ export const ProductListCard = ({
             allergensEn={product.allergensEn}
             lang={lang}
             className="justify-end"
-            emptyPlaceholder={<span className="text-xs font-bold text-[#1a1a1a]/35">—</span>}
+            emptyPlaceholder={<span className="text-xs font-bold text-[color:color-mix(in_srgb,var(--menu-ink,#1a1a1a)_35%,transparent)]">—</span>}
           />
         </div>
       </div>

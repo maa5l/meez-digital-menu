@@ -80,7 +80,7 @@ const ProductCenteredCard = ({
   const heroImage = getProductLandscapeImage(product) || getProductPortraitImage(product);
 
   const labelCls = "text-[10px] font-bold leading-none opacity-55 md:text-[11px]";
-  const valueCls = "mt-0.5 text-sm font-black leading-snug text-[#1a1a1a] md:text-base";
+  const valueCls = "mt-0.5 text-sm font-black leading-snug text-[color:var(--menu-ink,#1a1a1a)] md:text-base";
 
   return (
     <article
@@ -113,7 +113,7 @@ const ProductCenteredCard = ({
       {/* قسم التفاصيل — مضغوط حسب المحتوى */}
       <div
         className="shrink-0 border-t border-black/[0.06]"
-        style={{ background: cardBg, color: "#1a1a1a" }}
+        style={{ background: cardBg, color: "var(--menu-ink, #1a1a1a)" }}
       >
         <div className="px-3.5 py-2.5 md:px-4 md:py-3">
           <div className="grid grid-cols-2 grid-rows-2 gap-x-3 gap-y-2 md:gap-x-4 md:gap-y-2.5" dir="ltr">
@@ -159,7 +159,7 @@ const ProductCenteredCard = ({
               <ScriptAlignedText
                 value={localized.description}
                 fallback={textFallback}
-                className="mt-0.5 line-clamp-2 text-xs font-semibold leading-snug text-[#1a1a1a]/85 md:text-sm"
+                className="mt-0.5 line-clamp-2 text-xs font-semibold leading-snug text-[color:color-mix(in_srgb,var(--menu-ink,#1a1a1a)_85%,transparent)] md:text-sm"
               />
             </div>
           )}

@@ -557,6 +557,33 @@ function HeaderSection({
       </ThemeCard>
 
       <ThemeCard>
+        <p className="mb-3 text-sm font-bold text-primary">ألوان الهيدر</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ColorPickerField
+            label="خلفية الهيدر"
+            value={header.headerBgColor || `${textColorFallback}18`}
+            onChange={(v) => onPatch({ headerBgColor: v })}
+          />
+          <ColorPickerField
+            label="نص الهيدر"
+            value={header.headerTextColor || textColorFallback}
+            onChange={(v) => onPatch({ headerTextColor: v })}
+          />
+        </div>
+        {(header.headerBgColor || header.headerTextColor) && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="mt-2"
+            onClick={() => onPatch({ headerBgColor: undefined, headerTextColor: undefined })}
+          >
+            إعادة ألوان الهيدر للافتراضي
+          </Button>
+        )}
+      </ThemeCard>
+
+      <ThemeCard>
         <ThemeFieldGroup
           label="مسببات الحساسية في الهيدر"
           hint="كل المسببات متاحة للاختيار — أيقونات صغيرة ثابتة في وسط أعلى المنيو"

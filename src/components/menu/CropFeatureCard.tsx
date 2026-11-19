@@ -8,6 +8,7 @@ type Props = {
   lang: MenuLang;
   accentColor: string;
   fallbackTextColor: string;
+  themeCardColor?: string;
   featured?: boolean;
   className?: string;
   onOpen?: () => void;
@@ -19,6 +20,7 @@ const CropFeatureCard = ({
   lang,
   accentColor,
   fallbackTextColor,
+  themeCardColor,
   featured,
   className,
   onOpen,
@@ -28,6 +30,7 @@ const CropFeatureCard = ({
     lang={lang}
     accentColor={accentColor}
     fallbackTextColor={fallbackTextColor}
+    themeCardColor={themeCardColor}
     featured={featured}
     variant="feature"
     onClick={onOpen}

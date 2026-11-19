@@ -115,12 +115,20 @@ export function getCropsPalette(settings: MenuSettings): MenuPalette {
 
 export function palettePageStyle(palette: MenuPalette): CSSProperties {
   const cleaned = cleanPalette(palette);
+  const card = cleaned.cardColor?.trim() || cleaned.bgColor;
+  const themeVars: CSSProperties = {
+    ["--menu-bg" as string]: cleaned.bgColor,
+    ["--menu-ink" as string]: cleaned.textColor,
+    ["--menu-accent" as string]: cleaned.accentColor,
+    ["--menu-card" as string]: card,
+  };
   return cleaned.bgImage
     ? {
+        ...themeVars,
         backgroundImage: `linear-gradient(${cleaned.bgColor}cc, ${cleaned.bgColor}ee), url(${cleaned.bgImage})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         color: cleaned.textColor,
       }
-    : { background: cleaned.bgColor, color: cleaned.textColor };
+    : { ...themeVars, background: cleaned.bgColor, color: cleaned.textColor };
 }
