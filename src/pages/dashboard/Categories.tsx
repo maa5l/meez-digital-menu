@@ -129,7 +129,7 @@ const Categories = () => {
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label>اسم التصنيف (عربي)</Label>
+                <Label>اسم التصنيف بالعربية</Label>
                 <Input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}

@@ -238,7 +238,7 @@ const Products = () => {
   const productForm = (
     <>
       <div className="grid grid-cols-2 gap-4 py-2">
-        <FieldP label="اسم المنتج (عربي)" value={name} onChange={setName} />
+        <FieldP label="اسم المنتج بالعربية" value={name} onChange={setName} />
         <FieldP label="Product Name (English)" value={nameEn} onChange={setNameEn} ltr />
         <div className="space-y-2">
           <Label className="text-xs">رقم الترتيب</Label>
@@ -254,7 +254,7 @@ const Products = () => {
           <p className="text-[11px] text-muted-foreground">الأصغر يظهر أولاً عند تفعيل الترتيب اليدوي في الثيم</p>
         </div>
         <div className="space-y-2 col-span-2">
-          <Label className="text-xs">الوصف (عربي)</Label>
+          <Label className="text-xs">الوصف بالعربية</Label>
           <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -327,7 +327,7 @@ const Products = () => {
               onChange={(e) => setHasBadge(e.target.checked)}
               className="w-4 h-4 accent-accent"
             />
-            <span className="font-bold text-sm">شارة في زاوية المنتج (اختياري)</span>
+            <span className="font-bold text-sm">شارة في زاوية المنتج — اختياري</span>
           </label>
           {hasBadge && (
             <div className="space-y-3 pt-1">
@@ -347,7 +347,7 @@ const Products = () => {
                 ))}
               </div>
               <FieldP
-                label="نص الشارة (عربي)"
+                label="نص الشارة بالعربية"
                 value={badgeText}
                 onChange={(v) => setBadgeText(v.slice(0, BADGE_TEXT_MAX))}
               />

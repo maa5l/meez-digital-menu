@@ -319,7 +319,7 @@ const Auth = () => {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="reset-otp">رمز التحقق (6 أرقام)</Label>
+        <Label htmlFor="reset-otp">رمز التحقق — 6 أرقام</Label>
         <Input
           id="reset-otp"
           name="otp"

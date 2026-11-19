@@ -226,7 +226,7 @@ function ThemeSectionContent({
           >
             <div className="flex flex-wrap gap-2">
               <ToggleChip
-                label="ترتيب يدوي (برقم)"
+                label="ترتيب يدوي برقم"
                 checked={(settings.productsOrderMode ?? "manual") === "manual"}
                 onChange={() => update({ ...settings, productsOrderMode: "manual" })}
               />
@@ -278,7 +278,7 @@ function ThemeSectionContent({
       return (
         <FeaturedSection
           title="منتج مميّز"
-          description="اختر منتجاً لإبرازه في المنيو (اختياري)"
+          description="اختر منتجاً لإبرازه في المنيو — اختياري"
           options={products.map((p) => ({ value: p.id, label: p.name }))}
           value={settings.featuredProductId || ""}
           onChange={(v) => update({ ...settings, featuredProductId: v || undefined })}
@@ -310,7 +310,7 @@ function ThemeSectionContent({
           >
             <div className="flex flex-wrap gap-2">
               <ToggleChip
-                label="ترتيب يدوي (برقم)"
+                label="ترتيب يدوي برقم"
                 checked={(settings.cropsOrderMode ?? "manual") === "manual"}
                 onChange={() => update({ ...settings, cropsOrderMode: "manual" })}
               />
@@ -518,7 +518,7 @@ function HeaderSection({
           onClear={header.logoImage ? () => onPatch({ logoImage: undefined }) : undefined}
         />
         <div className="mt-3">
-          <p className="mb-2 text-xs font-bold text-muted-foreground">موضع الشعار (ثابت — لا يتغير مع اللغة)</p>
+          <p className="mb-2 text-xs font-bold text-muted-foreground">موضع الشعار — ثابت ولا يتغير مع اللغة</p>
           <div className="flex flex-wrap gap-2">
             <ToggleChip
               label="يمين"

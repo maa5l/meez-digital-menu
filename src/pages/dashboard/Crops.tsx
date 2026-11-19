@@ -177,7 +177,7 @@ const Crops = () => {
             </DialogHeader>
             <div className="grid grid-cols-2 gap-4">
               <Field
-                label="اسم المحصول (عربي)"
+                label="اسم المحصول بالعربية"
                 value={form.beanName}
                 onChange={(v) => setForm({ ...form, beanName: v })}
               />
@@ -187,7 +187,7 @@ const Crops = () => {
                 onChange={(v) => setForm({ ...form, beanNameEn: v })}
               />
               <Field
-                label="البلد (عربي)"
+                label="البلد بالعربية"
                 value={form.country}
                 onChange={(v) => setForm({ ...form, country: v })}
               />
@@ -207,7 +207,7 @@ const Crops = () => {
                 onChange={(v) => setForm({ ...form, processEn: v })}
               />
               <Field
-                label="السلالة (عربي)"
+                label="السلالة بالعربية"
                 value={form.variety}
                 onChange={(v) => setForm({ ...form, variety: v })}
               />
@@ -246,7 +246,7 @@ const Crops = () => {
                 onChange={(v) => setForm({ ...form, textColor: v })}
               />
               <Field
-                label="الإيحاءات (عربي)"
+                label="الإيحاءات بالعربية"
                 value={form.notes}
                 onChange={(v) => setForm({ ...form, notes: v })}
               />
