@@ -416,4 +416,11 @@ export async function signOut(): Promise<void> {
     await getSupabase().auth.signOut();
   }
   clearSession();
+  try {
+    const { clearLastVenueOwner, clearVenueMemoryCache } = await import("@/lib/venue-store");
+    clearLastVenueOwner();
+    clearVenueMemoryCache();
+  } catch {
+    /* ignore */
+  }
 }

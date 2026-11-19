@@ -14,6 +14,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/client";
 import { debounce, throttle } from "@/lib/throttle";
 import { logger } from "@/lib/logger";
 import {
+  createEmptyVenueData,
   getCurrentUserId,
   hydrateVenueFromIdbIfNeeded,
   loadCurrentVenueData,
@@ -22,7 +23,6 @@ import {
   refreshDeviceVenueSync,
   saveCurrentVenueData,
   patchVenueDataLocalOnly,
-  resolveOwnerUserId,
   syncDeviceActivationsToCloud,
 } from "@/lib/venue-store";
 import { invalidateOwnerVenueCache } from "@/services/venue/venue-supabase.service";
@@ -42,10 +42,12 @@ type VenueDataContextValue = {
 const VenueDataContext = createContext<VenueDataContextValue | null>(null);
 
 export function VenueDataProvider({ children }: { children: ReactNode }) {
-  // للسحب/الرفع السحابي: جلسة الدخول فقط — لا LAST_VENUE_OWNER (كان يطلق RPC بدون JWT)
+  // للسحب/الرفع والسحب المحلي: جلسة الدخول فقط — لا LAST_VENUE_OWNER (وميض منيو حساب آخر)
   const authUserId = getCurrentUserId();
-  const userId = authUserId ?? resolveOwnerUserId();
-  const [data, setData] = useState<VenueData>(() => loadCurrentVenueData());
+  const userId = authUserId;
+  const [data, setData] = useState<VenueData>(() =>
+    authUserId ? loadCurrentVenueData() : createEmptyVenueData(),
+  );
   // ابدأ من الكاش المحلي فوراً — السحب من السحابة في الخلفية دون حجب الواجهة
   const [loading, setLoading] = useState(false);
   const mountedRef = useRef(true);
@@ -238,7 +240,7 @@ export function VenueDataProvider({ children }: { children: ReactNode }) {
   );
 
   const updateLocalOnly = useCallback((patch: (prev: VenueData) => VenueData) => {
-    const ownerId = resolveOwnerUserId();
+    const ownerId = getCurrentUserId();
     if (!ownerId) return;
     try {
       const next = patchVenueDataLocalOnly(ownerId, patch);

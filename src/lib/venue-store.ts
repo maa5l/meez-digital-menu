@@ -123,6 +123,20 @@ export function rememberOwnerUserId(userId: string): void {
   setLocalJson(STORAGE_KEYS.LAST_VENUE_OWNER, userId);
 }
 
+export function clearLastVenueOwner(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(STORAGE_KEYS.LAST_VENUE_OWNER);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** يمسح كاش الذاكرة حتى لا تومض منيو حساب سابق بعد الخروج/تبديل الحساب */
+export function clearVenueMemoryCache(): void {
+  venueMemoryCache.clear();
+}
+
 /** جلسة حالية أو آخر مالك — للمعاينة في تبويب جديد */
 export function resolveOwnerUserId(): string | null {
   return getCurrentUserId() ?? getLocalJson<string | null>(STORAGE_KEYS.LAST_VENUE_OWNER, null);
@@ -740,16 +754,16 @@ export function getDeviceOwnerUserId(deviceCode: string): string | null {
 
 export function loadVenueForDevice(deviceCode: string): VenueData {
   const code = deviceCode.trim().toUpperCase();
-  const ownerId = getDeviceOwnerUserId(code);
-  if (ownerId) return loadVenueData(ownerId);
-
   const snap = getLocalJson<{ ownerUserId?: string; venue?: VenueData } | null>(
     `${DEVICE_VENUE_PREFIX}${code}`,
     null,
   );
+  // كاش الجهاز أولاً — لا تعرض meez:venue لمالك آخر بالخطأ
   if (snap?.venue?.version === 1) {
     return normalizeVenue(snap.venue);
   }
+  const ownerId = snap?.ownerUserId || getDeviceOwnerUserId(code);
+  if (ownerId) return loadVenueData(ownerId);
   return createEmptyVenueData();
 }
 
@@ -791,9 +805,10 @@ export async function syncVenueForDeviceIfStale(
     if (remote?.version === 1) {
       const normalized = compactVenueForLocalStorage(normalizeVenue(remote));
       const ownerId = getDeviceOwnerUserId(code);
-      if (ownerId) saveVenueDataLocal(ownerId, normalized);
+      // لا تكتب منيو الجهاز فوق meez:venue:{owner} — كانت تسبب وميض منيو ثانية/تلوث كاش المالك
       setLocalJson(`${DEVICE_VENUE_PREFIX}${code}`, {
-        ...(ownerId ? { ownerUserId: ownerId } : { venue: normalized }),
+        ...(ownerId ? { ownerUserId: ownerId } : {}),
+        venue: normalized,
         syncedAt: new Date().toISOString(),
         remoteUpdatedAt: remoteUpdatedAt ?? undefined,
       });
