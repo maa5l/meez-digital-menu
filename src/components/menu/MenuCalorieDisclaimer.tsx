@@ -106,43 +106,54 @@ const MenuCalorieDisclaimer = ({
         menuChromeMotion,
         className,
       )}
-      dir="ltr"
+      dir={lang === "ar" ? "rtl" : "ltr"}
     >
       {L.cards.map(({ id, Icon, label, value, unit, detail }) => (
         <li
           key={id}
           aria-label={detail}
           className={cn(
-            "flex shrink-0 items-center rounded-md bg-white/20",
-            compact ? "w-[4.55rem] gap-0.5 px-1 py-px" : "w-full gap-1.5 px-2.5 py-1.5",
+            "shrink-0 rounded-lg bg-white/20",
+            compact ? "w-[4.55rem] px-1 py-0.5" : "w-full px-2.5 py-1.5",
           )}
         >
-          <Icon
-            className={compact ? "h-2.5 w-2.5 shrink-0" : "h-4 w-4 shrink-0"}
-            strokeWidth={2.25}
-            style={{ color: textColor }}
-            aria-hidden
-          />
-          <span
-            className={cn(
-              "min-w-0 flex-1 truncate font-bold leading-none",
-              compact ? "text-[7px]" : "text-[11px]",
-            )}
-            style={{ color: textColor }}
-          >
-            {label}
-          </span>
-          <span
+          <div className="flex items-center gap-0.5">
+            <Icon
+              className={compact ? "h-2.5 w-2.5 shrink-0" : "h-4 w-4 shrink-0"}
+              strokeWidth={2.25}
+              style={{ color: textColor }}
+              aria-hidden
+            />
+            <span
+              className={cn(
+                "min-w-0 truncate font-bold leading-none",
+                compact ? "text-[7px]" : "text-[11px]",
+              )}
+              style={{ color: textColor }}
+            >
+              {label}
+            </span>
+          </div>
+          <div
             dir="ltr"
             className={cn(
-              "shrink-0 font-black leading-none tracking-tight",
-              compact ? "text-[8px]" : "text-sm",
+              "mt-0.5 font-black leading-none tracking-tight",
+              lang === "ar" ? "text-right" : "text-left",
+              compact ? "text-[10px]" : "text-sm",
             )}
             style={{ color: textColor }}
           >
             {value}
-          </span>
-          <span className="sr-only">{unit}</span>
+          </div>
+          <div
+            className={cn(
+              "mt-0.5 font-semibold leading-none opacity-80",
+              compact ? "text-[6px]" : "text-[10px]",
+            )}
+            style={{ color: textColor }}
+          >
+            {unit}
+          </div>
         </li>
       ))}
     </ul>
