@@ -105,7 +105,7 @@ const MenuHeaderChromeRow = ({
       <div
         key={lang}
         className={cn(
-          "flex w-full flex-col gap-[18px]",
+          "flex w-full flex-col gap-8",
           menuChromeMotion,
           "animate-in fade-in duration-300 fill-mode-both motion-reduce:animate-none",
           className,

@@ -29,7 +29,7 @@ export function getBoardHeaderMetrics(viewportWidth: number) {
 
 function boardChromeMinPx(viewportWidth: number, hasAllergens: boolean): number {
   const metrics = getBoardHeaderMetrics(viewportWidth);
-  const strip = hasAllergens ? 18 + 64 : 0;
+  const strip = hasAllergens ? 32 + 64 : 0;
   const row = Math.max(metrics.rowPx, 112);
   return metrics.paddingTop + row + strip + metrics.paddingBottom;
 }
