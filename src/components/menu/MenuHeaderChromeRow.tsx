@@ -82,7 +82,7 @@ const MenuHeaderChromeRow = ({
   const showAllergens = resolveHeaderAllergenIds(customization.headerAllergens).length > 0;
 
   const allergens = showAllergens ? (
-    <div className="flex min-w-0 max-w-full justify-center overflow-hidden px-1">
+    <div className="flex min-w-0 justify-center overflow-hidden px-1">
       <MenuHeaderAllergenLegend
         allergenIds={customization.headerAllergens}
         color={allergenColor}
@@ -91,6 +91,10 @@ const MenuHeaderChromeRow = ({
     </div>
   ) : null;
 
+  const calorieSlot = (
+    <div className="w-[12.75rem] shrink-0 justify-self-stretch">{calories}</div>
+  );
+
   return (
     <div
       key={lang}
@@ -98,8 +102,8 @@ const MenuHeaderChromeRow = ({
         "grid w-full items-start gap-x-2 md:gap-x-3",
         showAllergens
           ? logoOnRight
-            ? "grid-cols-[minmax(0,1fr)_auto_auto]"
-            : "grid-cols-[auto_auto_minmax(0,1fr)]"
+            ? "grid-cols-[12.75rem_minmax(0,1fr)_auto]"
+            : "grid-cols-[auto_minmax(0,1fr)_12.75rem]"
           : logoOnRight
             ? "grid-cols-[minmax(0,1fr)_auto]"
             : "grid-cols-[auto_minmax(0,1fr)]",
@@ -111,7 +115,7 @@ const MenuHeaderChromeRow = ({
     >
       {logoOnRight ? (
         <>
-          <div className="min-w-0 overflow-hidden">{calories}</div>
+          {calorieSlot}
           {allergens}
           <div className="justify-self-end">{logo}</div>
         </>
@@ -119,7 +123,7 @@ const MenuHeaderChromeRow = ({
         <>
           <div className="justify-self-start">{logo}</div>
           {allergens}
-          <div className="min-w-0 overflow-hidden">{calories}</div>
+          {calorieSlot}
         </>
       )}
     </div>

@@ -100,9 +100,9 @@ const MenuCalorieDisclaimer = ({
   const cards = (
     <ul
       className={cn(
-        "grid w-full min-w-0 grid-cols-3",
-        compact ? "max-w-[22rem] gap-1" : "max-w-xl gap-2",
-        onRight ? "ml-auto" : "mr-auto",
+        "grid w-full grid-cols-3",
+        compact ? "gap-1" : "max-w-xl gap-2",
+        !compact && (onRight ? "ml-auto" : "mr-auto"),
         menuChromeMotion,
         className,
       )}
