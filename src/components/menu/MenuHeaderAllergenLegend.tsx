@@ -35,7 +35,7 @@ const MenuHeaderAllergenLegend = ({
       color={color}
       emptyPlaceholder={null}
       className={cn(
-        "max-h-[2.1rem] max-w-[min(100%,34rem)] flex-nowrap justify-center gap-px overflow-hidden sm:gap-0.5",
+        "max-h-[2.1rem] max-w-[min(100%,18rem)] flex-nowrap justify-center gap-px overflow-hidden sm:max-w-[min(100%,24rem)] sm:gap-0.5 md:max-w-[min(100%,28rem)]",
         className,
       )}
     />

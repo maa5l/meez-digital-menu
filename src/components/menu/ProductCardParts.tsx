@@ -3,8 +3,6 @@ import AllergenIcons from "@/components/menu/AllergenIcons";
 import { localizeProduct, type MenuLang } from "@/lib/product-i18n";
 import { hasProductBadge, productBadgeColor, productBadgeLabel } from "@/lib/product-badge";
 import {
-  PRODUCT_CARD,
-  PRODUCT_CARD_ASPECT,
   PRODUCT_CARD_PAD_X,
   PRODUCT_CARD_PAD_TOP,
   PRODUCT_IMAGE_ASPECT,
@@ -272,15 +270,15 @@ function ProductCardFooterCompact({
 
   return (
     <div
-      className="flex h-full min-h-0 w-full flex-col overflow-hidden"
+      className="flex h-full w-full flex-col"
       style={{ background: cardBg }}
     >
       <div
-        className="grid h-full min-h-0 grid-cols-2 grid-rows-2 gap-x-3 gap-y-2.5"
+        className="grid h-full min-h-min grid-cols-2 grid-rows-2 gap-x-3 gap-y-2"
         style={{
           paddingInline: PRODUCT_CARD_PAD_X,
           paddingTop: 8,
-          paddingBottom: 8,
+          paddingBottom: 10,
         }}
         dir="ltr"
       >
@@ -674,21 +672,18 @@ export const ProductGridCard = ({
 }) => {
   const cardImage = getProductCardImage(product);
   const cardRadius = "rounded-[1.5rem] md:rounded-[1.75rem]";
-  const imageFlex = PRODUCT_CARD.padTop + PRODUCT_CARD.imageHeight;
-  const footerFlex = PRODUCT_CARD.footerHeight + PRODUCT_CARD.padBottom;
   const className = cn(
-    "group relative grid w-full overflow-hidden text-start",
+    "group relative flex h-full w-full flex-col overflow-hidden text-start",
     cardRadius,
     menuChromeMotion,
     onClick && "transition-shadow hover:shadow-lg",
   );
-  const style = {
-    aspectRatio: PRODUCT_CARD_ASPECT,
-    gridTemplateRows: `${imageFlex}fr ${footerFlex}fr`,
-  };
   const body = (
     <>
-      <div className="relative h-full min-h-0 w-full overflow-hidden">
+      <div
+        className="relative w-full shrink-0 overflow-hidden"
+        style={{ aspectRatio: PRODUCT_IMAGE_ASPECT, background: cardBg }}
+      >
         <ProductImageBadge product={product} lang={lang} placement="inset" />
         <div className="absolute inset-0 flex items-center justify-center">
           {cardImage ? (
@@ -710,10 +705,7 @@ export const ProductGridCard = ({
         </div>
       </div>
       <div
-        className={cn(
-          "flex min-h-0 w-full flex-col justify-center overflow-hidden",
-          "border-x-2 border-b-2 border-black/[0.07]",
-        )}
+        className="flex w-full flex-1 flex-col border-x-2 border-b-2 border-black/[0.07]"
         style={{ background: cardBg }}
       >
         <ProductCardFooter product={product} lang={lang} cardBg={cardBg} compact />
@@ -723,14 +715,14 @@ export const ProductGridCard = ({
 
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={className} style={style}>
+      <button type="button" onClick={onClick} className={className}>
         {body}
       </button>
     );
   }
 
   return (
-    <article className={className} style={style}>
+    <article className={className}>
       {body}
     </article>
   );

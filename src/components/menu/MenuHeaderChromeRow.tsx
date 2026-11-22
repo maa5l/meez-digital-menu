@@ -1,6 +1,7 @@
 import { Logo } from "@/components/Brand";
 import MenuCalorieDisclaimer from "@/components/menu/MenuCalorieDisclaimer";
 import MenuHeaderAllergenLegend from "@/components/menu/MenuHeaderAllergenLegend";
+import { resolveHeaderAllergenIds } from "@/constants/allergens";
 import { DEFAULT_MENU_LAYOUT_METRICS } from "@/lib/menu-layout-metrics";
 import { menuChromeMotion } from "@/lib/menu-header";
 import type { MenuHeaderCustomization } from "@/types/domain";
@@ -78,12 +79,30 @@ const MenuHeaderChromeRow = ({
 
   const allergenColor =
     customization.headerAllergenColor?.trim() || textColor;
+  const showAllergens = resolveHeaderAllergenIds(customization.headerAllergens).length > 0;
+
+  const allergens = showAllergens ? (
+    <div className="flex min-w-0 max-w-full justify-center overflow-hidden px-1">
+      <MenuHeaderAllergenLegend
+        allergenIds={customization.headerAllergens}
+        color={allergenColor}
+        lang={lang}
+      />
+    </div>
+  ) : null;
 
   return (
     <div
       key={lang}
       className={cn(
-        "relative flex w-full items-start gap-3 md:gap-5",
+        "grid w-full items-start gap-x-2 md:gap-x-3",
+        showAllergens
+          ? logoOnRight
+            ? "grid-cols-[minmax(0,1fr)_auto_auto]"
+            : "grid-cols-[auto_auto_minmax(0,1fr)]"
+          : logoOnRight
+            ? "grid-cols-[minmax(0,1fr)_auto]"
+            : "grid-cols-[auto_minmax(0,1fr)]",
         menuChromeMotion,
         "animate-in fade-in duration-300 fill-mode-both motion-reduce:animate-none",
         className,
@@ -92,24 +111,17 @@ const MenuHeaderChromeRow = ({
     >
       {logoOnRight ? (
         <>
-          <div className="min-w-0 flex-1">{calories}</div>
-          {logo}
+          <div className="min-w-0 overflow-hidden">{calories}</div>
+          {allergens}
+          <div className="justify-self-end">{logo}</div>
         </>
       ) : (
         <>
-          {logo}
-          <div className="flex min-w-0 flex-1 justify-end">{calories}</div>
+          <div className="justify-self-start">{logo}</div>
+          {allergens}
+          <div className="min-w-0 overflow-hidden">{calories}</div>
         </>
       )}
-
-      {/* وسط أعلى الصف — مطلق حتى لا يزيد ارتفاع الهيدر */}
-      <div className="pointer-events-none absolute left-1/2 top-0 z-[1] max-h-[2.1rem] -translate-x-1/2 overflow-hidden px-1">
-        <MenuHeaderAllergenLegend
-          allergenIds={customization.headerAllergens}
-          color={allergenColor}
-          lang={lang}
-        />
-      </div>
     </div>
   );
 };

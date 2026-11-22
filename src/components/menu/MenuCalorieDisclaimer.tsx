@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import { Baby, User, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { menuCalorieAlignClass, menuChromeMotion } from "@/lib/menu-header";
+import { menuChromeMotion } from "@/lib/menu-header";
 
 type Props = {
   lang: "ar" | "en";
@@ -15,52 +15,71 @@ type Props = {
   merged?: boolean;
 };
 
-type Row = { id: string; Icon: LucideIcon; label: string; text: string };
+type Card = {
+  id: string;
+  Icon: LucideIcon;
+  label: string;
+  value: string;
+  unit: string;
+  detail: string;
+};
 
-const copy: Record<"ar" | "en", { title: string; rows: Row[] }> = {
+const copy: Record<"ar" | "en", { title: string; cards: Card[] }> = {
   ar: {
-    title: "إفصاح إلزامي — متوسط حرق السعرات",
-    rows: [
+    title: "إفصاح إلزامي — متوسط حرق السعرات خلال 60 دقيقة",
+    cards: [
       {
         id: "men",
         Icon: User,
         label: "الرجال",
-        text: "متوسط حرق السعرات خلال 60 دقيقة: 300 – 600 سعرة حرارية",
+        value: "300–600",
+        unit: "سعرة · 60 د",
+        detail: "متوسط حرق السعرات خلال 60 دقيقة: 300 – 600 سعرة حرارية",
       },
       {
         id: "women",
         Icon: UserRound,
         label: "النساء",
-        text: "متوسط حرق السعرات خلال 60 دقيقة: 250 – 500 سعرة حرارية",
+        value: "250–500",
+        unit: "سعرة · 60 د",
+        detail: "متوسط حرق السعرات خلال 60 دقيقة: 250 – 500 سعرة حرارية",
       },
       {
         id: "children",
         Icon: Baby,
         label: "الأطفال",
-        text: "متوسط حرق السعرات خلال 60 دقيقة: 150 – 350 سعرة حرارية",
+        value: "150–350",
+        unit: "سعرة · 60 د",
+        detail: "متوسط حرق السعرات خلال 60 دقيقة: 150 – 350 سعرة حرارية",
       },
     ],
   },
   en: {
-    title: "Mandatory disclosure — average calorie burn",
-    rows: [
+    title: "Mandatory disclosure — average calorie burn in 60 minutes",
+    cards: [
       {
         id: "men",
         Icon: User,
         label: "Men",
-        text: "Average burn in 60 minutes: 300 – 600 calories",
+        value: "300–600",
+        unit: "kcal · 60 min",
+        detail: "Average burn in 60 minutes: 300 – 600 calories",
       },
       {
         id: "women",
         Icon: UserRound,
         label: "Women",
-        text: "Average burn in 60 minutes: 250 – 500 calories",
+        value: "250–500",
+        unit: "kcal · 60 min",
+        detail: "Average burn in 60 minutes: 250 – 500 calories",
       },
       {
         id: "children",
         Icon: Baby,
         label: "Children",
-        text: "Average burn in 60 minutes: 150 – 350 calories",
+        value: "150–350",
+        unit: "kcal · 60 min",
+        detail: "Average burn in 60 minutes: 150 – 350 calories",
       },
     ],
   },
@@ -77,39 +96,64 @@ const MenuCalorieDisclaimer = ({
   const L = copy[lang];
   const compact = embedded || merged;
   const onRight = align === "right";
-  const textSize = compact
-    ? "text-[8px] leading-tight md:text-[9px]"
-    : "text-[9px] leading-snug md:text-[11px]";
-  const iconInner = compact ? "h-3.5 w-3.5 shrink-0 md:h-4 md:w-4" : "h-5 w-5 shrink-0";
 
-  const list = (
+  const cards = (
     <ul
       className={cn(
-        "flex w-full flex-col",
+        "grid w-full min-w-0 grid-cols-3",
+        compact ? "max-w-[22rem] gap-1" : "max-w-xl gap-2",
+        onRight ? "ml-auto" : "mr-auto",
         menuChromeMotion,
-        compact ? "gap-0.5" : "gap-1 md:gap-1.5",
-        menuCalorieAlignClass(align),
         className,
       )}
-      dir="ltr"
+      dir={lang === "ar" ? "rtl" : "ltr"}
     >
-      {L.rows.map(({ id, Icon, label, text }) => (
+      {L.cards.map(({ id, Icon, label, value, unit, detail }) => (
         <li
           key={id}
+          aria-label={detail}
           className={cn(
-            "flex max-w-full items-center gap-1.5 md:gap-2",
-            onRight ? "justify-end text-right" : "justify-start text-left",
+            "min-w-0 rounded-xl bg-white/20 px-1.5 py-1",
+            compact ? "md:px-2 md:py-1.5" : "px-2.5 py-2",
           )}
-          aria-label={label}
         >
-          <Icon className={iconInner} strokeWidth={2.25} style={{ color: textColor }} aria-hidden />
-          <span
-            dir={lang === "ar" ? "rtl" : "ltr"}
-            className={cn("min-w-0 font-semibold leading-tight", textSize)}
+          <div className="flex items-center gap-1">
+            <Icon
+              className={compact ? "h-3 w-3 shrink-0" : "h-4 w-4 shrink-0"}
+              strokeWidth={2.25}
+              style={{ color: textColor }}
+              aria-hidden
+            />
+            <span
+              className={cn(
+                "truncate font-bold leading-none",
+                compact ? "text-[8px] md:text-[9px]" : "text-[10px]",
+              )}
+              style={{ color: textColor }}
+            >
+              {label}
+            </span>
+          </div>
+          <div
+            dir="ltr"
+            className={cn(
+              "mt-0.5 font-black leading-none tracking-tight",
+              lang === "ar" ? "text-right" : "text-left",
+              compact ? "text-[11px] md:text-xs" : "text-base",
+            )}
             style={{ color: textColor }}
           >
-            {text}
-          </span>
+            {value}
+          </div>
+          <div
+            className={cn(
+              "mt-0.5 font-semibold leading-none opacity-80",
+              compact ? "text-[7px] md:text-[8px]" : "text-[10px]",
+            )}
+            style={{ color: textColor }}
+          >
+            {unit}
+          </div>
         </li>
       ))}
     </ul>
@@ -117,8 +161,8 @@ const MenuCalorieDisclaimer = ({
 
   if (merged) {
     return (
-      <div role="note" aria-label={L.title} className="w-full shrink-0">
-        {list}
+      <div role="note" aria-label={L.title} className="w-full min-w-0">
+        {cards}
       </div>
     );
   }
@@ -126,14 +170,14 @@ const MenuCalorieDisclaimer = ({
   return (
     <div
       className={cn(
-        "shrink-0 w-full border-b border-black/10 bg-black/[0.04] px-3 py-1.5 md:px-6 md:py-2",
+        "w-full shrink-0 border-b border-black/10 bg-black/[0.04] px-3 py-1.5 md:px-6 md:py-2",
         embedded && "bg-black/[0.05] px-2.5 py-1",
       )}
       style={{ color: textColor }}
       role="note"
       aria-label={L.title}
     >
-      {list}
+      {cards}
     </div>
   );
 };

@@ -85,7 +85,7 @@ const TemplateProductsFeatured = ({ settings, categories, products }: Props) => 
           ) : undefined
         }
       >
-        <div className={cn("px-4 pb-6 md:px-8 md:pb-6", hideHeader && !hasSubheader ? "pt-2 md:pt-3" : "pt-4 md:pt-5")}>
+        <div className={cn("px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))] md:px-8", hideHeader && !hasSubheader ? "pt-2 md:pt-3" : "pt-4 md:pt-5")}>
           {categories.length > 0 && visible.length === 0 ? (
             <UserErrorPanel error={emptyCategoryNotice()} compact className="py-10" />
           ) : (
