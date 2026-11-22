@@ -7,7 +7,7 @@ type Props = {
   allergens?: string;
   allergensEn?: string;
   lang?: MenuLang;
-  size?: "xs" | "sm" | "md";
+  size?: "xs" | "sm" | "md" | "legend";
   className?: string;
   emptyPlaceholder?: ReactNode;
   /** لون الأيقونة/الاسم — افتراضي نفس لون النص */
@@ -21,6 +21,13 @@ const sizeStyles = {
     box: "h-3.5 w-3.5 rounded-[3px] sm:h-4 sm:w-4",
     icon: "h-2 w-2 sm:h-2.5 sm:w-2.5",
     label: "text-[6px] sm:text-[7px]",
+  },
+  /** هيدر المنيو — تتقاسم الأيقونات العرض حتى تبقى كلها ظاهرة */
+  legend: {
+    col: "w-auto min-w-0 max-w-[2.1rem] flex-1 basis-0 gap-px px-px",
+    box: "h-3.5 w-3.5 rounded-[3px]",
+    icon: "h-2 w-2",
+    label: "text-[7px]",
   },
   sm: {
     col: "w-[1.7rem] gap-0.5 sm:w-[1.85rem]",
@@ -71,7 +78,11 @@ const AllergenIcons = ({
             key={id}
             role="listitem"
             title={fullLabel}
-            className={cn("flex shrink-0 flex-col items-center", styles.col)}
+            className={cn(
+              "flex flex-col items-center",
+              size === "legend" ? "shrink" : "shrink-0",
+              styles.col,
+            )}
           >
             <span
               className={cn(

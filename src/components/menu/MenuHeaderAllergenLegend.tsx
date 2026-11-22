@@ -31,11 +31,11 @@ const MenuHeaderAllergenLegend = ({
       allergens={allergens}
       allergensEn={allergensEn}
       lang={lang}
-      size="xs"
+      size="legend"
       color={color}
       emptyPlaceholder={null}
       className={cn(
-        "max-h-[2.1rem] w-full min-w-0 max-w-full flex-nowrap justify-center gap-px overflow-hidden sm:gap-0.5",
+        "w-full min-w-0 flex-nowrap justify-center gap-0.5",
         className,
       )}
     />

@@ -91,31 +91,29 @@ const MenuHeaderChromeRow = ({
     </div>
   ) : null;
 
-  const calorieSlot = (
-    <div className="w-[12.75rem] shrink-0 justify-self-stretch">{calories}</div>
-  );
+  const calorieSlot = <div className="w-[9.4rem] shrink-0 lg:w-[14.2rem]">{calories}</div>;
 
   return (
     <div
       key={lang}
       className={cn(
-        "grid w-full items-start gap-x-2 md:gap-x-3",
+        "grid w-full items-center gap-x-2 md:gap-x-3",
         showAllergens
           ? logoOnRight
-            ? "grid-cols-[12.75rem_minmax(0,1fr)_auto]"
-            : "grid-cols-[auto_minmax(0,1fr)_12.75rem]"
+            ? "grid-cols-[9.4rem_minmax(0,1fr)_auto] lg:grid-cols-[14.2rem_minmax(0,1fr)_auto]"
+            : "grid-cols-[9.4rem_auto_minmax(0,1fr)] lg:grid-cols-[14.2rem_auto_minmax(0,1fr)]"
           : logoOnRight
-            ? "grid-cols-[minmax(0,1fr)_auto]"
-            : "grid-cols-[auto_minmax(0,1fr)]",
+            ? "grid-cols-[9.4rem_minmax(0,1fr)] lg:grid-cols-[14.2rem_minmax(0,1fr)]"
+            : "grid-cols-[9.4rem_auto] lg:grid-cols-[14.2rem_auto]",
         menuChromeMotion,
         "animate-in fade-in duration-300 fill-mode-both motion-reduce:animate-none",
         className,
       )}
       dir="ltr"
     >
+      {calorieSlot}
       {logoOnRight ? (
         <>
-          {calorieSlot}
           {allergens}
           <div className="justify-self-end">{logo}</div>
         </>
@@ -123,7 +121,6 @@ const MenuHeaderChromeRow = ({
         <>
           <div className="justify-self-start">{logo}</div>
           {allergens}
-          {calorieSlot}
         </>
       )}
     </div>
