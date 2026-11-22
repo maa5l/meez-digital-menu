@@ -1,6 +1,5 @@
-import { Button } from "@/components/ui/button";
-import { UserErrorPanel } from "@/components/UserErrorPanel";
 import type { SubscriptionLoadState } from "@/hooks/useSubscription";
+import { UserErrorPanel } from "@/components/UserErrorPanel";
 import { classifyUserFacingError, rpcFailureNotice } from "@/lib/user-facing-errors";
 
 type Props = {
@@ -25,15 +24,11 @@ function ServerErrorPanel({ message, code, onRetry }: { message: string; code?: 
       <UserErrorPanel
         error={{
           ...error,
-          title: needsMigration ? "تحديث قاعدة البيانات مطلوب" : error.title,
+          title: needsMigration ? "تحديث الخدمة مطلوب" : error.title,
           message: needsMigration
-            ? "الميزات الجديدة تحتاج تطبيق migration على Supabase."
+            ? "نعمل على تحديث المنصة. حاول بعد قليل أو تواصل مع الدعم."
             : error.message,
-          hint: needsMigration
-            ? "supabase/migrations/20260614130000_fix_subscription_rpc_volatility.sql"
-            : code
-              ? `${code}: ${message}`
-              : error.hint,
+          hint: needsMigration ? "إذا استمرت المشكلة، تواصل مع الدعم الفني." : error.hint,
         }}
         onRetry={onRetry}
       />
@@ -52,10 +47,7 @@ export function SupabaseConnectionError({ state, onRetry }: Props) {
     <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-background" dir="rtl">
       <UserErrorPanel error={error} onRetry={onRetry} />
       <p className="mt-4 max-w-md text-center text-xs text-muted-foreground">
-        تحقق من{" "}
-        <code className="rounded bg-secondary px-1 text-[11px]">VITE_SUPABASE_URL</code> و{" "}
-        <code className="rounded bg-secondary px-1 text-[11px]">VITE_SUPABASE_ANON_KEY</code> في{" "}
-        <code className="rounded bg-secondary px-1 text-[11px]">.env.local</code>
+        تحقق من اتصال الإنترنت ثم أعد المحاولة.
       </p>
     </div>
   );

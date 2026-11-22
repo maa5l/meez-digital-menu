@@ -19,7 +19,7 @@ function isPostgrestError(err: unknown): err is PostgrestError {
 export function formatAdminRpcError(err: unknown): string {
   if (isPostgrestError(err)) {
     if (err.code === "PGRST202") {
-      return "خدمة الإدارة غير مفعّلة — طبّق migrations على Supabase";
+      return "خدمة الإدارة غير جاهزة حالياً — تواصل مع الدعم";
     }
     if (err.message.includes("admin_forbidden")) {
       return "حسابك ليس مديراً — شغّل bootstrap-admin.sql";

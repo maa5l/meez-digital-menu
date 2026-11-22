@@ -143,7 +143,7 @@ const Devices = () => {
 
     if (!shouldUseVenueDatabase()) {
       toast.error(
-        "Supabase غير مضبوط — التفعيل يبقى في المتصفح فقط ولن يراه تطبيق الكشك. راجع VITE_SUPABASE_* في .env.local",
+        "الاتصال بالسحابة غير متاح — التفعيل لن يصل لأجهزة العرض. تواصل مع الدعم.",
       );
       return;
     }
@@ -401,12 +401,9 @@ const Devices = () => {
         <div className="mb-6 rounded-2xl border border-destructive/40 bg-destructive/10 p-4 flex gap-3 text-destructive">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <div className="text-sm space-y-1">
-            <p className="font-bold">Supabase غير مضبوط — التفعيل لا يصل لتطبيق الكشك</p>
+            <p className="font-bold">الاتصال بالسحابة غير متاح</p>
             <p className="opacity-90">
-              ضع <span dir="ltr">VITE_SUPABASE_URL</span> و{" "}
-              <span dir="ltr">VITE_SUPABASE_ANON_KEY</span> الحقيقيين في{" "}
-              <span dir="ltr">.env.local</span> ثم أعد تشغيل{" "}
-              <span dir="ltr">npm run dev</span>.
+              تفعيل الأجهزة لن يصل لتطبيق العرض حالياً. أعد المحاولة لاحقاً أو تواصل مع الدعم.
             </p>
           </div>
         </div>

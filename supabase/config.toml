@@ -234,15 +234,15 @@ otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 600
 
-# Use a production-ready SMTP server
+# Brevo SMTP — للإنتاج على السحابة استخدم: npm run supabase:auth:brevo
 # [auth.email.smtp]
 # enabled = true
-# host = "smtp.sendgrid.net"
+# host = "smtp-relay.brevo.com"
 # port = 587
-# user = "apikey"
-# pass = "env(SENDGRID_API_KEY)"
-# admin_email = "admin@email.com"
-# sender_name = "Admin"
+# user = "env(BREVO_SMTP_USER)"
+# pass = "env(BREVO_SMTP_KEY)"
+# admin_email = "notification@bymeez.com"
+# sender_name = "bymeez"
 
 # رمز تسجيل الدخول بدلاً من رابط Magic Link (يجب استخدام {{ .Token }} وليس {{ .ConfirmationURL }})
 [auth.email.template.magic_link]

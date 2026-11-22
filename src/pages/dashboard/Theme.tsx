@@ -226,7 +226,7 @@ function ThemeSectionContent({
           >
             <div className="flex flex-wrap gap-2">
               <ToggleChip
-                label="ترتيب يدوي (برقم)"
+                label="ترتيب يدوي برقم"
                 checked={(settings.productsOrderMode ?? "manual") === "manual"}
                 onChange={() => update({ ...settings, productsOrderMode: "manual" })}
               />
@@ -278,7 +278,7 @@ function ThemeSectionContent({
       return (
         <FeaturedSection
           title="منتج مميّز"
-          description="اختر منتجاً لإبرازه في المنيو (اختياري)"
+          description="اختر منتجاً لإبرازه في المنيو — اختياري"
           options={products.map((p) => ({ value: p.id, label: p.name }))}
           value={settings.featuredProductId || ""}
           onChange={(v) => update({ ...settings, featuredProductId: v || undefined })}
@@ -310,7 +310,7 @@ function ThemeSectionContent({
           >
             <div className="flex flex-wrap gap-2">
               <ToggleChip
-                label="ترتيب يدوي (برقم)"
+                label="ترتيب يدوي برقم"
                 checked={(settings.cropsOrderMode ?? "manual") === "manual"}
                 onChange={() => update({ ...settings, cropsOrderMode: "manual" })}
               />
@@ -518,7 +518,7 @@ function HeaderSection({
           onClear={header.logoImage ? () => onPatch({ logoImage: undefined }) : undefined}
         />
         <div className="mt-3">
-          <p className="mb-2 text-xs font-bold text-muted-foreground">موضع الشعار (ثابت — لا يتغير مع اللغة)</p>
+          <p className="mb-2 text-xs font-bold text-muted-foreground">موضع الشعار — ثابت ولا يتغير مع اللغة</p>
           <div className="flex flex-wrap gap-2">
             <ToggleChip
               label="يمين"
@@ -554,6 +554,33 @@ function HeaderSection({
             onChange={(v) => onPatch({ showLanguageToggle: v })}
           />
         </div>
+      </ThemeCard>
+
+      <ThemeCard>
+        <p className="mb-3 text-sm font-bold text-primary">ألوان الهيدر</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ColorPickerField
+            label="خلفية الهيدر"
+            value={header.headerBgColor || `${textColorFallback}18`}
+            onChange={(v) => onPatch({ headerBgColor: v })}
+          />
+          <ColorPickerField
+            label="نص الهيدر"
+            value={header.headerTextColor || textColorFallback}
+            onChange={(v) => onPatch({ headerTextColor: v })}
+          />
+        </div>
+        {(header.headerBgColor || header.headerTextColor) && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="mt-2"
+            onClick={() => onPatch({ headerBgColor: undefined, headerTextColor: undefined })}
+          >
+            إعادة ألوان الهيدر للافتراضي
+          </Button>
+        )}
       </ThemeCard>
 
       <ThemeCard>

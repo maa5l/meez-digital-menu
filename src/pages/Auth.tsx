@@ -3,48 +3,75 @@ import { Link, useNavigate, useLocation, useSearchParams } from "react-router-do
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Sparkles, Loader2 } from "lucide-react";
 import { Logo } from "@/components/Brand";
-import { loginSchema, signupSchema } from "@/validations/auth.schema";
-import { signInWithPassword, signUp, usesSupabaseAuth } from "@/services/auth/auth.service";
+import { loginEmailSchema, loginSchema, signupSchema } from "@/validations/auth.schema";
+import {
+  sendPasswordResetEmail,
+  signInWithPassword,
+  signUp,
+  usesSupabaseAuth,
+} from "@/services/auth/auth.service";
 import { resolvePostAuthRoute } from "@/services/admin/admin.service";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
-import { appEnv } from "@/config/env";
 import { checkRateLimit } from "@/security/rate-limit";
-import { RateLimitError, getErrorMessage } from "@/lib/errors";
+import { RateLimitError, getAuthFormErrorMessage } from "@/lib/errors";
 import { ROUTES } from "@/config/app";
 import { SUBSCRIPTION } from "@/config/subscription";
 import { toast } from "sonner";
 
-type AuthMode = "login" | "signup";
+type AuthMode = "login" | "signup" | "forgot";
+
+function modeFromSearch(raw: string | null): AuthMode {
+  if (raw === "signup" || raw === "forgot") return raw;
+  return "login";
+}
 
 const Auth = () => {
-  const [searchParams] = useSearchParams();
-  const [mode, setMode] = useState<AuthMode>(() =>
-    searchParams.get("mode") === "signup" ? "signup" : "login",
-  );
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [mode, setMode] = useState<AuthMode>(() => modeFromSearch(searchParams.get("mode")));
 
   useEffect(() => {
-    setMode(searchParams.get("mode") === "signup" ? "signup" : "login");
+    setMode(modeFromSearch(searchParams.get("mode")));
   }, [searchParams]);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [venueName, setVenueName] = useState("");
   const [phone, setPhone] = useState("");
   const [fieldError, setFieldError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = (location.state as { from?: string } | null)?.from ?? ROUTES.dashboard;
   const supabaseAuth = usesSupabaseAuth();
 
-  const switchMode = (next: AuthMode) => {
+  const goMode = (next: AuthMode) => {
     setMode(next);
     setFieldError("");
-    // Keep email when switching tabs so password-manager fills stay usable
     setPassword("");
-    setVenueName("");
-    setPhone("");
+    setShowPassword(false);
+    setResetSent(false);
+    if (next === "signup" || next === "login") {
+      setVenueName("");
+      setPhone("");
+    }
+    const params = new URLSearchParams(searchParams);
+    if (next === "login") params.delete("mode");
+    else params.set("mode", next);
+    setSearchParams(params, { replace: true });
+  };
+
+  const afterAuthNavigate = async () => {
+    let destination = redirectTo;
+    try {
+      destination = await resolvePostAuthRoute(redirectTo);
+    } catch {
+      destination = redirectTo;
+    }
+    navigate(destination, { replace: true });
   };
 
   const onLogin = async (e: React.FormEvent) => {
@@ -67,9 +94,9 @@ const Auth = () => {
     try {
       await signInWithPassword(parsed.data.email, parsed.data.password);
       toast.success("مرحبًا بعودتك");
-      navigate(await resolvePostAuthRoute(redirectTo), { replace: true });
+      await afterAuthNavigate();
     } catch (error) {
-      setFieldError(getErrorMessage(error));
+      setFieldError(getAuthFormErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -100,13 +127,70 @@ const Auth = () => {
         parsed.data.phone,
       );
       toast.success("تم إنشاء الحساب — مرحباً بك");
-      navigate(await resolvePostAuthRoute(redirectTo), { replace: true });
+      await afterAuthNavigate();
     } catch (error) {
-      setFieldError(getErrorMessage(error));
+      setFieldError(getAuthFormErrorMessage(error));
     } finally {
       setLoading(false);
     }
   };
+
+  const onForgot = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFieldError("");
+
+    const rate = checkRateLimit("auth:reset", 5, 60_000);
+    if (!rate.allowed) {
+      setFieldError(new RateLimitError(rate.retryAfterMs).message);
+      return;
+    }
+
+    const parsed = loginEmailSchema.safeParse({ email });
+    if (!parsed.success) {
+      setFieldError(parsed.error.errors[0]?.message ?? "بيانات غير صالحة");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await sendPasswordResetEmail(parsed.data.email);
+      setResetSent(true);
+      toast.success("أرسلنا رابط التعيين إلى بريدك");
+    } catch (error) {
+      setFieldError(getAuthFormErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const passwordField = (
+    id: string,
+    autoComplete: string,
+    required = true,
+  ) => (
+    <div className="relative">
+      <Input
+        id={id}
+        name={autoComplete === "current-password" ? "password" : "new-password"}
+        type={showPassword ? "text" : "password"}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        placeholder="••••••••"
+        required={required}
+        minLength={8}
+        className="h-12 rounded-xl pe-12"
+        autoComplete={autoComplete}
+      />
+      <button
+        type="button"
+        className="absolute inset-y-0 left-0 px-3 text-muted-foreground hover:text-primary"
+        onClick={() => setShowPassword((v) => !v)}
+        aria-label={showPassword ? "إخفاء كلمة المرور" : "عرض كلمة المرور"}
+      >
+        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+      </button>
+    </div>
+  );
 
   const loginForm = (
     <form
@@ -136,19 +220,17 @@ const Auth = () => {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="login-password">كلمة المرور</Label>
-        <Input
-          id="login-password"
-          name="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          required
-          minLength={8}
-          className="h-12 rounded-xl"
-          autoComplete="current-password"
-        />
+        <div className="flex items-center justify-between gap-3">
+          <Label htmlFor="login-password">كلمة المرور</Label>
+          <button
+            type="button"
+            onClick={() => goMode("forgot")}
+            className="text-xs font-semibold text-accent hover:underline"
+          >
+            نسيت كلمة المرور؟
+          </button>
+        </div>
+        {passwordField("login-password", "current-password")}
       </div>
       {fieldError && <p className="text-destructive text-sm font-semibold">{fieldError}</p>}
       <Button type="submit" variant="hero" size="xl" className="w-full" disabled={loading}>
@@ -163,6 +245,76 @@ const Auth = () => {
       </Button>
     </form>
   );
+
+  const forgotForm = resetSent ? (
+    <div className="space-y-5 rounded-2xl border border-border bg-secondary/30 p-5">
+      <p className="text-sm leading-7 text-foreground">
+        أرسلنا رابط تعيين كلمة المرور إلى <span className="font-bold" dir="ltr">{email}</span>.
+      </p>
+      <p className="text-sm leading-7 text-muted-foreground">
+        افتح بريدك واضغط «تعيين كلمة المرور» للانتقال إلى صفحة التعيين.
+      </p>
+      <Button type="button" variant="hero" className="w-full" onClick={() => goMode("login")}>
+        العودة لتسجيل الدخول
+      </Button>
+      <button
+        type="button"
+        onClick={() => setResetSent(false)}
+        className="w-full text-sm font-semibold text-muted-foreground hover:text-accent"
+      >
+        إرسال الرابط مرة أخرى
+      </button>
+    </div>
+  ) : (
+    <form key="forgot" onSubmit={onForgot} className="space-y-5" noValidate>
+      <div className="space-y-2">
+        <Label htmlFor="forgot-email">البريد الإلكتروني</Label>
+        <Input
+          id="forgot-email"
+          name="email"
+          type="email"
+          inputMode="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          required
+          className="h-12 rounded-xl"
+          autoComplete="email"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+        />
+      </div>
+      {fieldError && <p className="text-destructive text-sm font-semibold">{fieldError}</p>}
+      <Button type="submit" variant="hero" size="xl" className="w-full" disabled={loading}>
+        {loading ? (
+          <>
+            <Loader2 className="w-5 h-5 animate-spin" />
+            جاري الإرسال...
+          </>
+        ) : (
+          "أرسل رابط التعيين"
+        )}
+      </Button>
+      <button
+        type="button"
+        onClick={() => goMode("login")}
+        className="w-full text-sm font-semibold text-muted-foreground hover:text-accent"
+      >
+        العودة لتسجيل الدخول
+      </button>
+    </form>
+  );
+
+  const title =
+    mode === "signup" ? "ابدأ تجربتك المجانية" : mode === "forgot" ? "استعادة الحساب" : "أهلًا بعودتك";
+
+  const subtitle =
+    mode === "signup"
+      ? `${SUBSCRIPTION.trialDays} أيام بدون بطاقة ائتمان`
+      : mode === "forgot"
+        ? "أدخل بريدك وسنرسل رابط تعيين كلمة المرور"
+        : "أدخل بريدك وكلمة المرور";
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background" dir="rtl">
@@ -198,48 +350,43 @@ const Auth = () => {
             <Logo className="h-9 w-auto aspect-[1031/736]" />
           </Link>
 
-          <div className="inline-flex p-1 bg-secondary rounded-xl mb-8" role="tablist" aria-label="وضع الحساب">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === "login"}
-              onClick={() => switchMode("login")}
-              className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
-                mode === "login" ? "bg-card shadow-soft text-primary" : "text-muted-foreground"
-              }`}
-            >
-              تسجيل الدخول
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === "signup"}
-              onClick={() => switchMode("signup")}
-              className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
-                mode === "signup" ? "bg-card shadow-soft text-primary" : "text-muted-foreground"
-              }`}
-            >
-              حساب جديد
-            </button>
-          </div>
+          {mode === "login" || mode === "signup" ? (
+            <div className="inline-flex p-1 bg-secondary rounded-xl mb-8" role="tablist" aria-label="وضع الحساب">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === "login"}
+                onClick={() => goMode("login")}
+                className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
+                  mode === "login" ? "bg-card shadow-soft text-primary" : "text-muted-foreground"
+                }`}
+              >
+                تسجيل الدخول
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === "signup"}
+                onClick={() => goMode("signup")}
+                className={`px-5 py-2 rounded-lg text-sm font-bold transition-all ${
+                  mode === "signup" ? "bg-card shadow-soft text-primary" : "text-muted-foreground"
+                }`}
+              >
+                حساب جديد
+              </button>
+            </div>
+          ) : null}
 
-          <h1 className="font-display font-black text-3xl md:text-4xl text-primary mb-2">
-            {mode === "signup" ? "ابدأ تجربتك المجانية" : "أهلًا بعودتك"}
-          </h1>
-          <p className="text-muted-foreground mb-8">
-            {mode === "signup" ? `${SUBSCRIPTION.trialDays} أيام بدون بطاقة ائتمان` : "أدخل بريدك وكلمة المرور"}
-          </p>
+          <h1 className="font-display font-black text-3xl md:text-4xl text-primary mb-2">{title}</h1>
+          <p className="text-muted-foreground mb-8">{subtitle}</p>
 
           {!isSupabaseConfigured() ? (
             <p className="mb-4 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm font-semibold text-destructive">
-              {appEnv.isProd
-                ? "Supabase غير مضبوط على Vercel — أضف VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY (مفتاح eyJ…) ثم Redeploy."
-                : "Supabase غير مضبوط — أضف VITE_SUPABASE_URL و VITE_SUPABASE_ANON_KEY في .env.local"}
+              خدمة الحسابات غير جاهزة حالياً. حاول لاحقاً أو تواصل مع الدعم.
             </p>
           ) : !supabaseAuth ? (
             <p className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm font-semibold text-amber-900">
-              وضع تجريبي محلي: الحساب يُحفظ في المتصفح فقط. لإيقافه:{" "}
-              <code className="text-xs">VITE_USE_LOCAL_MOCK_AUTH=false</code>
+              وضع تجريبي: الحساب يُحفظ على هذا الجهاز فقط ولن يُزامَن مع الجوال.
             </p>
           ) : null}
 
@@ -265,18 +412,7 @@ const Auth = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="signup-password">كلمة المرور</Label>
-                <Input
-                  id="signup-password"
-                  name="new-password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  minLength={8}
-                  className="h-12 rounded-xl"
-                  autoComplete="new-password"
-                />
+                {passwordField("signup-password", "new-password")}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="signup-phone">رقم الجوال</Label>
@@ -319,6 +455,8 @@ const Auth = () => {
                 )}
               </Button>
             </form>
+          ) : mode === "forgot" ? (
+            forgotForm
           ) : (
             loginForm
           )}
@@ -334,18 +472,18 @@ const Auth = () => {
                 سياسة الخصوصية
               </Link>
             </p>
-          ) : (
+          ) : mode === "login" ? (
             <p className="text-center text-sm text-muted-foreground mt-6">
               ليس لديك حساب؟{" "}
               <button
                 type="button"
-                onClick={() => switchMode("signup")}
+                onClick={() => goMode("signup")}
                 className="text-accent font-semibold hover:underline"
               >
                 أنشئ حسابًا جديدًا
               </button>
             </p>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

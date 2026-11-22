@@ -122,6 +122,7 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
                       lang={lang}
                       accentColor={palette.accentColor}
                       fallbackTextColor={palette.textColor}
+                      themeCardColor={palette.cardColor}
                       featured={c.id === settings.featuredCropId}
                       cardHeight={cardHeight}
                       cardWidth={cardWidth}
@@ -138,6 +139,7 @@ const CropsTemplateMolo = ({ settings, crops }: { settings: MenuSettings; crops:
                 lang={lang}
                 accentColor={palette.accentColor}
                 fallbackTextColor={palette.textColor}
+                themeCardColor={palette.cardColor}
                 featured={modal.id === settings.featuredCropId}
                 onClose={() => setModal(null)}
               />

@@ -3,18 +3,20 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Palette, ArrowLeft, Loader2 } from "lucide-react";
+import { Palette, ArrowLeft, Loader2, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useVenueData } from "@/hooks/useVenueData";
 import { useUserProfile, notifyProfileUpdated } from "@/hooks/useUserProfile";
-import { getCurrentUserId, syncVenueNameFromProfile } from "@/lib/venue-store";
+import {
+  getCurrentUserId,
+  syncVenueNameFromProfile,
+} from "@/lib/venue-store";
 import { updateUserProfile } from "@/services/auth/profile-supabase.service";
 import { usesSupabaseAuth } from "@/config/env";
 import { getErrorMessage } from "@/lib/errors";
 import { useAdminProfile } from "@/hooks/useAdminProfile";
 import { ROUTES } from "@/config/app";
-import { Shield } from "lucide-react";
 
 const Settings = () => {
   const { profile, loading: profileLoading, refresh } = useUserProfile();
@@ -58,7 +60,7 @@ const Settings = () => {
 
       notifyProfileUpdated();
       window.dispatchEvent(new Event("meez:venue-updated"));
-      toast.success(supabaseLinked ? "تم الحفظ في قاعدة البيانات" : "تم الحفظ محلياً");
+      toast.success(supabaseLinked ? "تم حفظ التغييرات" : "تم الحفظ على هذا الجهاز");
       await refresh();
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -72,19 +74,15 @@ const Settings = () => {
   return (
     <DashboardLayout
       title="الإعدادات"
-      subtitle={
-        supabaseLinked
-          ? "معلومات حسابك ومنشأتك — مرتبطة بـ Supabase"
-          : "معلومات المنشأة — وضع تجريبي محلي"
-      }
+      subtitle={supabaseLinked ? "معلومات حسابك ومنشأتك" : "معلومات المنشأة"}
     >
       <div className="grid lg:grid-cols-2 gap-6">
         <div className="bg-card rounded-3xl border border-border p-6">
           <h3 className="font-display font-bold text-xl text-primary mb-1">معلومات المنشأة والحساب</h3>
           <p className="text-xs text-muted-foreground mb-4">
             {supabaseLinked
-              ? "تُحفظ في جدول profiles وتُزامَن مع بيانات المنيو (venues)"
-              : "تُحفظ في المتصفح فقط — فعّل Supabase للمزامنة السحابية"}
+              ? "تُحفظ في حسابك وتظهر على جميع أجهزتك"
+              : "تُحفظ على هذا الجهاز فقط حتى تتصل بالإنترنت وتسجّل الدخول"}
           </p>
 
           {loading ? (
@@ -123,7 +121,7 @@ const Settings = () => {
                   className="h-12 rounded-xl bg-secondary/60"
                   dir="ltr"
                 />
-                <p className="text-[11px] text-muted-foreground">البريد مرتبط بحساب Supabase ولا يُغيَّر من هنا</p>
+                <p className="text-[11px] text-muted-foreground">البريد مرتبط بحسابك ولا يُغيَّر من هنا</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">رقم الجوال</Label>

@@ -161,6 +161,12 @@ export async function ensureUserProfile(user: User, venueName?: string): Promise
 export async function ensureVenueRecordForOwner(): Promise<void> {
   if (!shouldUseVenueDatabase()) return;
 
+  const { data: authData } = await getSupabase().auth.getSession();
+  if (!authData.session?.access_token) {
+    logger.warn("venue.ensure_skipped_no_session");
+    return;
+  }
+
   const { error } = await getSupabase().rpc("ensure_venue_for_owner");
   if (error) {
     logger.warn("venue.ensure_rpc_failed", { message: error.message });

@@ -11,6 +11,7 @@ type Props = {
   lang: MenuLang;
   accentColor: string;
   fallbackTextColor: string;
+  themeCardColor?: string;
   featured?: boolean;
   onClose: () => void;
 };
@@ -21,6 +22,7 @@ const CropCarouselExpandOverlay = ({
   lang,
   accentColor,
   fallbackTextColor,
+  themeCardColor,
   featured,
   onClose,
 }: Props) => {
@@ -78,6 +80,7 @@ const CropCarouselExpandOverlay = ({
             lang={lang}
             accentColor={accentColor}
             fallbackTextColor={fallbackTextColor}
+            themeCardColor={themeCardColor}
             featured={featured}
             variant="popup"
             scrollable

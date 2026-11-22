@@ -14,6 +14,8 @@ type Props = {
   lang: MenuLang;
   accentColor: string;
   fallbackTextColor: string;
+  /** لون بطاقة الثيم (cropsColors.cardColor) عند غياب لون المحصول */
+  themeCardColor?: string;
   featured?: boolean;
   className?: string;
   scrollable?: boolean;
@@ -83,6 +85,7 @@ const CropCenteredCard = ({
   lang,
   accentColor,
   fallbackTextColor,
+  themeCardColor,
   featured,
   className,
   scrollable = false,
@@ -99,7 +102,7 @@ const CropCenteredCard = ({
   const profile = buildCropProfile(crop, lang);
   const surface = resolveCropSurface(crop, {
     textColor: fallbackTextColor,
-    cardColor: `${fallbackTextColor}15`,
+    cardColor: themeCardColor?.trim() || `${fallbackTextColor}15`,
   });
   const imageUrl = getCropCardBackgroundImage(crop);
   const { displaySrc, failed: imageFailed, handleError, reloadKey } = useImageAutoRetry(imageUrl);

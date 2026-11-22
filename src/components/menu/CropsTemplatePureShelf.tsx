@@ -125,6 +125,7 @@ const CropsTemplatePureShelf = ({ settings, crops }: { settings: MenuSettings; c
               lang={lang}
               accentColor={palette.accentColor}
               fallbackTextColor={palette.textColor}
+              themeCardColor={palette.cardColor}
               featured={active.id === settings.featuredCropId}
               variant="feature"
               scrollable

@@ -7,7 +7,6 @@ import {
   initializeVenueForUser,
   isVenueEffectivelyEmpty,
   loadVenueData,
-  pullVenueFromCloud,
   saveVenueData,
   syncVenueNameFromProfile,
 } from "@/lib/venue-store";
@@ -17,7 +16,7 @@ import {
   ensureVenueRecordForOwner,
   fetchUserProfile,
 } from "@/services/auth/profile-supabase.service";
-import { usesSupabaseAuth } from "@/config/env";
+import { resolveAppOrigin, usesSupabaseAuth } from "@/config/env";
 import { logger } from "@/lib/logger";
 import {
   ensureSubscriptionRecord,
@@ -40,18 +39,75 @@ async function repairSignupTrialIfNeeded(user: User): Promise<void> {
   }
 }
 
-async function hydrateVenueForUser(userId: string, venueName?: string): Promise<void> {
-  if (shouldUseVenueDatabase()) {
-    const venue = await pullVenueFromCloud(userId);
-    // لا تُنشئ منشأة فارغة وتُحفظ للسحابة إلا إن كانت السحابة فعلاً بلا صف محتوى
-    if (isVenueEffectivelyEmpty(venue)) {
-      const existing = loadVenueData(userId);
-      if (existing.version === 1 && !isVenueEffectivelyEmpty(existing)) return;
-      initializeVenueForUser(userId, venueName);
-    }
+const hydrateVenueInFlight = new Map<string, Promise<void>>();
+const hydrateVenueDoneAt = new Map<string, number>();
+const HYDRATE_COOLDOWN_MS = 45_000;
+
+async function hydrateVenueForUser(
+  userId: string,
+  venueName?: string,
+  opts?: { force?: boolean },
+): Promise<void> {
+  const force = opts?.force === true;
+  const recent = hydrateVenueDoneAt.get(userId) ?? 0;
+  if (!force && Date.now() - recent < HYDRATE_COOLDOWN_MS) {
     return;
   }
-  initializeVenueForUser(userId, venueName);
+
+  const existingRun = hydrateVenueInFlight.get(userId);
+  if (existingRun) {
+    await existingRun;
+    return;
+  }
+
+  const run = (async () => {
+    if (shouldUseVenueDatabase()) {
+      const {
+        countVenueProductImages,
+        hydrateVenueFromIdbIfNeeded,
+        pullVenueFromCloudDetailed,
+      } = await import("@/lib/venue-store");
+      await hydrateVenueFromIdbIfNeeded(userId);
+
+      const local = loadVenueData(userId);
+      const localReady =
+        !isVenueEffectivelyEmpty(local) &&
+        (local.products.length === 0 || countVenueProductImages(local) > 0);
+
+      // إذا المحلي جاهز: سحب خفيف يعتمد على updated_at بدل إعادة تنزيل 3MB
+      let outcome = await pullVenueFromCloudDetailed(userId, force || !localReady);
+      if (
+        outcome.pullFailed ||
+        (isVenueEffectivelyEmpty(outcome.venue) && outcome.remoteUpdatedAt)
+      ) {
+        await new Promise((r) => setTimeout(r, 800));
+        outcome = await pullVenueFromCloudDetailed(userId, true);
+      }
+      if (!isVenueEffectivelyEmpty(outcome.venue)) {
+        hydrateVenueDoneAt.set(userId, Date.now());
+        return;
+      }
+
+      // سحابة موجودة لكن السحب فشل: لا تلمس شيئاً ولا تُنشئ فارغاً
+      if (outcome.pullFailed || outcome.remoteUpdatedAt) return;
+
+      const existing = loadVenueData(userId);
+      if (existing.version === 1 && !isVenueEffectivelyEmpty(existing)) return;
+      // حساب جديد فعلاً بلا صف سحابي — محلي فقط
+      initializeVenueForUser(userId, venueName);
+      return;
+    }
+    initializeVenueForUser(userId, venueName);
+  })();
+
+  hydrateVenueInFlight.set(userId, run);
+  try {
+    await run;
+  } finally {
+    if (hydrateVenueInFlight.get(userId) === run) {
+      hydrateVenueInFlight.delete(userId);
+    }
+  }
 }
 
 async function syncAccountWithVenue(userId: string): Promise<void> {
@@ -84,6 +140,19 @@ async function afterSupabaseAuth(session: Session, venueName?: string): Promise<
   const metaVenue =
     venueName || (session.user.user_metadata?.venue_name as string | undefined);
 
+  // ثبّت الجلسة على العميل قبل أي RPC — يمنع not_authenticated المتوازي بعد الدخول
+  const supabase = getSupabase();
+  await supabase.auth.setSession({
+    access_token: session.access_token,
+    refresh_token: session.refresh_token,
+  });
+  const started = Date.now();
+  while (Date.now() - started < 5_000) {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.user?.id === userId && data.session.access_token) break;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+
   await Promise.all([
     runAuthStep("ensure_profile", userId, () => ensureUserProfile(session.user, venueName)),
     runAuthStep("repair_signup_trial", userId, () => repairSignupTrialIfNeeded(session.user)),
@@ -91,7 +160,9 @@ async function afterSupabaseAuth(session: Session, venueName?: string): Promise<
     runAuthStep("ensure_venue", userId, () => ensureVenueRecordForOwner()),
   ]);
 
-  await runAuthStep("hydrate_venue", userId, () => hydrateVenueForUser(userId, metaVenue));
+  await runAuthStep("hydrate_venue", userId, () =>
+    hydrateVenueForUser(userId, metaVenue, { force: true }),
+  );
   await runAuthStep("sync_account_venue", userId, () => syncAccountWithVenue(userId));
 }
 
@@ -114,15 +185,82 @@ export function syncSessionFromSupabase(session: Session | null): AuthSession | 
   return mapped;
 }
 
+function isInvalidRefreshTokenError(error: unknown): boolean {
+  const msg =
+    error && typeof error === "object" && "message" in error
+      ? String((error as { message?: string }).message)
+      : String(error ?? "");
+  const code =
+    error && typeof error === "object" && "code" in error
+      ? String((error as { code?: string }).code)
+      : "";
+  return (
+    code === "refresh_token_not_found" ||
+    /refresh.?token.*(not found|invalid)/i.test(msg)
+  );
+}
+
+/** يمسح جلسة محلية فاسدة بعد إعادة تعيين كلمة المرور أو انتهاء refresh token */
+export async function recoverInvalidRefreshSession(): Promise<boolean> {
+  if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) return false;
+  const supabase = getSupabase();
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error && isInvalidRefreshTokenError(error)) {
+      await supabase.auth.signOut({ scope: "local" });
+      clearSession();
+      logger.warn("auth.refresh_token_cleared", { reason: "get_session" });
+      return true;
+    }
+
+    const session = data.session;
+    if (!session?.refresh_token) return false;
+
+    const expiresAtMs = session.expires_at ? session.expires_at * 1000 : 0;
+    // فقط عندما قربت الصلاحية — تجنب refresh على كل تحميل
+    if (expiresAtMs && expiresAtMs > Date.now() + 90_000) return false;
+
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError && isInvalidRefreshTokenError(refreshError)) {
+      await supabase.auth.signOut({ scope: "local" });
+      clearSession();
+      logger.warn("auth.refresh_token_cleared", { reason: "refresh_session" });
+      return true;
+    }
+  } catch (err) {
+    if (isInvalidRefreshTokenError(err)) {
+      try {
+        await getSupabase().auth.signOut({ scope: "local" });
+      } catch {
+        /* ignore */
+      }
+      clearSession();
+      return true;
+    }
+  }
+  return false;
+}
+
 export async function getActiveSession(): Promise<AuthSession | null> {
   if (isSupabaseConfigured() && !appEnv.useLocalMockAuth) {
+    await recoverInvalidRefreshSession();
     const { data, error } = await getSupabase().auth.getSession();
-    if (error) throw error;
+    if (error) {
+      if (isInvalidRefreshTokenError(error)) {
+        await getSupabase().auth.signOut({ scope: "local" });
+        clearSession();
+        return null;
+      }
+      throw error;
+    }
     if (data.session) {
+      const userId = data.session.user.id;
       const venueName =
         (data.session.user.user_metadata?.venue_name as string | undefined) ?? "";
-      await hydrateVenueForUser(data.session.user.id, venueName || undefined);
-      await syncAccountWithVenue(data.session.user.id);
+      // سحب خفيف فقط عند استعادة الجلسة — تجنّب إعادة تنزيل المنيو الثقيلة في كل تنقّل
+      await runAuthStep("hydrate_venue", userId, () =>
+        hydrateVenueForUser(userId, venueName || undefined, { force: false }),
+      );
     }
     return syncSessionFromSupabase(data.session);
   }
@@ -157,9 +295,14 @@ function mapPasswordAuthError(error: unknown): Error {
   if (msg.includes("invalid login credentials") || msg.includes("invalid credentials")) {
     return new Error("البريد أو كلمة المرور غير صحيحة.");
   }
+  if (/database error querying schema/i.test(msg)) {
+    return new Error(
+      "تعذّر التحقق من الحساب. حاول لاحقاً أو تواصل مع الدعم.",
+    );
+  }
   if (/failed to fetch|networkerror|load failed/i.test(msg)) {
     return new Error(
-      "تعذّر الاتصال بـ Supabase. تحقق من الإنترنت و VITE_SUPABASE_URL في .env.local",
+      "تعذّر الاتصال بالخدمة. تحقق من الإنترنت ثم حاول مرة أخرى.",
     );
   }
   return error instanceof Error ? error : new Error(String((error as { message?: string }).message));
@@ -170,7 +313,7 @@ export async function signInWithPassword(email: string, password: string): Promi
 
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
     if (!appEnv.enableMockAuth && appEnv.isProd) {
-      throw new Error("المصادقة غير متاحة. اضبط Supabase في البيئة.");
+      throw new Error("تسجيل الدخول غير متاح حالياً. تواصل مع الدعم.");
     }
     const session = createMockSession(normalizedEmail);
     setSession(session);
@@ -191,13 +334,19 @@ export async function signInWithPassword(email: string, password: string): Promi
 
   if (error) throw mapPasswordAuthError(error);
   if (!data.session) {
-    throw new Error("لم يتم إنشاء جلسة. تحقق من إعدادات Supabase Auth.");
+    throw new Error("لم يتم إنشاء الجلسة. حاول مرة أخرى.");
   }
 
   // Establish app session first; cloud hydration must not cancel a successful login.
   syncSessionFromSupabase(data.session);
   await afterSupabaseAuth(data.session);
   logger.audit("auth.password_login", { email: normalizedEmail });
+  try {
+    const { writeClientAuditLog } = await import("@/services/core/platform-security");
+    await writeClientAuditLog("auth.login", { email: normalizedEmail });
+  } catch {
+    /* ignore audit transport failures */
+  }
 }
 
 export async function signUp(
@@ -233,7 +382,17 @@ export async function signUp(
   if (data.session) {
     syncSessionFromSupabase(data.session);
     await afterSupabaseAuth(data.session, venueName);
-    logger.audit("auth.register", { email: normalizedEmail });
+    logger.audit("auth.register", { email: normalizedEmail, venueName: venueName ?? "" });
+    try {
+      const { writeClientAuditLog } = await import("@/services/core/platform-security");
+      await writeClientAuditLog("auth.register", {
+        email: normalizedEmail,
+        venue_name: venueName ?? "",
+        source: "client_signup",
+      });
+    } catch {
+      /* ignore audit transport failures */
+    }
     return { needsEmailConfirmation: false };
   }
 
@@ -250,6 +409,55 @@ export async function signUp(
 
 export { usesSupabaseAuth };
 
+/** يرسل رابط إعادة تعيين كلمة المرور إلى البريد عبر Brevo */
+export async function sendPasswordResetEmail(email: string): Promise<void> {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
+    throw new Error("إعادة التعيين غير متاحة حالياً. تواصل مع الدعم.");
+  }
+
+  const redirectTo = `${resolveAppOrigin()}/reset-password`;
+  const supabase = getSupabase();
+  const { data, error } = await supabase.functions.invoke("send-recovery-otp", {
+    body: { email: normalizedEmail, redirectTo },
+  });
+
+  if (error) {
+    const { error: recoverError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo,
+    });
+    if (recoverError) {
+      throw new Error("تعذّر إرسال رابط إعادة التعيين. حاول بعد قليل أو تواصل مع الدعم.");
+    }
+  } else if (data && typeof data === "object" && (data as { ok?: boolean }).ok === false) {
+    throw new Error("تعذّر إرسال رابط إعادة التعيين. حاول بعد قليل أو تواصل مع الدعم.");
+  }
+
+  logger.audit("auth.password_reset_requested", { email: normalizedEmail });
+}
+
+/** تعيين كلمة مرور جديدة بعد فتح رابط البريد */
+export async function completePasswordReset(newPassword: string): Promise<void> {
+  if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
+    throw new Error("إعادة التعيين غير متاحة حالياً. تواصل مع الدعم.");
+  }
+
+  const supabase = getSupabase();
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) {
+    throw new Error("افتح رابط إعادة التعيين من بريدك أولاً.");
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw mapPasswordAuthError(error);
+
+  syncSessionFromSupabase(sessionData.session);
+  await afterSupabaseAuth(sessionData.session);
+  logger.audit("auth.password_reset_completed", {
+    email: sessionData.session.user.email ?? "",
+  });
+}
+
 export async function signOut(): Promise<void> {
   logger.audit("auth.logout");
   resetSubscriptionEnsureCache();
@@ -257,4 +465,11 @@ export async function signOut(): Promise<void> {
     await getSupabase().auth.signOut();
   }
   clearSession();
+  try {
+    const { clearLastVenueOwner, clearVenueMemoryCache } = await import("@/lib/venue-store");
+    clearLastVenueOwner();
+    clearVenueMemoryCache();
+  } catch {
+    /* ignore */
+  }
 }

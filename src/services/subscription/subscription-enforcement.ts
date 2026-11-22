@@ -137,6 +137,10 @@ export async function fetchOwnerSubscription(): Promise<SubscriptionFetchResult>
 
   fetchOwnerSubscriptionInFlight = (async (): Promise<SubscriptionFetchResult> => {
     try {
+      const { data: authData } = await getSupabase().auth.getSession();
+      if (!authData.session?.access_token) {
+        return { ok: false, isNetwork: false, message: "not_authenticated" };
+      }
       const { data, error } = await getSupabase().rpc("get_owner_subscription");
       if (error) {
         const message = error.message ?? "subscription_fetch_failed";
@@ -207,6 +211,11 @@ export async function ensureSubscriptionRecord(ownerId?: string | null): Promise
   }
 
   ensureSubscriptionInFlight = (async () => {
+    const { data: authData } = await getSupabase().auth.getSession();
+    if (!authData.session?.access_token) {
+      logger.warn("subscription.ensure_skipped_no_session");
+      return;
+    }
     const { error } = await getSupabase().rpc("ensure_subscription_for_owner");
     if (error) {
       logger.error("subscription.ensure_failed", { message: error.message });
@@ -324,6 +333,24 @@ export async function activateDeviceWithLicense(
   }
 
   const row = data as Record<string, unknown>;
+  if (row.ok) {
+    logger.audit("device.activated", {
+      code: typeof row.code === "string" ? row.code : code.trim().toUpperCase(),
+      menuType: menuType ?? null,
+    });
+    void import("@/services/core/platform-security")
+      .then(({ writeClientAuditLog }) =>
+        writeClientAuditLog("device.activated", {
+          code: typeof row.code === "string" ? row.code : code.trim().toUpperCase(),
+          menu_type: menuType ?? null,
+          device_name: deviceName ?? null,
+          source: "activate_device_with_license",
+        }),
+      )
+      .catch(() => {
+        /* ignore */
+      });
+  }
   return {
     ok: Boolean(row.ok),
     code: typeof row.code === "string" ? row.code : undefined,

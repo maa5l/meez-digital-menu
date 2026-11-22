@@ -7,6 +7,7 @@ type Props = {
   lang: MenuLang;
   accentColor: string;
   fallbackTextColor: string;
+  themeCardColor?: string;
   featured?: boolean;
   cardHeight?: number;
   cardWidth?: number;
@@ -19,6 +20,7 @@ const CropCarouselCard = ({
   lang,
   accentColor,
   fallbackTextColor,
+  themeCardColor,
   featured,
   cardHeight,
   cardWidth,
@@ -29,6 +31,7 @@ const CropCarouselCard = ({
     lang={lang}
     accentColor={accentColor}
     fallbackTextColor={fallbackTextColor}
+    themeCardColor={themeCardColor}
     featured={featured}
     variant="carousel"
     onClick={onClick}

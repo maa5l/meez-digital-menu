@@ -16,7 +16,27 @@ import {
   shouldUseVenueDatabase,
 } from "@/services/venue/venue-supabase.service";
 import { parseVenueDataSafe } from "@/lib/venue-schema";
-import { compactVenueForLocalStorage } from "@/lib/venue-storage-compact";
+import {
+  compactVenueForLocalStorage,
+  stripVenueImagesForStorage,
+} from "@/lib/venue-storage-compact";
+import { idbGetVenue, idbSetVenue } from "@/lib/venue-idb";
+
+/** كاش جلسة — يمنع فقدان المنيو على الجوال إذا فشل localStorage (حجم الصور) */
+const venueMemoryCache = new Map<string, VenueData>();
+
+function rememberVenueInMemory(userId: string, data: VenueData): void {
+  venueMemoryCache.set(userId, data);
+}
+
+function readVenueFromMemory(userId: string): VenueData | null {
+  return venueMemoryCache.get(userId) ?? null;
+}
+
+function venueContentScore(data: VenueData | null | undefined): number {
+  if (!data || data.version !== 1) return 0;
+  return data.products.length + data.categories.length + data.crops.length;
+}
 
 const VENUE_PREFIX = "meez:venue:";
 const DEVICE_OWNER_PREFIX = STORAGE_KEYS.DEVICE_OWNER_PREFIX;
@@ -73,6 +93,23 @@ export function isVenueEffectivelyEmpty(data: VenueData): boolean {
   );
 }
 
+function productHasImage(p: { image?: string; imageLandscape?: string; imagePortrait?: string }): boolean {
+  for (const value of [p.imageLandscape, p.imagePortrait, p.image]) {
+    if (typeof value === "string" && value.trim().length > 8) {
+      const v = value.trim();
+      if (v.startsWith("data:image") || v.startsWith("http://") || v.startsWith("https://") || v.startsWith("blob:")) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/** عدد المنتجات التي لها صورة — لمنع رفع نسخة localStorage المجرّدة فوق السحابة */
+export function countVenueProductImages(data: VenueData): number {
+  return (data.products ?? []).filter(productHasImage).length;
+}
+
 function venueKey(userId: string): string {
   return `${VENUE_PREFIX}${userId}`;
 }
@@ -84,6 +121,20 @@ function normalizeVenue(stored: VenueData): VenueData {
 export function rememberOwnerUserId(userId: string): void {
   if (!userId) return;
   setLocalJson(STORAGE_KEYS.LAST_VENUE_OWNER, userId);
+}
+
+export function clearLastVenueOwner(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(STORAGE_KEYS.LAST_VENUE_OWNER);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** يمسح كاش الذاكرة حتى لا تومض منيو حساب سابق بعد الخروج/تبديل الحساب */
+export function clearVenueMemoryCache(): void {
+  venueMemoryCache.clear();
 }
 
 /** جلسة حالية أو آخر مالك — للمعاينة في تبويب جديد */
@@ -98,14 +149,30 @@ export function loadVenueData(userId: string): VenueData {
     freeLocalStorageFromHeavyDeviceSnapshots();
     deviceSnapshotCleanupDone = true;
   }
+  const memory = readVenueFromMemory(userId);
   const stored = getLocalJson<VenueData | null>(venueKey(userId), null);
-  if (!stored || stored.version !== 1) {
-    return createEmptyVenueData();
+  const storedNorm =
+    stored?.version === 1 ? compactVenueForLocalStorage(normalizeVenue(stored)) : null;
+
+  // الذاكرة تفوز إذا فيها محتوى/صور أكثر (بعد سحب سحابي فشل حفظه في localStorage)
+  if (
+    venueContentScore(memory) > venueContentScore(storedNorm) ||
+    (memory &&
+      storedNorm &&
+      countVenueProductImages(memory) > countVenueProductImages(storedNorm))
+  ) {
+    return memory!;
   }
-  const normalized = normalizeVenue(stored);
-  const compact = compactVenueForLocalStorage(normalized);
-  setLocalJson(venueKey(userId), compact);
-  return compact;
+  if (storedNorm) {
+    // لا تستبدل ذاكرة فيها صور بنسخة localStorage مجرّدة
+    if (memory && countVenueProductImages(memory) > countVenueProductImages(storedNorm)) {
+      return memory;
+    }
+    rememberVenueInMemory(userId, storedNorm);
+    return storedNorm;
+  }
+  if (memory?.version === 1) return memory;
+  return createEmptyVenueData();
 }
 
 export function setDeviceMenuType(deviceCode: string, menuType: "products" | "crops"): void {
@@ -176,17 +243,51 @@ function saveVenueDataLocal(userId: string, data: VenueData): VenueData {
     ...data,
     updatedAt: new Date().toISOString(),
   });
+  rememberVenueInMemory(userId, payload);
+  void idbSetVenue(userId, payload);
+
   let ok = setLocalJson(venueKey(userId), payload);
   if (!ok) {
     freeLocalStorageFromHeavyDeviceSnapshots();
     ok = setLocalJson(venueKey(userId), payload);
   }
   if (!ok) {
-    throw new Error("storage_quota_exceeded");
+    // الجوال غالباً يمتلئ بسبب Base64 — احفظ نسخة خفيفة حتى لا تختفي الأسماء
+    const light = stripVenueImagesForStorage(payload);
+    ok = setLocalJson(venueKey(userId), light);
+    if (!ok) {
+      logger.warn("venue.storage_quota_memory_only", {
+        userId,
+        products: payload.products.length,
+      });
+      // لا ترمِ خطأ — المنتجات تبقى في الذاكرة + IndexedDB لهذه الجلسة
+    }
   }
   rememberOwnerUserId(userId);
   syncAllDeviceVenueSnapshots(userId, payload);
   return payload;
+}
+
+/** بعد الدخول على الجوال: إن كان localStorage فارغ اسحب من IndexedDB */
+export async function hydrateVenueFromIdbIfNeeded(userId: string): Promise<VenueData> {
+  const current = loadVenueData(userId);
+  const fromIdb = await idbGetVenue(userId);
+  if (!fromIdb || fromIdb.version !== 1 || isVenueEffectivelyEmpty(fromIdb)) {
+    return current;
+  }
+  // استرجع من IDB إذا المحلي فارغ أو بلا صور بينما IDB فيه صور
+  const idbHasRicherImages =
+    countVenueProductImages(fromIdb) > countVenueProductImages(current);
+  if (!isVenueEffectivelyEmpty(current) && !idbHasRicherImages) return current;
+  const normalized = normalizeVenue(fromIdb);
+  rememberVenueInMemory(userId, normalized);
+  // حاول إعادة التعبئة في localStorage (قد تفشل بسبب الحجم — لا مشكلة)
+  try {
+    saveVenueDataLocal(userId, normalized);
+  } catch {
+    rememberVenueInMemory(userId, normalized);
+  }
+  return loadVenueData(userId);
 }
 
 /** بعد حفظ سحابي ناجح — يمنع إعادة جلب JSON كاملاً دون داعٍ */
@@ -203,10 +304,10 @@ export function markVenueRemoteSynced(userId: string, updatedAt: string | null):
 const pendingCloudSave = new Map<string, VenueData>();
 const cloudSaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const cloudSaveInFlight = new Map<string, Promise<void>>();
-const CLOUD_SAVE_DEBOUNCE_MS = 500;
+const CLOUD_SAVE_DEBOUNCE_MS = 1000;
 const CLOUD_SAVE_MAX_ATTEMPTS = 3;
-/** لا يعلق طابور الحفظ إن توقف طلب الاستضافة */
-const CLOUD_SAVE_TIMEOUT_MS = 20_000;
+/** أطول من مهلة Postgres (60s) بقليل — المنيو الكبير يحتاج وقت نقل */
+const CLOUD_SAVE_TIMEOUT_MS = 70_000;
 
 function withTimeout<T>(work: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -240,6 +341,12 @@ function takePendingVenue(userId: string, fallback: VenueData): VenueData {
   return latest;
 }
 
+function isTransientCloudSaveError(message: string): boolean {
+  return /timeout|busy|57014|canceling statement|cloud_save_timeout|stale_skipped|not_authenticated/i.test(
+    message,
+  );
+}
+
 async function persistVenueToCloud(userId: string, payload: VenueData): Promise<void> {
   let current = payload;
   let lastError: unknown;
@@ -257,13 +364,30 @@ async function persistVenueToCloud(userId: string, payload: VenueData): Promise<
       return;
     } catch (err) {
       lastError = err;
+      const message = err instanceof Error ? err.message : String(err);
       logger.error("venue.cloud_save_async_failed", {
         userId,
         attempt,
-        message: err instanceof Error ? err.message : String(err),
+        message,
       });
+      // busy/timeout: أعد للطابور بدل إعادة ضرب القفل فوراً
+      if (isTransientCloudSaveError(message)) {
+        let retryPayload = takePendingVenue(userId, current);
+        // stale: ارفع updatedAt ثم أعد المحاولة حتى تُكتب المنتجات فعلاً
+        if (/stale_skipped/i.test(message) && !isVenueEffectivelyEmpty(retryPayload)) {
+          retryPayload = saveVenueDataLocal(userId, retryPayload);
+        }
+        pendingCloudSave.set(userId, retryPayload);
+        if (attempt < CLOUD_SAVE_MAX_ATTEMPTS) {
+          await new Promise((r) => setTimeout(r, 1200 * attempt));
+          continue;
+        }
+        // اتركه معلّقاً ليُفرَّغ لاحقاً بدل إشعار فشل مزعج
+        scheduleCloudVenueSave(userId, pendingCloudSave.get(userId) ?? retryPayload);
+        return;
+      }
       if (attempt < CLOUD_SAVE_MAX_ATTEMPTS) {
-        await new Promise((r) => setTimeout(r, 400 * attempt));
+        await new Promise((r) => setTimeout(r, 600 * attempt));
       }
     }
   }
@@ -289,6 +413,19 @@ function pumpCloudVenueSave(userId: string): Promise<void> {
 }
 
 function scheduleCloudVenueSave(userId: string, payload: VenueData): void {
+  // لا ترفع منشأة فارغة أبداً — كانت تمسح منتجات السحابة بعد دخول من جهاز جديد وفشل السحب
+  if (isVenueEffectivelyEmpty(payload)) {
+    logger.warn("venue.skip_empty_cloud_save", { userId });
+    return;
+  }
+  // لا ترفع منيو فيها منتجات بلا صور (نسخة ضغط الجوال) — كانت تمسح صور السحابة
+  if (payload.products.length > 0 && countVenueProductImages(payload) === 0) {
+    logger.warn("venue.skip_imageless_cloud_save", {
+      userId,
+      products: payload.products.length,
+    });
+    return;
+  }
   pendingCloudSave.set(userId, payload);
   const existing = cloudSaveTimers.get(userId);
   if (existing) clearTimeout(existing);
@@ -380,15 +517,29 @@ function shouldKeepLocalOverRemote(local: VenueData, remote: VenueData): boolean
   // محلي فارغ (غالباً بعد مسح الكاش أو أول تحميل) لا يفوز على سحابة فيها بيانات
   // حتى لو كان updatedAt أحدث — وإلا يُتجاهل السحب وتختفي التصنيفات/المنتجات بعد إعادة الدخول
   if (isVenueEffectivelyEmpty(local) && !isVenueEffectivelyEmpty(remote)) return false;
+  const localImages = countVenueProductImages(local);
+  const remoteImages = countVenueProductImages(remote);
+  // نسخة الجوال بدون صور لا تفوز على سحابة فيها صور
+  if (localImages === 0 && remoteImages > 0) return false;
   if (isLocalVenueNewer(local, remote)) return true;
   if (!isVenueEffectivelyEmpty(local) && isVenueEffectivelyEmpty(remote)) return true;
+  if (localImages > remoteImages) return true;
   return false;
 }
 
 async function pushLocalVenueIfNeeded(userId: string, local: VenueData): Promise<void> {
   if (isVenueEffectivelyEmpty(local)) return;
+  if (local.products.length > 0 && countVenueProductImages(local) === 0) {
+    logger.warn("venue.skip_imageless_push", { userId, products: local.products.length });
+    return;
+  }
   const latest = readLatestLocalVenue(userId);
-  pendingCloudSave.set(userId, isLocalVenueNewer(latest, local) ? latest : local);
+  const candidate = isLocalVenueNewer(latest, local) ? latest : local;
+  if (candidate.products.length > 0 && countVenueProductImages(candidate) === 0) {
+    logger.warn("venue.skip_imageless_push_latest", { userId });
+    return;
+  }
+  pendingCloudSave.set(userId, candidate);
   try {
     await pumpCloudVenueSave(userId);
   } catch (err) {
@@ -399,31 +550,59 @@ async function pushLocalVenueIfNeeded(userId: string, local: VenueData): Promise
   }
 }
 
+export type PullVenueOutcome = {
+  venue: VenueData;
+  /** true إذا فشل الطلب الشبكي/الـ RPC (ليس مجرد سحابة فارغة) */
+  pullFailed: boolean;
+  remoteUpdatedAt: string | null;
+};
+
 /** مزامنة من السحابة — يجلب JSON كاملاً فقط عند تغيّر updated_at */
-export async function pullVenueFromCloud(userId: string): Promise<VenueData> {
-  if (!shouldUseVenueDatabase()) return loadVenueData(userId);
+export async function pullVenueFromCloudDetailed(
+  userId: string,
+  force = false,
+): Promise<PullVenueOutcome> {
+  if (!shouldUseVenueDatabase()) {
+    return {
+      venue: loadVenueData(userId),
+      pullFailed: false,
+      remoteUpdatedAt: null,
+    };
+  }
+
+  // جوال: استرجع من IndexedDB قبل السحب إن المحلي فارغ
+  await hydrateVenueFromIdbIfNeeded(userId);
 
   try {
-    const remoteUpdatedAt = await fetchVenueUpdatedAtForOwner(userId);
+    const remoteUpdatedAt = await fetchVenueUpdatedAtForOwner(userId, force);
     const cacheKey = venueRemoteUpdatedKey(userId);
     const known = getRememberedRemoteUpdatedAt(cacheKey);
     const localAfterMeta = readLatestLocalVenue(userId);
 
     if (
+      !force &&
       remoteUpdatedAt &&
       known === remoteUpdatedAt &&
       localAfterMeta.version === 1 &&
       !isVenueEffectivelyEmpty(localAfterMeta)
     ) {
-      return readLatestLocalVenue(userId);
+      return {
+        venue: readLatestLocalVenue(userId),
+        pullFailed: false,
+        remoteUpdatedAt,
+      };
     }
 
-    const remote = await fetchVenueFromDatabase(userId);
+    const remote = await fetchVenueFromDatabase(userId, force);
     const latestLocal = readLatestLocalVenue(userId);
 
     if (!remote || remote.version !== 1) {
       await pushLocalVenueIfNeeded(userId, latestLocal);
-      return readLatestLocalVenue(userId);
+      return {
+        venue: readLatestLocalVenue(userId),
+        pullFailed: false,
+        remoteUpdatedAt,
+      };
     }
 
     const remoteNorm = normalizeVenue(remote);
@@ -431,29 +610,85 @@ export async function pullVenueFromCloud(userId: string): Promise<VenueData> {
     // لا تستبدل محلياً أحدث (يشمل التصنيفات/المنتجات المضافة أثناء السحب)
     if (shouldKeepLocalOverRemote(latestLocal, remoteNorm)) {
       await pushLocalVenueIfNeeded(userId, latestLocal);
-      return readLatestLocalVenue(userId);
+      return {
+        venue: readLatestLocalVenue(userId),
+        pullFailed: false,
+        remoteUpdatedAt,
+      };
     }
 
     // قبل الكتابة فوق التخزين — تحقق مرة أخيرة من تعديلات متزامنة
     const finalLocal = readLatestLocalVenue(userId);
     if (shouldKeepLocalOverRemote(finalLocal, remoteNorm)) {
       await pushLocalVenueIfNeeded(userId, finalLocal);
-      return readLatestLocalVenue(userId);
+      return {
+        venue: readLatestLocalVenue(userId),
+        pullFailed: false,
+        remoteUpdatedAt,
+      };
     }
 
     saveVenueDataLocal(userId, remoteNorm);
     rememberRemoteUpdatedAt(cacheKey, remoteUpdatedAt);
-    return readLatestLocalVenue(userId);
+    return {
+      venue: readLatestLocalVenue(userId),
+      pullFailed: false,
+      remoteUpdatedAt,
+    };
   } catch (err) {
     logger.error("venue.cloud_pull_failed", {
       userId,
       message: err instanceof Error ? err.message : String(err),
     });
-    return readLatestLocalVenue(userId);
+    // فشل السحب لا يمنع رفع المحلي — وإلا المنتجات تبقى على البي سي فقط والجوال فارغ
+    const localOnFail = readLatestLocalVenue(userId);
+    await pushLocalVenueIfNeeded(userId, localOnFail);
+    return {
+      venue: localOnFail,
+      pullFailed: true,
+      remoteUpdatedAt: null,
+    };
   }
 }
 
-/** ينشئ منشأة فارغة عند أول تسجيل — لا بيانات ولا صور */
+/** رفع فوري للمحتوى المحلي إن وُجد — لربط الجوال بنفس منتجات البي سي */
+export async function ensureLocalVenueUploadedToCloud(userId: string): Promise<boolean> {
+  if (!shouldUseVenueDatabase()) return false;
+  let local = readLatestLocalVenue(userId);
+  if (isVenueEffectivelyEmpty(local)) return false;
+  if (local.products.length > 0 && countVenueProductImages(local) === 0) {
+    logger.warn("venue.ensure_upload_skipped_imageless", {
+      userId,
+      products: local.products.length,
+    });
+    return false;
+  }
+  // جدّد updatedAt حتى لا يُرفض الرفع كـ stale أمام سحابة فارغة أحدث
+  local = saveVenueDataLocal(userId, local);
+  pendingCloudSave.set(userId, local);
+  const timer = cloudSaveTimers.get(userId);
+  if (timer) {
+    clearTimeout(timer);
+    cloudSaveTimers.delete(userId);
+  }
+  try {
+    await pumpCloudVenueSave(userId);
+    return true;
+  } catch (err) {
+    logger.error("venue.ensure_upload_failed", {
+      userId,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    return false;
+  }
+}
+
+export async function pullVenueFromCloud(userId: string): Promise<VenueData> {
+  const result = await pullVenueFromCloudDetailed(userId);
+  return result.venue;
+}
+
+/** ينشئ منشأة فارغة محلياً فقط — بدون رفع للسحابة */
 export function initializeVenueForUser(userId: string, venueName?: string): VenueData {
   const existing = getLocalJson<VenueData | null>(venueKey(userId), null);
   if (existing?.version === 1) {
@@ -467,8 +702,9 @@ export function initializeVenueForUser(userId: string, venueName?: string): Venu
       featuredTitle: venueName,
     };
   }
-  saveVenueData(userId, empty);
-  logger.audit("venue.initialized_empty", { userId });
+  // محلي فقط — رفع فارغ كان يمحو منيو السحابة عند فشل السحب بعد تسجيل الدخول
+  saveVenueDataLocal(userId, empty);
+  logger.audit("venue.initialized_empty_local", { userId });
   return empty;
 }
 
@@ -518,16 +754,16 @@ export function getDeviceOwnerUserId(deviceCode: string): string | null {
 
 export function loadVenueForDevice(deviceCode: string): VenueData {
   const code = deviceCode.trim().toUpperCase();
-  const ownerId = getDeviceOwnerUserId(code);
-  if (ownerId) return loadVenueData(ownerId);
-
   const snap = getLocalJson<{ ownerUserId?: string; venue?: VenueData } | null>(
     `${DEVICE_VENUE_PREFIX}${code}`,
     null,
   );
+  // كاش الجهاز أولاً — لا تعرض meez:venue لمالك آخر بالخطأ
   if (snap?.venue?.version === 1) {
     return normalizeVenue(snap.venue);
   }
+  const ownerId = snap?.ownerUserId || getDeviceOwnerUserId(code);
+  if (ownerId) return loadVenueData(ownerId);
   return createEmptyVenueData();
 }
 
@@ -569,9 +805,10 @@ export async function syncVenueForDeviceIfStale(
     if (remote?.version === 1) {
       const normalized = compactVenueForLocalStorage(normalizeVenue(remote));
       const ownerId = getDeviceOwnerUserId(code);
-      if (ownerId) saveVenueDataLocal(ownerId, normalized);
+      // لا تكتب منيو الجهاز فوق meez:venue:{owner} — كانت تسبب وميض منيو ثانية/تلوث كاش المالك
       setLocalJson(`${DEVICE_VENUE_PREFIX}${code}`, {
-        ...(ownerId ? { ownerUserId: ownerId } : { venue: normalized }),
+        ...(ownerId ? { ownerUserId: ownerId } : {}),
+        venue: normalized,
         syncedAt: new Date().toISOString(),
         remoteUpdatedAt: remoteUpdatedAt ?? undefined,
       });

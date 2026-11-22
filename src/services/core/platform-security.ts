@@ -11,9 +11,14 @@ const RPC_TTL_MS = 30_000;
 
 export async function updateVenueDataRpc(
   venue: VenueData,
-): Promise<{ ok: boolean; error?: string; updatedAt?: string }> {
+): Promise<{ ok: boolean; error?: string; updatedAt?: string; busy?: boolean }> {
   if (!isSupabaseConfigured() || appEnv.useLocalMockAuth) {
     return { ok: true };
+  }
+
+  const { data: authData } = await getSupabase().auth.getSession();
+  if (!authData.session?.access_token) {
+    return { ok: false, error: "not_authenticated" };
   }
 
   const { data, error } = await getSupabase().rpc("update_venue_data", {
@@ -21,8 +26,14 @@ export async function updateVenueDataRpc(
   });
 
   if (error) {
-    logger.error("core.venue_update_failed", { message: error.message });
-    return { ok: false, error: error.message };
+    const message = error.message ?? "";
+    // statement timeout / cancel — لا تعِد كفشل اشتراك
+    if (/statement timeout|57014|canceling statement/i.test(message)) {
+      logger.warn("core.venue_update_timeout", { message });
+      return { ok: false, error: "timeout", busy: true };
+    }
+    logger.error("core.venue_update_failed", { message });
+    return { ok: false, error: message };
   }
 
   if (!data || typeof data !== "object") return { ok: false, error: "invalid_response" };
@@ -33,6 +44,16 @@ export async function updateVenueDataRpc(
       : row.updated_at != null
         ? String(row.updated_at)
         : undefined;
+
+  if (row.error === "busy") {
+    return { ok: false, error: "busy", busy: true, updatedAt };
+  }
+
+  // ok:true + skipped:stale = لم تُكتب المنتجات — لا تعتبره نجاح رفع
+  if (row.skipped === "stale") {
+    logger.warn("core.venue_update_skipped_stale", { updatedAt });
+    return { ok: false, error: "stale_skipped", updatedAt };
+  }
 
   const userId = getSession()?.userId;
   if (userId) invalidateOwnerVenueCache(userId);

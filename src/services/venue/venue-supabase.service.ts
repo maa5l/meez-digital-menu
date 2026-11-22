@@ -48,6 +48,34 @@ export function invalidateDeviceVenueCache(code: string): void {
   invalidateCacheKey(`venue:device:${norm}:updated_at_meta`);
 }
 
+async function waitForOwnerAuthSession(
+  ownerId: string,
+  timeoutMs = 15_000,
+): Promise<boolean> {
+  const supabase = getSupabase();
+  const started = Date.now();
+  let triedRefresh = false;
+  while (Date.now() - started < timeoutMs) {
+    const { data } = await supabase.auth.getSession();
+    const uid = data.session?.user?.id;
+    if (uid === ownerId && data.session?.access_token) return true;
+
+    // جلسة التطبيق موجودة لكن JWT ضائع/منتهي — حاول refresh مرة
+    if (!triedRefresh) {
+      triedRefresh = true;
+      try {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        const refreshedUid = refreshed.session?.user?.id;
+        if (refreshedUid === ownerId && refreshed.session?.access_token) return true;
+      } catch {
+        /* انتظر الحلقة */
+      }
+    }
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  return false;
+}
+
 export async function fetchVenueUpdatedAtForOwner(
   ownerId: string,
   force = false,
@@ -57,6 +85,10 @@ export async function fetchVenueUpdatedAtForOwner(
   return cachedFetch(
     `venue:owner:${ownerId}:updated_at`,
     async () => {
+      const ready = await waitForOwnerAuthSession(ownerId);
+      if (!ready) {
+        throw new Error("not_authenticated");
+      }
       const { data, error } = await getSupabase().rpc("get_owner_venue_updated_at");
 
       if (error) {
@@ -80,6 +112,10 @@ export async function fetchVenueFromDatabase(
   return cachedFetch(
     `venue:owner:${ownerId}:full`,
     async () => {
+      const ready = await waitForOwnerAuthSession(ownerId);
+      if (!ready) {
+        throw new Error("not_authenticated");
+      }
       const { data, error } = await getSupabase().rpc("get_owner_venue");
 
       if (error) {
@@ -234,14 +270,9 @@ export async function fetchVenueUpdatedAtForDevice(
 export async function saveVenueToDatabase(ownerId: string, venue: VenueData): Promise<void> {
   if (!shouldUseVenueDatabase()) return;
 
-  const session = await Promise.race([
-    getSupabase().auth.getSession(),
-    new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error("auth_session_timeout")), 8_000);
-    }),
-  ]);
-  if (session.data.session?.user?.id !== ownerId) {
-    throw new Error("owner_mismatch");
+  const ready = await waitForOwnerAuthSession(ownerId, 8_000);
+  if (!ready) {
+    throw new Error("not_authenticated");
   }
 
   const { updateVenueDataRpc } = await import("@/services/core/platform-security");
@@ -250,6 +281,9 @@ export async function saveVenueToDatabase(ownerId: string, venue: VenueData): Pr
 
   if (!result.ok) {
     const msg = result.error ?? "venue_update_denied";
+    if (result.busy || msg === "busy" || msg === "timeout") {
+      throw new Error(msg === "timeout" ? "timeout" : "busy");
+    }
     logger.error("venue.save_failed", { ownerId, message: msg });
     throw new Error(msg);
   }

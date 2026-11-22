@@ -28,22 +28,28 @@ export function AdminProtectedRoute({ children, minRole = "support" }: Props) {
     let cancelled = false;
 
     const load = async () => {
-      if (!isAuthenticated()) {
-        if (!cancelled) {
-          setAdmin(null);
-          setReady(true);
+      try {
+        if (!isAuthenticated()) {
+          if (!cancelled) {
+            setAdmin(null);
+          }
+          return;
         }
-        return;
-      }
 
-      if (isSupabaseConfigured() && !appEnv.useLocalMockAuth) {
-        await getActiveSession();
-      }
+        if (isSupabaseConfigured() && !appEnv.useLocalMockAuth) {
+          try {
+            await getActiveSession();
+          } catch {
+            // الجلسة المحلية كافية لعرض لوحة الإدارة إن وُجدت صلاحية
+          }
+        }
 
-      const profile = await fetchMyAdminProfile();
-      if (!cancelled) {
-        setAdmin(profile);
-        setReady(true);
+        const profile = await fetchMyAdminProfile();
+        if (!cancelled) {
+          setAdmin(profile);
+        }
+      } finally {
+        if (!cancelled) setReady(true);
       }
     };
 

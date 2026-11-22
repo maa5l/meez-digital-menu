@@ -28,7 +28,10 @@
     "supabase:db:pull": "supabase db pull",
     "supabase:types": "supabase gen types typescript --project-id zzrbqiqygiqwudozexis > src/lib/supabase/database.types.ts",
     "supabase:auth:push": "node scripts/push-auth-email-templates.mjs",
+    "supabase:auth:brevo": "node scripts/push-brevo-smtp-and-auth-templates.mjs",
     "supabase:config:push": "supabase config push --project-ref zzrbqiqygiqwudozexis --yes",
+    "notifications:seed": "node scripts/seed-brevo-notification-templates.mjs",
+    "notifications:seed:sql": "node scripts/seed-brevo-notification-templates.mjs --sql",
     "test:otp": "node scripts/test-otp-send.mjs"
   },
   "dependencies": {

@@ -29,7 +29,7 @@ const LinkDevice = () => {
 
   const openActivate = () => {
     if (!canAdd) {
-      toast.error(`وصلت للحد الأقصى (${max} شاشة)`);
+      toast.error(`وصلت للحد الأقصى: ${max} شاشة`);
       return;
     }
     navigate(ROUTES.dashboardDevices, { state: { openActivate: true } });
@@ -71,7 +71,7 @@ const LinkDevice = () => {
           </div>
 
           <ol className="text-sm text-muted-foreground space-y-3 list-decimal list-inside">
-            <li>ثبّت تطبيق الكشك على الجهاز (أو افتح صفحة الربط في المتصفح).</li>
+            <li>ثبّت تطبيق الكشك على الجهاز، أو افتح صفحة الربط في المتصفح.</li>
             <li>انتظر حتى يظهر الرمز بصيغة QM-XXXX على الشاشة.</li>
             <li>من لوحة التحكم → الأجهزة → تفعيل جهاز — أدخل نفس الرمز.</li>
           </ol>
@@ -84,7 +84,7 @@ const LinkDevice = () => {
           <div className="flex flex-wrap gap-2">
             <Button variant="hero" size="lg" onClick={openActivate} disabled={!canAdd}>
               <Plus className="w-5 h-5" />
-              تفعيل جهاز (أدخل رمز الشاشة)
+              تفعيل جهاز — أدخل رمز الشاشة
             </Button>
             <Button variant="outline" asChild>
               <Link to={ROUTES.dashboardDevices}>← قائمة الأجهزة</Link>

@@ -1,9 +1,13 @@
--- إعداد حساب owner@meez.app: تأكيد البريد + تجربة 7 أيام + أدمن
--- نفّذ في Supabase SQL Editor بعد التسجيل
+-- إعداد حساب owner@meez.app: تأكيد البريد + إعادة كلمة المرور + تجربة 7 أيام + أدمن
+-- نفّذ في Supabase SQL Editor
+-- كلمة المرور بعد التنفيذ: MeezOwner2026!
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
 DO $$
 DECLARE
   v_email TEXT := 'owner@meez.app';
+  v_password TEXT := 'MeezOwner2026!';
   v_user_id UUID;
   v_now TIMESTAMPTZ := NOW();
 BEGIN
@@ -17,8 +21,39 @@ BEGIN
   END IF;
 
   UPDATE auth.users
-  SET email_confirmed_at = v_now, updated_at = v_now
+  SET
+    encrypted_password = extensions.crypt(v_password, extensions.gen_salt('bf')),
+    email_confirmed_at = COALESCE(email_confirmed_at, v_now),
+    updated_at = v_now,
+    -- GoTrue يرفض NULL في أعمدة التوكن → Database error querying schema
+    confirmation_token = COALESCE(confirmation_token, ''),
+    recovery_token = COALESCE(recovery_token, ''),
+    email_change_token_new = COALESCE(email_change_token_new, ''),
+    email_change = COALESCE(email_change, ''),
+    email_change_token_current = COALESCE(email_change_token_current, ''),
+    phone_change_token = COALESCE(phone_change_token, ''),
+    reauthentication_token = COALESCE(reauthentication_token, ''),
+    phone_change = COALESCE(phone_change, '')
   WHERE id = v_user_id;
+
+  -- تأكد من وجود هوية email (بدونها يفشل تسجيل الدخول أحياناً)
+  INSERT INTO auth.identities (
+    id, user_id, provider_id, identity_data, provider,
+    last_sign_in_at, created_at, updated_at
+  )
+  SELECT
+    gen_random_uuid(),
+    v_user_id,
+    v_user_id::text,
+    jsonb_build_object('sub', v_user_id::text, 'email', v_email, 'email_verified', true),
+    'email',
+    v_now,
+    v_now,
+    v_now
+  WHERE NOT EXISTS (
+    SELECT 1 FROM auth.identities
+    WHERE user_id = v_user_id AND provider = 'email'
+  );
 
   INSERT INTO public.profiles (id, email, full_name, venue_name, role)
   SELECT
@@ -58,5 +93,5 @@ BEGIN
     is_active = true,
     updated_at = v_now;
 
-  RAISE NOTICE '✓ تم: تأكيد البريد + تجربة 7 أيام + super_admin لـ %', v_email;
+  RAISE NOTICE '✓ تم: كلمة المرور = MeezOwner2026! + تجربة 7 أيام + super_admin لـ %', v_email;
 END $$;

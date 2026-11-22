@@ -58,3 +58,13 @@ export function compactVenueForLocalStorage(data: VenueData): VenueData {
     crops: crops.map(compactCrop),
   };
 }
+
+/** ملاذ أخير للجوال عند امتلاء localStorage — يحفظ الأسماء/الأسعار بدون Base64 */
+export function stripVenueImagesForStorage(data: VenueData): VenueData {
+  const base = compactVenueForLocalStorage(data);
+  return JSON.parse(
+    JSON.stringify(base, (_key, value) =>
+      typeof value === "string" && value.startsWith("data:image") ? "" : value,
+    ),
+  ) as VenueData;
+}
