@@ -1,6 +1,7 @@
 import MenuHeaderChromeRow from "@/components/menu/MenuHeaderChromeRow";
 import { useMenuLayoutMetrics } from "@/hooks/useMenuLayoutMetrics";
 import {
+  getBoardHeaderMetrics,
   getCalorieDisclaimerColor,
   getEffectiveHeaderHeight,
   headerHideTransition,
@@ -33,6 +34,7 @@ const MenuVenueHeader = ({
   chromeBottomLeft,
 }: Props) => {
   const layout = useMenuLayoutMetrics();
+  const board = getBoardHeaderMetrics(layout.viewportWidth);
   const headerBg = customization.headerBgColor ?? `${palette.textColor}18`;
   const headerFg = customization.headerTextColor ?? palette.textColor;
   const bannerHasDesign = Boolean(customization.headerImage?.trim());
@@ -56,7 +58,7 @@ const MenuVenueHeader = ({
             ? "translate-y-0 opacity-100"
             : "-translate-y-full opacity-0 pointer-events-none invisible"),
       )}
-      style={{
+        style={{
         height: headerHeight,
         background: headerBg,
         color: headerFg,
@@ -75,10 +77,15 @@ const MenuVenueHeader = ({
 
       <div
         className={cn(
-          "relative z-10 flex h-full min-h-0 flex-col px-4 py-1.5 md:px-6 md:py-2",
+          "relative z-10 flex h-full min-h-0 flex-col",
           bannerHasDesign ? "gap-0" : "gap-1",
           bannerSrc && "pointer-events-none",
         )}
+        style={{
+          paddingTop: board.paddingTop,
+          paddingBottom: board.paddingBottom,
+          paddingInline: board.paddingInline,
+        }}
       >
         <div className={cn("shrink-0", bannerSrc && "pointer-events-auto")}>
           <MenuHeaderChromeRow
@@ -86,9 +93,10 @@ const MenuVenueHeader = ({
             textColor={calorieColor}
             headerFg={headerFg}
             customization={customization}
-            logoSizePx={layout.logoSizePx}
+            logoSizePx={board.logoPx}
             overlay={Boolean(bannerSrc)}
             trailing={trailing}
+            layout="board"
           />
         </div>
 

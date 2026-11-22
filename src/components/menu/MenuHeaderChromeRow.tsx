@@ -17,6 +17,8 @@ type Props = {
   className?: string;
   /** عنصر إضافي بجانب الشعار — مثل زر اللغة */
   trailing?: React.ReactNode;
+  /** لوحة المنيو: صف للشعار والسعرات، وصف لشريط الحساسية */
+  layout?: "inline" | "board";
 };
 
 function MenuHeaderLogo({
@@ -53,6 +55,7 @@ const MenuHeaderChromeRow = ({
   overlay = false,
   className,
   trailing,
+  layout = "inline",
 }: Props) => {
   /** موضع ثابت على الشاشة — لا يتأثر بتبديل اللغة */
   const logoOnRight = (customization.logoSide ?? "right") === "right";
@@ -61,6 +64,7 @@ const MenuHeaderChromeRow = ({
       lang={lang}
       textColor={textColor}
       merged
+      board={layout === "board"}
       align={logoOnRight ? "left" : "right"}
     />
   );
@@ -82,16 +86,49 @@ const MenuHeaderChromeRow = ({
   const showAllergens = resolveHeaderAllergenIds(customization.headerAllergens).length > 0;
 
   const allergens = showAllergens ? (
-    <div className="flex min-w-0 justify-center overflow-hidden px-1">
+    <div className={cn("flex min-w-0", layout === "board" ? "w-full" : "justify-center overflow-hidden px-1")}>
       <MenuHeaderAllergenLegend
         allergenIds={customization.headerAllergens}
         color={allergenColor}
         lang={lang}
+        board={layout === "board"}
       />
     </div>
   ) : null;
 
-  const calorieSlot = <div className="w-[9.4rem] shrink-0 lg:w-[14.2rem]">{calories}</div>;
+  const calorieSlot = (
+    <div className={cn("shrink-0", layout === "inline" && "w-[9.4rem] lg:w-[14.2rem]")}>{calories}</div>
+  );
+
+  if (layout === "board") {
+    return (
+      <div
+        key={lang}
+        className={cn(
+          "flex w-full flex-col gap-[18px]",
+          menuChromeMotion,
+          "animate-in fade-in duration-300 fill-mode-both motion-reduce:animate-none",
+          className,
+        )}
+        dir="ltr"
+      >
+        <div className="flex min-h-[4.875rem] w-full items-center justify-between gap-4">
+          {logoOnRight ? (
+            <>
+              {calorieSlot}
+              <div className="shrink-0">{logo}</div>
+            </>
+          ) : (
+            <>
+              <div className="shrink-0">{logo}</div>
+              {calorieSlot}
+            </>
+          )}
+        </div>
+        {allergens}
+      </div>
+    );
+  }
 
   return (
     <div

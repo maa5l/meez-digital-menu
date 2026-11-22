@@ -1,3 +1,4 @@
+import { resolveHeaderAllergenIds } from "@/constants/allergens";
 import type { MenuHeaderCustomization } from "@/types/domain";
 import {
   DEFAULT_MENU_LAYOUT_METRICS,
@@ -11,8 +12,27 @@ const COMPACT_TITLE_BLOCK_PX = 40;
 
 type HeaderHeightInput = Pick<
   MenuHeaderCustomization,
-  "headerImage" | "headerImageAspectRatio" | "featuredTitle" | "featuredSubtitle"
+  "headerImage" | "headerImageAspectRatio" | "featuredTitle" | "featuredSubtitle" | "headerAllergens"
 >;
+
+/** مقاسات هيدر اللوحة — تطابق المواصفات عند عرض 1500 وتتصاغر على الشاشات الأضيق */
+export function getBoardHeaderMetrics(viewportWidth: number) {
+  const width = Math.max(320, viewportWidth);
+  return {
+    paddingTop: Math.round(Math.min(40, Math.max(16, width * 0.0267))),
+    paddingBottom: Math.round(Math.min(30, Math.max(16, width * 0.02))),
+    paddingInline: Math.round(Math.min(64, Math.max(20, width * 0.0427))),
+    logoPx: Math.round(Math.min(96, Math.max(64, width * 0.064))),
+    rowPx: Math.round(Math.min(100, Math.max(78, width * 0.067))),
+  };
+}
+
+function boardChromeMinPx(viewportWidth: number, hasAllergens: boolean): number {
+  const metrics = getBoardHeaderMetrics(viewportWidth);
+  const strip = hasAllergens ? 18 + 64 : 0;
+  const row = Math.max(metrics.rowPx, 112);
+  return metrics.paddingTop + row + strip + metrics.paddingBottom;
+}
 
 const HEADER_HEIGHT_MIN_PX = 72;
 const HEADER_HEIGHT_MAX_VIEWPORT_RATIO = 0.55;
@@ -33,21 +53,25 @@ export function getEffectiveHeaderHeight(
   customization?: HeaderHeightInput,
 ): number {
   const hasBannerImage = Boolean(customization?.headerImage?.trim());
+  let height: number;
   if (!hasBannerImage) {
     const hasSubtitle = Boolean(customization?.featuredSubtitle?.trim());
-    return metrics.compactTopHeight + (hasSubtitle ? COMPACT_TITLE_BLOCK_PX : 0);
+    height = metrics.compactTopHeight + (hasSubtitle ? COMPACT_TITLE_BLOCK_PX : 0);
+  } else {
+    const aspect = customization?.headerImageAspectRatio;
+    if (aspect != null && aspect > 0 && Number.isFinite(aspect)) {
+      height = headerHeightFromAspect(
+        metrics.viewportWidth,
+        aspect,
+        Math.max(metrics.compactTopHeight, HEADER_HEIGHT_MIN_PX),
+      );
+    } else {
+      height = Math.min(metrics.headerHeight, HEADER_IMAGE_SPEC.displayHeight);
+    }
   }
 
-  const aspect = customization?.headerImageAspectRatio;
-  if (aspect != null && aspect > 0 && Number.isFinite(aspect)) {
-    return headerHeightFromAspect(
-      metrics.viewportWidth,
-      aspect,
-      Math.max(metrics.compactTopHeight, HEADER_HEIGHT_MIN_PX),
-    );
-  }
-
-  return Math.min(metrics.headerHeight, HEADER_IMAGE_SPEC.displayHeight);
+  const hasAllergens = resolveHeaderAllergenIds(customization?.headerAllergens).length > 0;
+  return Math.max(height, boardChromeMinPx(metrics.viewportWidth, hasAllergens));
 }
 
 /** @deprecated استخدم getMenuLayoutMetrics — قيمة افتراضية للآيباد أفقي */
