@@ -101,19 +101,19 @@ const MenuHeaderChromeRow = ({
         showAllergens
           ? logoOnRight
             ? "grid-cols-[9.4rem_minmax(0,1fr)_auto] lg:grid-cols-[14.2rem_minmax(0,1fr)_auto]"
-            : "grid-cols-[9.4rem_auto_minmax(0,1fr)] lg:grid-cols-[14.2rem_auto_minmax(0,1fr)]"
+            : "grid-cols-[auto_minmax(0,1fr)_9.4rem] lg:grid-cols-[auto_minmax(0,1fr)_14.2rem]"
           : logoOnRight
             ? "grid-cols-[9.4rem_minmax(0,1fr)] lg:grid-cols-[14.2rem_minmax(0,1fr)]"
-            : "grid-cols-[9.4rem_auto] lg:grid-cols-[14.2rem_auto]",
+            : "grid-cols-[auto_minmax(0,1fr)]",
         menuChromeMotion,
         "animate-in fade-in duration-300 fill-mode-both motion-reduce:animate-none",
         className,
       )}
       dir="ltr"
     >
-      {calorieSlot}
       {logoOnRight ? (
         <>
+          {calorieSlot}
           {allergens}
           <div className="justify-self-end">{logo}</div>
         </>
@@ -121,6 +121,7 @@ const MenuHeaderChromeRow = ({
         <>
           <div className="justify-self-start">{logo}</div>
           {allergens}
+          <div className="justify-self-end">{calorieSlot}</div>
         </>
       )}
     </div>
