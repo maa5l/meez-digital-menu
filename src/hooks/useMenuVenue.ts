@@ -232,7 +232,7 @@ export function useMenuVenue(
     window.addEventListener(MENU_KIOSK_RESET_EVENT, onKioskReset);
 
     const pollMs =
-      !isPreview && deviceCode && shouldUseVenueDatabase() && isMenuKioskContext()
+      !isPreview && deviceCode && shouldUseVenueDatabase()
         ? MENU_VENUE_POLL_MS
         : 0;
     const pollId =

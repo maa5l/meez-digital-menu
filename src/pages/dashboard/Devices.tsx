@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { useVenueData } from "@/hooks/useVenueData";
 import {
+  ensureLocalVenueUploadedToCloud,
   getCurrentUserId,
   getDeviceMenuType,
   linkDeviceToOwner,
@@ -16,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Plus,
+  RefreshCw,
   Copy,
   Trash2,
   MonitorSmartphone,
@@ -78,6 +80,7 @@ const Devices = () => {
   const [menuType, setMenuType] = useState<"products" | "crops">("products");
   const [activationCode, setActivationCode] = useState("");
   const [removingAll, setRemovingAll] = useState(false);
+  const [refreshingDevices, setRefreshingDevices] = useState(false);
 
   useEffect(() => {
     const nav = location.state as ActivateNavState | null;
@@ -282,6 +285,37 @@ const Devices = () => {
     }
   };
 
+  const refreshDevices = async () => {
+    const ownerId = getCurrentUserId();
+    if (!ownerId) {
+      toast.error("سجّل الدخول أولاً");
+      return;
+    }
+    if (!shouldUseVenueDatabase()) {
+      toast.error("الاتصال بالسحابة غير متاح — لا يمكن تحديث الأجهزة");
+      return;
+    }
+    const active = list.filter((d) => d.status === "active" && d.code.trim());
+    if (active.length === 0) {
+      toast.error("لا توجد أجهزة متصلة للتحديث");
+      return;
+    }
+    setRefreshingDevices(true);
+    try {
+      for (const device of active) {
+        refreshDeviceVenueSync(device.code, ownerId);
+      }
+      const sent = await ensureLocalVenueUploadedToCloud(ownerId);
+      if (!sent) {
+        toast.error("تعذّر إرسال التحديث. احفظ المنيو ثم أعد المحاولة.");
+        return;
+      }
+      toast.success("تم إرسال التحديث — الأجهزة تتحدّث بدون فصل");
+    } finally {
+      setRefreshingDevices(false);
+    }
+  };
+
   const copy = (text: string, label = "تم النسخ") => {
     void navigator.clipboard.writeText(text);
     toast.success(label);
@@ -303,6 +337,16 @@ const Devices = () => {
           : "أدر الشاشات المفعّلة واربط أجهزة جديدة بكود التحقق"
       }
       action={
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="lg"
+            disabled={!cloudReady || refreshingDevices || list.every((d) => d.status !== "active")}
+            onClick={() => void refreshDevices()}
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshingDevices ? "animate-spin" : ""}`} />
+            تحديث الأجهزة
+          </Button>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button variant="hero" size="lg" disabled={!canAddScreen || !cloudReady}>
@@ -395,6 +439,7 @@ const Devices = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       }
     >
       {!cloudReady && (
